@@ -1,15 +1,23 @@
 #include "reasoner/substitution.hh"
 #include "utils/gdl/variable.hh"
 #include "utils/gdl/term.hh"
+#include <string.h>
 
 namespace Ares
 {
     std::size_t VarHasher::operator() (const Variable* x) const{
-        return std::hash<std::string>()(x->getName());
+        const char * name = x->getName();
+        unsigned long hash = 5381;
+        int c;
+
+        while ( (c = *name++))
+            hash = ((hash << 5) + hash) + c;
+
+        return hash;
     }
     
     bool VarEqual::operator()(const Variable *v1, const Variable *v2) const{
-        return v1->getName() == v2->getName();
+        return strcasecmp(v1->getName(),v2->getName()) == 0;
     }
     
     Substitution Substitution::emptySub;
@@ -46,7 +54,7 @@ namespace Ares
         //Add new mappings not present in this substitution.
         for (auto &it : sub.mappping)
             if(this->mappping.find(it.first) == this->mappping.end())
-                this->mappping[it.first] = it.second;
+                this->mappping[it.first] = (*it.second)(emptySub);
     }   
 
     Substitution::~Substitution(){

@@ -11,12 +11,12 @@ namespace Ares
     class Literal
     {
     private:
-        std::string name;
+        char* name;
         bool positive;
         LitBody* _body;
         LitBody& body;
 
-        Literal(std::string n, bool p,uint arity)
+        Literal(char* n, bool p,uint arity)
         :name(n),positive(p),_body(new LitBody(arity)),body(std::ref(*_body))
         {
         }
@@ -25,7 +25,7 @@ namespace Ares
         Literal(const Literal& l) = delete;
         Literal& operator = (const Literal &l) = delete;
 
-        Literal(std::string n,bool p,LitBody* b)
+        Literal(char* n,bool p,LitBody* b)
         :name(n),positive(p),_body(b),body(std::ref(*_body))
         {
         }
@@ -33,6 +33,11 @@ namespace Ares
         explicit operator bool() {
             return positive;
         }
+        Term* getArg(uint i){
+            if( i >= body.size() ) return nullptr;
+            return body[i];
+        }
+
         uint getArity(){return body.size();}
 
         bool isGround(){
@@ -60,14 +65,21 @@ namespace Ares
             }
             return instance;
         }
+        char* getName(){return name;}
         ~Literal();
     };
     Literal::~Literal(){
+        /**
+         * Assuming a term is unique to a literal
+         * TODO: Check if a term could be shared between literals
+         */ 
         for (auto &t : body)
             if(t->deleteable)
                 delete t;
 
         delete _body;
+        delete name;
+        free(name);
         _body = nullptr;
     }
 } // namespace Ares

@@ -3,6 +3,9 @@
 
 #include "reasoner/substitution.hh"
 #include "utils/gdl/variable.hh"
+#include <mutex>
+#include <cmath>
+#include <sstream>
 
 namespace Ares
 {

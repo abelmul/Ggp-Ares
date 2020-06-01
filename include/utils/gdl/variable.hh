@@ -9,8 +9,12 @@ namespace Ares
     {
 
     public:
-        Variable(std::string name):Term(name)
+        Variable(char* name):Term(name)
         {
+            type = VAR;
+        }
+        bool operator ==(const Variable& y) const{
+            return strcasecmp(name,y.name) == 0; 
         }
         /**
          * Apply Substitution sub on this variable, return its replacement if bound 
@@ -26,14 +30,12 @@ namespace Ares
         virtual bool isGround(){
             return false;
         }
-        //Used for resolving hash collisions in Substitutions.
-        bool operator ==(const Variable &y)const{
-            return y.name == name;
-        }
         virtual std::string toString(){
             std::ostringstream stringStream;
             stringStream << name;
-            // stringStream << name << "[" << this <<"]";
+            #if DEBUG_ARES
+            stringStream << "[" << this <<"]";
+            #endif
             return stringStream.str();
         }
     };

@@ -16,22 +16,27 @@ namespace Ares
         FnBody& body;
 
         //Create a function with an empty body, used only during instantiation.
-        Function(std::string n,uint arity):
+        Function(char* n,uint arity):
         Term(n,true),_body(new FnBody(arity)),body(ref(*_body))
         {
+            type = FN;
         }
 
     public:
         //create an initialized function
-        Function(std::string n,FnBody* _b)
+        Function(char* n,FnBody* _b)
         :Term(n,true),_body(_b),body(ref(*_body))
         {
+            type = FN;
         }
         
         uint getArity(){
             return body.size();
         }
-        
+        Term* getArg(uint i){
+            if( i>= body.size()) return nullptr;
+            return body[i];
+        }
         virtual bool isGround(){
             bool ground = true;
             for (Term* arg : body)
@@ -68,7 +73,9 @@ namespace Ares
                 sep = ",";
             }
             stringStream << ")";
-            // stringStream << "[" << this <<"]";
+            #if DEBUG_ARES
+            stringStream << "[" << this <<"]";
+            #endif
             s.append(stringStream.str());
             return s;
         }

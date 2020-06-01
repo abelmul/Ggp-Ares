@@ -2,22 +2,26 @@
 #define TERM_HH
 
 #include <string>
+#include <string.h>
 #include <vector>
 #include <iostream>
+
 #include <sstream>
 #include "reasoner/substitution.hh"
 
 namespace Ares
 {
+    enum Type {VAR,CONST,FN};
     //Variables, functions, constants all inherit from this abstract class.
     class Term
     {
     protected:
-        std::string name;
+        char* name;
+        Type type;
 
     public:
-        Term(std::string n):name(n){}
-        Term(std::string n,bool d):name(n),deleteable(d){}
+        Term(char* n):name(n){}
+        Term(char* n,bool d):name(n),deleteable(d){}
         /**
          * Use Term.operator()(Substitution sub) to create a deep clone.
          * Protect against accidental copying,assignment, and return by value.
@@ -32,12 +36,18 @@ namespace Ares
          */
         virtual Term* operator ()(Substitution &sub,bool inPlace=false) = 0;
         virtual bool isGround() = 0;
-        std::string getName() const {return name;}
+        char* getName() const {return name;}
+        Type getType(){return type;}
         virtual std::string toString() = 0;
 
         bool deleteable = false;
-        ~Term(){}
-    };  
+        virtual ~Term(){
+            free(name);
+        }
+    };
+    #define isVar(t)  (t.getType() == VAR)
+    #define isConst(t)  (t.getType() == CONST)
+    #define isFn(t)  (t.getType() == FN)
 } // namespace Ares
 
 #endif
