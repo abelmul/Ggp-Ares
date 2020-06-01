@@ -7,6 +7,12 @@ namespace Ares
     std::size_t VarHasher::operator() (const Variable* x) const{
         return std::hash<std::string>()(x->getName());
     }
+    
+    bool VarEqual::operator()(const Variable *v1, const Variable *v2) const{
+        return v1->getName() == v2->getName();
+    }
+    
+    Substitution Substitution::emptySub;
 
     bool  Substitution::bind(Variable* x, Term* t){
         //This variable has already been bound!
@@ -20,7 +26,7 @@ namespace Ares
         return mappping[x];
     }
 
-    bool Substitution::contains(Variable* x){
+    bool Substitution::isBound(Variable* x){
         return mappping.find(x) != mappping.end();
     }
 

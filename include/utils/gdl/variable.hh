@@ -17,8 +17,8 @@ namespace Ares
          * otherwise return self.
          */
         virtual Term* operator ()(Substitution &sub,bool inPlace=false){
-            if( sub.contains(this) )
-                return this;
+            if( sub.isBound(this) )
+                return (*sub[this])(EMPTY_SUB); //Return a new instance of the term its bound to
 
             return this;
         }
@@ -29,6 +29,12 @@ namespace Ares
         //Used for resolving hash collisions in Substitutions.
         bool operator ==(const Variable &y)const{
             return y.name == name;
+        }
+        virtual std::string toString(){
+            std::ostringstream stringStream;
+            stringStream << name;
+            // stringStream << name << "[" << this <<"]";
+            return stringStream.str();
         }
     };
     

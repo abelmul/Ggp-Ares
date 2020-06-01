@@ -2,6 +2,7 @@
 #define CONST_HH
 
 #include "utils/gdl/term.hh"
+#include <iostream>
 
 namespace Ares
 {
@@ -14,6 +15,12 @@ namespace Ares
         }
         virtual bool isGround(){
             return true;
+        }
+        virtual std::string toString(){
+            std::ostringstream stringStream;
+            stringStream << name;
+            // stringStream << name << "[" << this <<"]";
+            return stringStream.str();
         }
     };
     

@@ -6,6 +6,7 @@
 
 namespace Ares
 {
+
     class Variable;
     class Term;
     //Used in Substitutions to index using a variable
@@ -13,8 +14,11 @@ namespace Ares
     {
         std::size_t operator() (const Variable* x) const;
     };
-
-    typedef std::unordered_map<Variable*,Term*,VarHasher> Mapping;
+    struct VarEqual
+    {
+        bool operator()(const Variable *v1, const Variable *v2) const;
+    };
+    typedef std::unordered_map<Variable*,Term*,VarHasher,VarEqual> Mapping;
 
     class Substitution
     {
@@ -23,19 +27,27 @@ namespace Ares
         Mapping mappping;
 
     public:
+        static Substitution emptySub;
         bool bind(Variable* x, Term* t);
         //Overload the indexing operator, to get the underlying mapping        
         Term* operator[](Variable* x);
 
-        bool contains(Variable* x);
-
-        //Overload the += operator for substitution composition.
-        //θ:= {X1/s1,...,Xm/sm}
-        //σ:= {Y1/t1,...,Yn/tn}
-        //θσ= {X1/s1σ,...,Xm/smσ,Y1/t1,...,Yk/tn} 
-        //k<=n, where Each Yi distinct from Xj
+        /**
+         * Check if this variable is bound
+         */ 
+        bool isBound(Variable* x);
+        /**
+         * Overload the += operator for substitution composition.
+         * θ:= {X1/s1,...,Xm/sm}
+         * σ:= {Y1/t1,...,Yn/tn}
+         * Then the composition θσ is:
+         * θσ= {X1/s1σ,...,Xm/smσ,Y1/t1,...,Yk/tn} 
+         * k<=n, where Each Yi distinct from Xj 
+         */
         void operator +=(Substitution& sub);
     };
-
+    
+    #define EMPTY_SUB Substitution::emptySub
+    typedef Substitution Context;
 } // namespace Ares
 #endif 

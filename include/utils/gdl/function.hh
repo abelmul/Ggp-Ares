@@ -3,29 +3,35 @@
 
 #include "utils/gdl/term.hh"
 
+
 namespace Ares
 {
+    typedef std::vector<Term*> FnBody;
     //This represents gdl functions
     class Function:public Term
     {
 
     private:
-        std::vector<Term*> body;
+        FnBody* _body = nullptr;
+        FnBody& body;
+
+        //Create a function with an empty body, used only during instantiation.
+        Function(std::string n,uint arity):
+        Term(n,true),_body(new FnBody(arity)),body(ref(*_body))
+        {
+        }
 
     public:
-        Function(std::string n):Term(n){}
-        Function(std::string n,uint arity):Term(n){ body.resize(arity);}
+        //create an initialized function
+        Function(std::string n,FnBody* _b)
+        :Term(n,true),_body(_b),body(ref(*_body))
+        {
+        }
         
         uint getArity(){
             return body.size();
         }
-        bool setArity(uint arity){
-            if(body.size() > 0 ) return false;
-
-            body.resize(arity);
-            return true;
-        }
-
+        
         virtual bool isGround(){
             bool ground = true;
             for (Term* arg : body)
@@ -40,6 +46,7 @@ namespace Ares
          */
         virtual Term* operator ()(Substitution &sub,bool inPlace=false){
             Function* instance = this;
+
             if(!inPlace)
                 instance  = new Function(this->name,getArity());
 
@@ -51,11 +58,22 @@ namespace Ares
             return instance;
         }
 
+        virtual std::string toString(){
+            std::string s = name;
+            std::ostringstream stringStream;
+            s.append("(");
+            std::string sep ="";
+            for (auto &t : body){
+                s.append(sep + t->toString());
+                sep = ",";
+            }
+            stringStream << ")";
+            // stringStream << "[" << this <<"]";
+            s.append(stringStream.str());
+            return s;
+        }
         ~Function();
     };
-    Function::~Function(){
-
-    }
 } // namespace Ares
 
 
