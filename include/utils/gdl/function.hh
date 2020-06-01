@@ -74,6 +74,20 @@ namespace Ares
         }
         ~Function();
     };
+
+    Function::~Function(){
+        /**
+         * Variables and constants are not deleteable
+         * Only one instance of a variable (resp. a constant) exits
+         * and they are managed by the gdlPool
+         */
+        for (auto &t : body) 
+            if(t->deleteable)
+                delete t;
+
+        delete _body;
+        _body = nullptr;
+    }
 } // namespace Ares
 
 

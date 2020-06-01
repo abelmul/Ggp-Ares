@@ -49,4 +49,10 @@ namespace Ares
                 this->mappping[it.first] = it.second;
     }   
 
+    Substitution::~Substitution(){
+        for (auto &it : getMapping())
+            if(it.second->deleteable)
+                delete it.second;
+    }
+
 } // namespace Ares

@@ -32,6 +32,19 @@ namespace Ares
         ~Clause();
     };
     
+    Clause::~Clause()
+    {
+        //A context , and its contents, are unique to a clause
+        for (auto &it : context->getMapping())
+            if(it.second->deleteable)
+                delete it.second;
+        
+        delete context;
+        
+        //A literal is not unique to just a clause, its shared b/n clauses.
+        delete _body;
+    }
+    
 } // namespace Ares
 
 #endif

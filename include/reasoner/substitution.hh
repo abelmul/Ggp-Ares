@@ -45,6 +45,8 @@ namespace Ares
          * k<=n, where Each Yi distinct from Xj 
          */
         void operator +=(Substitution& sub);
+        Mapping getMapping(){return mappping;}
+        ~Substitution();
     };
     
     #define EMPTY_SUB Substitution::emptySub
