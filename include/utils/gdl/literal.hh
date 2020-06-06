@@ -35,30 +35,29 @@ namespace Ares
         }
         Term* getArg(uint i){
             if( i >= body.size() ) return nullptr;
+            
             return body[i];
         }
 
         uint getArity(){return body.size();}
 
         bool isGround(){
-            bool ground = true;
-
-            for (auto &t : body)
-                ground &= t->isGround();
+            for (Term* arg : body)
+                if (!arg->isGround()) return false;
             
-            return ground;
+            return true;
         }
         /**
          * Create an instance of this literal do 
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        Literal* operator ()(Substitution sub,bool inPlace=false){
+        Literal* operator ()(Substitution& sub,bool inPlace=false){
             Literal* instance = this;
             if(!inPlace)
                 instance = new Literal(name,positive,getArity());
             
-            for (uint i=0;i<instance->getArity();i++)
+            for (uint i=0;i < this->getArity(); i++)
             {
                 Term* arg = body[i];
                 instance->body[i] = (*arg)(sub,inPlace);
@@ -66,22 +65,35 @@ namespace Ares
             return instance;
         }
         char* getName(){return name;}
-        ~Literal();
-    };
-    Literal::~Literal(){
+        std::string toString(){
+            std::string s(name);
+            std::ostringstream stringStream;
+            s.append("(");
+            std::string sep ="";
+            for (auto &t : body){
+                s.append(sep + t->toString());
+                sep = ",";
+            }
+            stringStream << ")";
+            #if DEBUG_ARES
+            stringStream << "[" << this <<"]";
+            #endif
+            s.append(stringStream.str());
+            return s;
+        }
         /**
          * Assuming a term is unique to a literal
          * TODO: Check if a term could be shared between literals
          */ 
-        for (auto &t : body)
-            if(t->deleteable)
-                delete t;
+        ~Literal(){
+            for (auto &t : body)
+                if(t->deleteable)
+                    delete t;
 
-        delete _body;
-        delete name;
-        free(name);
-        _body = nullptr;
-    }
+            delete _body;
+            _body = nullptr;
+        }
+    };
 } // namespace Ares
 
 #endif

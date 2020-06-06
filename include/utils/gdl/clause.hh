@@ -17,6 +17,17 @@ namespace Ares
         Context* context = nullptr;
 
     public:
+        /**
+         * Protect against accidental copying, pass by value,...
+         */
+        Clause(const Clause& c) = delete;
+        Clause& operator =(const Clause& c) = delete;
+
+        /**
+         * A clause has this kind of form:
+         * A <- A0 and ... and An
+         * where A0...An are literals(the body), and A is the head
+         */
         Clause(Literal* head, ClauseBody* _b,Context* c)
         :head(head),_body(_b),body(std::ref(*_body)),context(c)
         {
@@ -29,21 +40,13 @@ namespace Ares
             Context* context = vr.rename(*this->context);
             return new Clause(head, _body, context);
         }
-        ~Clause();
+        ~Clause(){
+            //A context , and its contents, are unique to a clause            
+            //A literal is not unique to just a clause, its shared b/n clauses.
+            delete context;
+            delete _body;
+        }
     };
-    
-    Clause::~Clause()
-    {
-        //A context , and its contents, are unique to a clause
-        for (auto &it : context->getMapping())
-            if(it.second->deleteable)
-                delete it.second;
-        
-        delete context;
-        
-        //A literal is not unique to just a clause, its shared b/n clauses.
-        delete _body;
-    }
     
 } // namespace Ares
 

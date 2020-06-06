@@ -27,7 +27,15 @@ namespace Ares
         Mapping mappping;
 
     public:
+        /**
+         * Protect against accidental copying, pass by value, ...
+         */
+        Substitution(const Substitution& s) = delete;
+        Substitution& operator = (const Substitution& other) = delete;
+
+        Substitution(){}
         static Substitution emptySub;
+
         bool bind(Variable* x, Term* t);
         //Overload the indexing operator, to get the underlying mapping        
         Term* operator[](Variable* x);

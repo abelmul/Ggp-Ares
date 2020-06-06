@@ -53,14 +53,14 @@ namespace Ares
         }
         //Add new mappings not present in this substitution.
         for (auto &it : sub.mappping)
-            if(this->mappping.find(it.first) == this->mappping.end())
+            if(not this->isBound(it.first))
                 this->mappping[it.first] = (*it.second)(emptySub);
     }   
 
     Substitution::~Substitution(){
         for (auto &it : getMapping())
-            if(it.second->deleteable)
-                delete it.second;
+             if(it.second->deleteable)
+                 delete it.second;
     }
 
 } // namespace Ares

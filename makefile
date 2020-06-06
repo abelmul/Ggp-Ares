@@ -11,7 +11,7 @@ STRATEGY_INC = $(IDIR)/$(STRATEGY_DIR)
 OBJS_DIR = ../objs
 
 CC = g++
-FLAGS = -Wall -std=c++11 -I$(IDIR) 
+FLAGS = -Wall -std=c++11 -I$(IDIR) -ggdb
 
 #Get the source files with their path
 SOURCES := $(shell find .  -name '*.cpp' | sed 's/\.\///')
@@ -24,11 +24,11 @@ INCLS := $(shell find . -name "*.hh")
 
 # common_dep = 
 ARES_DEPS =  #$(OBJS_DIR)/$(STRATEGY_DIR)/<YOUR_STRATEGY>.o
-ARES_DEPS += $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/ares.o 
+ARES_DEPS += $(OBJS_DIR)/$(RESNR_DIR)/unifier.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/ares.o 
 
 #MAKE SURE TO COMPILE ARES FROM ALL OF THE OBJS IN OBJS. This is just temporary.
 ares:  $(ARES_DEPS) #$(INCLS)
-	$(CC) -o $@ $^ $(FLAGS)
+	$(CC) -o $@ -Wl,--start-group $^ -Wl,--end-group $(FLAGS) 
 
 #Compile any object file like objs/reasoner/reasoner.o from 
 #reasoner/reasoner.cpp

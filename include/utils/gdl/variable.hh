@@ -26,7 +26,10 @@ namespace Ares
 
             return this;
         }
-        
+        virtual bool operator==(Term& t)const{
+            if(t.getType() != this->type) return false;
+            return ( strcasecmp(name, t.getName()) == 0 );
+        }
         virtual bool isGround(){
             return false;
         }

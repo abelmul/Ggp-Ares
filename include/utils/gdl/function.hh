@@ -16,33 +16,33 @@ namespace Ares
         FnBody& body;
 
         //Create a function with an empty body, used only during instantiation.
-        Function(char* n,uint arity):
-        Term(n,true),_body(new FnBody(arity)),body(ref(*_body))
+        Function(char* name,uint arity):
+        Term(name,true),_body(new FnBody(arity)),body(ref(*_body))
         {
             type = FN;
         }
 
     public:
         //create an initialized function
-        Function(char* n,FnBody* _b)
-        :Term(n,true),_body(_b),body(ref(*_body))
+        Function(char* name,FnBody* _b)
+        :Term(name,true),_body(_b),body(ref(*_body))
         {
             type = FN;
         }
         
-        uint getArity(){
+        uint getArity() const{
             return body.size();
         }
-        Term* getArg(uint i){
-            if( i>= body.size()) return nullptr;
+        Term* getArg(uint i)const{
+            if( i >= body.size() ) return nullptr;
+
             return body[i];
         }
         virtual bool isGround(){
-            bool ground = true;
             for (Term* arg : body)
-                ground &= arg->isGround();
+                if (!arg->isGround()) return false;
             
-            return ground;
+            return true;
         }
         /**
          * Create an instance of this function do 
@@ -62,9 +62,19 @@ namespace Ares
             }
             return instance;
         }
-
+        virtual bool operator==(Term& t)const {
+            if(t.getType() != this->type) return false;
+            if( strcasecmp(name, t.getName()) != 0 ) return false;
+            
+            Function* tf = (Function *) &t;
+            bool eq = true;
+            for (uint i=0;i  < this->getArity() ; i++)
+                eq &= ((*getArg(i)) == (*tf->getArg(i)));
+            
+            return eq;
+        }
         virtual std::string toString(){
-            std::string s = name;
+            std::string s(name);
             std::ostringstream stringStream;
             s.append("(");
             std::string sep ="";
@@ -79,22 +89,20 @@ namespace Ares
             s.append(stringStream.str());
             return s;
         }
-        ~Function();
-    };
-
-    Function::~Function(){
         /**
          * Variables and constants are not deleteable
          * Only one instance of a variable (resp. a constant) exits
          * and they are managed by the gdlPool
          */
-        for (auto &t : body) 
-            if(t->deleteable)
-                delete t;
+        ~Function(){
+            for (auto &t : body) 
+                if(t->deleteable)
+                    delete t;
 
-        delete _body;
-        _body = nullptr;
-    }
+            delete _body;
+            _body = nullptr;
+        }
+    };
 } // namespace Ares
 
 

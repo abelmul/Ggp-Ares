@@ -4,6 +4,7 @@
 #include "utils/gdl/variable.hh"
 #include "utils/gdl/function.hh"
 #include "utils/gdl/constant.hh"
+#include "reasoner/unifier.hh"
 #include <iostream>
 
 namespace Ares

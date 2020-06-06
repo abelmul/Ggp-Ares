@@ -16,8 +16,9 @@ namespace Ares
         virtual bool isGround(){
             return true;
         }
-        bool operator == (const Constant& c) const{
-            return strcasecmp(name,c.name) == 0;
+        bool operator == (Term& t) const{
+            if(t.getType() != this->type) return false;
+            return ( strcasecmp(name, t.getName()) == 0 );
         }
         virtual std::string toString(){
             std::ostringstream stringStream;

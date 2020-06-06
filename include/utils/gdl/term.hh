@@ -20,6 +20,9 @@ namespace Ares
         Type type;
 
     public:
+
+        bool deleteable = false;
+
         Term(char* n):name(n){}
         Term(char* n,bool d):name(n),deleteable(d){}
         /**
@@ -36,14 +39,12 @@ namespace Ares
          */
         virtual Term* operator ()(Substitution &sub,bool inPlace=false) = 0;
         virtual bool isGround() = 0;
+        virtual bool operator==(Term& t) const = 0;
+
         char* getName() const {return name;}
         Type getType(){return type;}
         virtual std::string toString() = 0;
-
-        bool deleteable = false;
-        virtual ~Term(){
-            free(name);
-        }
+        virtual ~Term(){}
     };
     #define isVar(t)  (t.getType() == VAR)
     #define isConst(t)  (t.getType() == CONST)

@@ -1,11 +1,11 @@
 #include "reasoner/unifier.hh"
-
 namespace Ares
 {
     bool Unifier::unifyPredicate(Literal& l1, Literal& l2, Substitution& sub){
         bool dtName = strcasecmp(l1.getName(),l2.getName()) != 0;
         bool dtSign = ( (bool) l1 ) ^ (bool) l2;
-        if( dtName || dtSign) 
+        bool dtArity = (l1.getArity() != l2.getArity() );
+        if( dtName || dtSign || dtArity) 
             return false; //Can't be unified
         
         for (size_t i = 0; i < l1.getArity(); i++)
@@ -21,6 +21,7 @@ namespace Ares
             auto* s_v = (Variable *) &s;
             if( sub.isBound(s_v) ) 
                 return unifyTerm(*sub[s_v],t,sub);
+
             Term * t_inst = t(sub);
             if(  isVar((*t_inst))  and ( strcasecmp(s.getName(), t.getName()) == 0 ) )
                 return true;
@@ -44,9 +45,10 @@ namespace Ares
         Function* sf = ((Function*) &s);
         Function* tf = ((Function*) &t);
         //Recursively unify s and t
-        for (size_t i = 0; i < ((Function*) &s)->getArity(); i++)
+        bool ok;
+        for (size_t i = 0; i < sf->getArity(); i++)
         {
-            bool ok = unifyTerm(*sf->getArg(i), *tf->getArg(i),sub);
+            ok = unifyTerm(*sf->getArg(i), *tf->getArg(i),sub);
             if( not ok ) return false;
         }
         return true;
