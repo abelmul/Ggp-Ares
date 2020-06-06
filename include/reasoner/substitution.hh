@@ -37,22 +37,21 @@ namespace Ares
         static Substitution emptySub;
 
         bool bind(Variable* x, Term* t);
-        //Overload the indexing operator, to get the underlying mapping        
-        Term* operator[](Variable* x);
+
+        //To get the immediate mapping, without traversing the chain.
+        Term* get(Variable* x);
+        //Overload the indexing operator, to get the underlying exact mapping        
+        std::string operator[](Variable* x);
 
         /**
          * Check if this variable is bound
          */ 
         bool isBound(Variable* x);
         /**
-         * Overload the += operator for substitution composition.
-         * θ:= {X1/s1,...,Xm/sm}
-         * σ:= {Y1/t1,...,Yn/tn}
-         * Then the composition θσ is:
-         * θσ= {X1/s1σ,...,Xm/smσ,Y1/t1,...,Yk/tn} 
-         * k<=n, where Each Yi distinct from Xj 
+         * Compose this with sub.But this is shallow composition nd need to traverse "chain"
+         * to get bound value.
          */
-        void operator +=(Substitution& sub);
+        Substitution* operator +(Substitution& sub);
         Mapping getMapping(){return mappping;}
         ~Substitution();
     };

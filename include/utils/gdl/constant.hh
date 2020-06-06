@@ -9,25 +9,18 @@ namespace Ares
     class Constant: public Term
     {
     public:
-        Constant(char* name):Term(name){ type = CONST;}
-        virtual Term* operator ()(Substitution &sub,bool inPlace=false){
-            return this;
+        Constant(char* name):Term(name,CONST){}
+        virtual std::string operator ()(Substitution &sub,VarSet& vStack){
+            return std::string(name);
         }
         virtual bool isGround(){
             return true;
         }
-        bool operator == (Term& t) const{
-            if(t.getType() != this->type) return false;
-            return ( strcasecmp(name, t.getName()) == 0 );
-        }
         virtual std::string toString(){
-            std::ostringstream stringStream;
-            stringStream << name;
-            #if DEBUG_ARES
-            stringStream << "[" << this <<"]";
-            #endif
-            return stringStream.str();
+            return std::string(name);
         }
+        friend class GdlParser;
+
     };
     
 } // namespace Ares

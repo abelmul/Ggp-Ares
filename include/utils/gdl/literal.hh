@@ -21,14 +21,13 @@ namespace Ares
         {
         }
 
-    public:
-        Literal(const Literal& l) = delete;
-        Literal& operator = (const Literal &l) = delete;
-
         Literal(char* n,bool p,LitBody* b)
         :name(n),positive(p),_body(b),body(std::ref(*_body))
         {
         }
+    public:
+        Literal(const Literal& l) = delete;
+        Literal& operator = (const Literal &l) = delete;
 
         explicit operator bool() {
             return positive;
@@ -52,47 +51,36 @@ namespace Ares
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        Literal* operator ()(Substitution& sub,bool inPlace=false){
-            Literal* instance = this;
-            if(!inPlace)
-                instance = new Literal(name,positive,getArity());
-            
-            for (uint i=0;i < this->getArity(); i++)
+        virtual std::string operator ()(Substitution &sub,VarSet& vSet){
+            std::string p("(");
+            p.append(name);
+            for (size_t i = 0; i < getArity(); i++)
             {
-                Term* arg = body[i];
-                instance->body[i] = (*arg)(sub,inPlace);
+                Term* arg = getArg(i);
+                std::string argInst = (*arg)(sub,vSet);
+                if( argInst.size() == 0)
+                    //Detected loop
+                    return std::string();
+                p.append( " " + argInst);
             }
-            return instance;
+            p.append(")");
+            return p;
         }
         char* getName(){return name;}
         std::string toString(){
-            std::string s(name);
-            std::ostringstream stringStream;
-            s.append("(");
-            std::string sep ="";
+            std::string s("(");
+            s.append(name);
             for (auto &t : body){
-                s.append(sep + t->toString());
-                sep = ",";
+                s.append(" " + t->toString());
             }
-            stringStream << ")";
-            #if DEBUG_ARES
-            stringStream << "[" << this <<"]";
-            #endif
-            s.append(stringStream.str());
+            s.append(")");
             return s;
         }
-        /**
-         * Assuming a term is unique to a literal
-         * TODO: Check if a term could be shared between literals
-         */ 
         ~Literal(){
-            for (auto &t : body)
-                if(t->deleteable)
-                    delete t;
-
             delete _body;
-            _body = nullptr;
         }
+        friend class GdlParser;
+
     };
 } // namespace Ares
 

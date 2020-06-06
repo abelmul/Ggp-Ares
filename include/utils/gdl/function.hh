@@ -17,18 +17,16 @@ namespace Ares
 
         //Create a function with an empty body, used only during instantiation.
         Function(char* name,uint arity):
-        Term(name,true),_body(new FnBody(arity)),body(ref(*_body))
+        Term(name,FN),_body(new FnBody(arity)),body(ref(*_body))
         {
-            type = FN;
         }
 
-    public:
         //create an initialized function
         Function(char* name,FnBody* _b)
-        :Term(name,true),_body(_b),body(ref(*_body))
+        :Term(name,FN),_body(_b),body(ref(*_body))
         {
-            type = FN;
         }
+    public:
         
         uint getArity() const{
             return body.size();
@@ -45,63 +43,43 @@ namespace Ares
             return true;
         }
         /**
-         * Create an instance of this function do 
-         * either in place modifications or by creating
-         * a new term and modifying that.
+         * Apply the Substitution sub on this term, creating an instance.
+         * This is done by traversing the "chain" present within the substitution,
+         * Varset is used to detect any loops. if a variable is encountered more than once on a 
+         * single dfs path then there is a loop.
          */
-        virtual Term* operator ()(Substitution &sub,bool inPlace=false){
-            Function* instance = this;
-
-            if(!inPlace)
-                instance  = new Function(this->name,getArity());
-
-            for (size_t i = 0; i < this->getArity(); i++)
+        virtual std::string operator ()(Substitution &sub,VarSet& vSet){
+            std::string f("(");
+            f.append(name);
+            for (size_t i = 0; i < getArity(); i++)
             {
-                Term* arg = this->body[i];
-                instance->body[i] = (*arg)(sub,inPlace);
+                Term* arg = getArg(i);
+                std::string argInst = (*arg)(sub,vSet);
+                if( argInst.size() == 0)
+                    //Detected loop
+                    return std::string();
+                f.append( " " + argInst);
             }
-            return instance;
+            f.append(")");
+            return f;
         }
-        virtual bool operator==(Term& t)const {
-            if(t.getType() != this->type) return false;
-            if( strcasecmp(name, t.getName()) != 0 ) return false;
-            
-            Function* tf = (Function *) &t;
-            bool eq = true;
-            for (uint i=0;i  < this->getArity() ; i++)
-                eq &= ((*getArg(i)) == (*tf->getArg(i)));
-            
-            return eq;
-        }
-        virtual std::string toString(){
-            std::string s(name);
-            std::ostringstream stringStream;
-            s.append("(");
-            std::string sep ="";
-            for (auto &t : body){
-                s.append(sep + t->toString());
-                sep = ",";
-            }
-            stringStream << ")";
-            #if DEBUG_ARES
-            stringStream << "[" << this <<"]";
-            #endif
-            s.append(stringStream.str());
-            return s;
-        }
-        /**
-         * Variables and constants are not deleteable
-         * Only one instance of a variable (resp. a constant) exits
-         * and they are managed by the gdlPool
-         */
-        ~Function(){
-            for (auto &t : body) 
-                if(t->deleteable)
-                    delete t;
 
-            delete _body;
-            _body = nullptr;
+        
+        virtual std::string toString(){
+            std::string s("(");
+            s.append(name);
+            for (auto &t : body){
+                s.append(" " );
+                s.append(t->toString());
+            }
+            s.append(")");
+            return s;   
         }
+        ~Function(){
+            delete _body;
+        }
+        friend class GdlParser;
+
     };
 } // namespace Ares
 

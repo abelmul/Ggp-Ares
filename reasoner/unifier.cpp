@@ -17,19 +17,15 @@ namespace Ares
     }
 
     bool Unifier::unifyTerm(Term& s, Term& t,Substitution& sub){
+        if(s == t)
+            return true;
+                
         if( isVar(s) ){
             auto* s_v = (Variable *) &s;
             if( sub.isBound(s_v) ) 
-                return unifyTerm(*sub[s_v],t,sub);
-
-            Term * t_inst = t(sub);
-            if(  isVar((*t_inst))  and ( strcasecmp(s.getName(), t.getName()) == 0 ) )
-                return true;
+                return unifyTerm(*sub.get(s_v),t,sub);
             //WARNING! No occurs check!
-            Substitution sigma;
-            //Do a substitution composition
-            sigma.bind(s_v, t_inst);
-            sub+=sigma;
+            sub.bind(s_v, &t);
             return true;
         }
         //S is not a variable

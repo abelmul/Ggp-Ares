@@ -17,7 +17,7 @@ namespace Ares
     }
     
     bool VarEqual::operator()(const Variable *v1, const Variable *v2) const{
-        return strcasecmp(v1->getName(),v2->getName()) == 0;
+        return v1 == v2;
     }
     
     Substitution Substitution::emptySub;
@@ -28,39 +28,32 @@ namespace Ares
         mappping[x] = t;
         return true;
     }
-
-    //Overload the indexing operator, to get the underlying mapping        
-    Term* Substitution::operator[](Variable* x){
+    Term* Substitution::get(Variable* x){
         return mappping[x];
+    }
+    //Overload the indexing operator, to get the underlying mapping        
+    std::string Substitution::operator[](Variable* x){
+        if( not isBound(x)) return nullptr;
+        
+        VarSet vSet;
+        vSet.insert(x);
+        Term* t = get(x);
+        return (*t)(*this,vSet);
     }
 
     bool Substitution::isBound(Variable* x){
         return mappping.find(x) != mappping.end();
     }
-
-    //Overload the += operator for substitution composition.
-    //θ:= {X1/s1,...,Xm/sm}
-    //σ:= {Y1/t1,...,Yn/tn}
-    //θσ= {X1/s1σ,...,Xm/smσ,Y1/t1,...,Yk/tn} 
-    //k<=n, where Each Yi distinct from Xj
-    void Substitution::operator +=(Substitution& sub){
-        for (auto& it : this->mappping)
-        {   
-            Variable* x = it.first;
-            Term* term = it.second;
-            //An inplace substitution.
-            mappping[x] = (*term)(sub,true);
-        }
-        //Add new mappings not present in this substitution.
-        for (auto &it : sub.mappping)
-            if(not this->isBound(it.first))
-                this->mappping[it.first] = (*it.second)(emptySub);
+    
+    Substitution* Substitution::operator +(Substitution& sub){
+        Substitution* sNew = new Substitution();
+        sNew->mappping.insert(mappping.begin(),mappping.end());
+        sNew->mappping.insert(sub.mappping.begin(),sub.mappping.end());
+        return sNew;
     }   
 
-    Substitution::~Substitution(){
-        for (auto &it : getMapping())
-             if(it.second->deleteable)
-                 delete it.second;
+    Substitution::~Substitution()
+    {
     }
 
 } // namespace Ares
