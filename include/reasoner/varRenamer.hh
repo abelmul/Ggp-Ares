@@ -16,7 +16,7 @@ namespace Ares
         VarRenamer& operator =(const VarRenamer& vr) = delete;
         
         VarRenamer(/* args */){};
-        virtual Context* rename(Context& context) = 0;
+        virtual Substitution* rename(Substitution& theta) = 0;
         ~VarRenamer();
     };
 } // namespace Ares

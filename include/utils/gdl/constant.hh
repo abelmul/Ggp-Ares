@@ -8,6 +8,10 @@ namespace Ares
 {
     class Constant: public Term
     {
+    friend class ExpressionPool;
+    private:
+        ~Constant(){}
+        
     public:
         Constant(char* name):Term(name,CONST){}
         virtual std::string operator ()(Substitution &sub,VarSet& vStack){
@@ -19,8 +23,9 @@ namespace Ares
         virtual std::string toString(){
             return std::string(name);
         }
-        friend class GdlParser;
-
+        virtual std::size_t hash() const {
+            return nameHasher(name);
+        }
     };
     
 } // namespace Ares

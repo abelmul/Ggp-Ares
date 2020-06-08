@@ -5,42 +5,32 @@
 #include <string.h>
 #include <vector>
 #include <iostream>
-
 #include <sstream>
-#include "reasoner/substitution.hh"
 #include <unordered_set>
 #include <stack>
+#include "reasoner/substitution.hh"
+#include "utils/hashing.hh"
+
 namespace Ares
 {
     enum Type {VAR,CONST,FN};
-    class GdlParser;
+    class SymbolsPool;
     typedef std::unordered_set<Variable*,VarHasher,VarEqual> VarSet;
-    struct VarStack
-    {
-        void push(Variable* x){
-            stack.push(x);
-            varSet.insert(x);   
-        }
-        void pop(){
 
-        }
-        bool contains(Variable* x){
-            return varSet.find(x) != varSet.end();
-        }
-        private:
-            std::unordered_set<Variable*,VarHasher,VarEqual> varSet;
-            std::stack<Variable*> stack;
-    };
-    
     //Variables, functions, constants all inherit from this abstract class.
     class Term
     {
+    friend class ExpressionPool;
+    
     protected:
         char* name;
+
         Type type;
         Term(char* n,Type t):name(n),type(t){}
-        
+        virtual ~Term(){}
+
     public:
+        static CharpHasher nameHasher;  
         /**
          * Use Term.operator()(Substitution sub) to create a deep clone.
          * Protect against accidental copying,assignment, and return by value.
@@ -55,6 +45,7 @@ namespace Ares
          */
         virtual std::string operator ()(Substitution &sub,VarSet& vSet) = 0;
         virtual bool isGround() = 0;
+        virtual std::size_t hash() const = 0;
         virtual bool operator==(Term& t) const{
             //They are equal iff they have the same address.
             //Only one instance of a term exists.
@@ -64,13 +55,15 @@ namespace Ares
         char* getName() const {return name;}
         Type getType(){return type;}
         virtual std::string toString() = 0;
-        virtual ~Term(){}
-
-        friend class GdlParser;
     };
+    inline void hash_combine(std::size_t& seed, Term* v) {
+        std::size_t hash = v->hash();
+        seed ^= hash + 0x9e3779b9 + (seed<<6) + (seed>>2);
+    }
+
     #define isVar(t)  (t.getType() == VAR)
     #define isConst(t)  (t.getType() == CONST)
     #define isFn(t)  (t.getType() == FN)
 } // namespace Ares
 
-#endif
+#endif  

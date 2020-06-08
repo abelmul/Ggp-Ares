@@ -5,11 +5,18 @@
 #include "utils/gdl/function.hh"
 #include "utils/gdl/constant.hh"
 #include "reasoner/unifier.hh"
+#include "utils/gdl/gdlParser/gdlParser.hh"
+#include "utils/game/game.hh"
 #include <iostream>
+#include <fstream>
+#include <boost/property_tree/ptree.hpp>
+#include <boost/property_tree/json_parser.hpp>
+#include <boost/foreach.hpp>
 
 namespace Ares
 {
-    bool DEBUG=false;
+    //Initialize static nameHasher
+    CharpHasher Term::nameHasher;
 
     class Ares
     {
@@ -27,7 +34,7 @@ namespace Ares
     Ares::~Ares()
     {
     }
-    #define DEBUG_ARES
+    
 } // namespace Ares
 
 #endif

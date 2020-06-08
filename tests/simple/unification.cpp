@@ -2,13 +2,13 @@
 
 namespace Ares
 {
-    class GdlParser
+    class ExpressionPool
     {
     private:
         /* data */
     public:
-        GdlParser(/* args */);
-        ~GdlParser();
+        ExpressionPool(/* args */);
+        ~ExpressionPool();
         static void test(){
             char* names[]= {strdup("y"),strdup("x"),strdup("a"),strdup("p"),strdup("f"),strdup("g")};
             Variable* y = new Variable(names[0]);
@@ -52,11 +52,11 @@ namespace Ares
         }
     };
     
-    GdlParser::GdlParser(/* args */)
+    ExpressionPool::ExpressionPool(/* args */)
     {
     }
     
-    GdlParser::~GdlParser()
+    ExpressionPool::~ExpressionPool()
     {
     }
     
@@ -65,6 +65,6 @@ namespace Ares
 int main(int argc, char const *argv[])
 {
     using namespace Ares;
-    GdlParser::test();
+    ExpressionPool::test();
     return 0;
 }

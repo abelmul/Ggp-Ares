@@ -14,7 +14,7 @@ namespace Ares
         Literal* head = nullptr;
         ClauseBody* _body = nullptr;
         ClauseBody& body;
-        Context* context = nullptr;
+        Substitution* theta = nullptr;
 
     public:
         /**
@@ -28,8 +28,8 @@ namespace Ares
          * A <- A0 and ... and An
          * where A0...An are literals(the body), and A is the head
          */
-        Clause(Literal* head, ClauseBody* _b,Context* c)
-        :head(head),_body(_b),body(std::ref(*_body)),context(c)
+        Clause(Literal* head, ClauseBody* _b)
+        :head(head),_body(_b),body(std::ref(*_body))
         {
         };
         /**
@@ -37,14 +37,13 @@ namespace Ares
          * a goal.
          */ 
         Clause* rename(VarRenamer& vr){
-            Context* context = vr.rename(*this->context);
-            return new Clause(head, _body, context);
+            return nullptr;
         }
+        ClauseBody* getBody(){return _body;}
         ~Clause(){
-            //A context , and its contents, are unique to a clause            
-            //A literal is not unique to just a clause, its shared b/n clauses.
-            delete context;
-            delete _body;
+            //A literal is not unique to just a clause, its shared b/n clauses, managed by ExpressionPool.
+            if (theta) delete theta;
+            if( body.size() != 0) delete _body; //Don't delete gdlParser::EMPTY_BODY;
         }
     };
     

@@ -5,21 +5,6 @@
 
 namespace Ares
 {
-    std::size_t VarHasher::operator() (const Variable* x) const{
-        const char * name = x->getName();
-        unsigned long hash = 5381;
-        int c;
-
-        while ( (c = *name++))
-            hash = ((hash << 5) + hash) + c;
-
-        return hash;
-    }
-    
-    bool VarEqual::operator()(const Variable *v1, const Variable *v2) const{
-        return v1 == v2;
-    }
-    
     Substitution Substitution::emptySub;
 
     bool  Substitution::bind(Variable* x, Term* t){

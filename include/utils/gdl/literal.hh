@@ -1,5 +1,5 @@
 #ifndef LITERAL_HH
-#define LITERAL_hh
+#define LITERAL_HH
 #include <string>
 #include <vector>
 #include "utils/gdl/term.hh"
@@ -10,6 +10,9 @@ namespace Ares
 
     class Literal
     {
+    
+    friend class ExpressionPool;
+
     private:
         char* name;
         bool positive;
@@ -25,6 +28,11 @@ namespace Ares
         :name(n),positive(p),_body(b),body(std::ref(*_body))
         {
         }
+        /*Managed By ExpressionPool*/
+        ~Literal(){
+            delete _body;
+        }
+        
     public:
         Literal(const Literal& l) = delete;
         Literal& operator = (const Literal &l) = delete;
@@ -39,6 +47,14 @@ namespace Ares
         }
 
         uint getArity(){return body.size();}
+        
+        virtual std::size_t hash() const {
+            std::size_t nHash = Term::nameHasher(name);
+            for (Term* t : body)
+                hash_combine(nHash,t);
+            
+            return nHash;
+        }
 
         bool isGround(){
             for (Term* arg : body)
@@ -76,11 +92,6 @@ namespace Ares
             s.append(")");
             return s;
         }
-        ~Literal(){
-            delete _body;
-        }
-        friend class GdlParser;
-
     };
 } // namespace Ares
 

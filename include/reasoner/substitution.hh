@@ -3,21 +3,14 @@
 
 #include <unordered_map>
 #include <functional>
+#include "utils/hashing.hh"
 
 namespace Ares
 {
 
     class Variable;
     class Term;
-    //Used in Substitutions to index using a variable
-    struct VarHasher
-    {
-        std::size_t operator() (const Variable* x) const;
-    };
-    struct VarEqual
-    {
-        bool operator()(const Variable *v1, const Variable *v2) const;
-    };
+    
     typedef std::unordered_map<Variable*,Term*,VarHasher,VarEqual> Mapping;
 
     class Substitution
@@ -57,6 +50,5 @@ namespace Ares
     };
     
     #define EMPTY_SUB Substitution::emptySub
-    typedef Substitution Context;
 } // namespace Ares
 #endif 

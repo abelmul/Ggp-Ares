@@ -1,0 +1,5 @@
+{
+    "parser_threads":4,
+    "prover_threads":4,
+    "gdl":"tests/chess.gdl"
+}

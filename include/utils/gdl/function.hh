@@ -10,6 +10,8 @@ namespace Ares
     //This represents gdl functions
     class Function:public Term
     {
+    
+    friend class ExpressionPool;
 
     private:
         FnBody* _body = nullptr;
@@ -26,6 +28,10 @@ namespace Ares
         :Term(name,FN),_body(_b),body(ref(*_body))
         {
         }
+        /*Managed By ExpressionPool*/
+        ~Function(){
+            delete _body;
+        }
     public:
         
         uint getArity() const{
@@ -41,6 +47,13 @@ namespace Ares
                 if (!arg->isGround()) return false;
             
             return true;
+        }
+        virtual std::size_t hash() const {
+            std::size_t nHash = nameHasher(name);
+            for (Term* t : body)
+                hash_combine(nHash,t);
+            
+            return nHash;
         }
         /**
          * Apply the Substitution sub on this term, creating an instance.
@@ -75,10 +88,6 @@ namespace Ares
             s.append(")");
             return s;   
         }
-        ~Function(){
-            delete _body;
-        }
-        friend class GdlParser;
 
     };
 } // namespace Ares

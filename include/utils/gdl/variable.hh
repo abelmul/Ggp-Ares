@@ -7,10 +7,15 @@ namespace Ares
 {
     class Variable : public Term
     {
+    
+    friend class ExpressionPool;
+
     private:
         Variable(char* name):Term(name,VAR)
         {
         }
+        /*Managed By ExpressionPool*/
+        ~Variable(){}
     public:
         /**
          * Apply the Substitution sub on this variable, creating an instance.
@@ -33,11 +38,14 @@ namespace Ares
         virtual bool isGround(){
             return false;
         }
+
+        virtual std::size_t hash() const{
+            return nameHasher(name);
+        }
+
         virtual std::string toString(){
             return std::string(name);
         }
-        friend class GdlParser;
-
     };
     
 } // namespace Ares

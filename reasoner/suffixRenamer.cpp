@@ -16,28 +16,12 @@ namespace Ares
 
     public:
         /**
-         * Rename all variables in context to $SuffixRenamer::suffix
+         * Rename all variables in Substitution to $SuffixRenamer::suffix
          * Assuming no variable in gdl ends with $int
          * This class is not responsible for deleting the new 
          * variables created here as a result of renaming.
          */
-        virtual Context* rename(Context& context){
-            Context* renamed = new Context();
-            //hold on to the lock just for enough time to increment suffix
-            smutex.lock();
-            ulong suf = SuffixRenamer::suffix++;
-            smutex.unlock();
-            for (auto &it : context.getMapping())
-            {
-                char* name = it.first->getName();
-                int l = (int)(log10(suf)+1);
-                int nLen = strlen(name);
-                char* newName = (char*) malloc(nLen + l + 2);
-                strcpy(newName, name);   
-                sprintf(newName + nLen, "$%d",suf);
-                renamed->bind(it.first,new Variable(newName));
-            }
-            return renamed;
+        virtual Substitution* rename(Substitution& sub){
         }
         static SuffixRenamer* getRenamer(){
             //Lock the mutex, lock guard automatically releases lock when destroyed
