@@ -10,10 +10,12 @@ namespace Ares
     {
     friend class ExpressionPool;
     private:
-        ~Constant(){}
+        ~Constant(){
+            delete name;
+        }
         
     public:
-        Constant(char* name):Term(name,CONST){}
+        Constant(const char* name):Term(name,CONST){}
         virtual std::string operator ()(Substitution &sub,VarSet& vStack){
             return std::string(name);
         }

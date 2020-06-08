@@ -14,17 +14,17 @@ namespace Ares
     friend class ExpressionPool;
 
     private:
-        char* name;
-        bool positive;
-        LitBody* _body;
-        LitBody& body;
+        const char* name;
+        const bool positive;
+        const LitBody* _body;
+        const LitBody& body;
 
-        Literal(char* n, bool p,uint arity)
+        Literal(const char* n, bool p,uint arity)
         :name(n),positive(p),_body(new LitBody(arity)),body(std::ref(*_body))
         {
         }
 
-        Literal(char* n,bool p,LitBody* b)
+        Literal(const char* n,bool p,const LitBody* b)
         :name(n),positive(p),_body(b),body(std::ref(*_body))
         {
         }
@@ -40,13 +40,13 @@ namespace Ares
         explicit operator bool() {
             return positive;
         }
-        Term* getArg(uint i){
+        Term* getArg(uint i) const {
             if( i >= body.size() ) return nullptr;
             
             return body[i];
         }
 
-        uint getArity(){return body.size();}
+        uint getArity() const {return body.size();}
         
         virtual std::size_t hash() const {
             std::size_t nHash = Term::nameHasher(name);
@@ -67,7 +67,7 @@ namespace Ares
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        virtual std::string operator ()(Substitution &sub,VarSet& vSet){
+        virtual std::string operator ()(Substitution &sub,VarSet& vSet) {
             std::string p("(");
             p.append(name);
             for (size_t i = 0; i < getArity(); i++)
@@ -82,7 +82,7 @@ namespace Ares
             p.append(")");
             return p;
         }
-        char* getName(){return name;}
+        const char* getName(){return name;}
         std::string toString(){
             std::string s("(");
             s.append(name);

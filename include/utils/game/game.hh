@@ -9,7 +9,7 @@ namespace Ares
     {
     private:
         /*A mapping from head names --> [clauses with the same head name]*/
-        std::unordered_map<char*, std::vector<Clause*>*,CharpHasher> rules;
+        std::unordered_map<const char*, std::vector<Clause*>*,CharpHasher> rules;
         State* state;
 
     public:
@@ -21,7 +21,7 @@ namespace Ares
             return rules[name];
         }
         
-        virtual void add(char* name, Clause* c){
+        virtual void add(const char* name, Clause* c){
             slock.lock();
             if( rules.find(name) == rules.end() )
                 rules[name] = new std::vector<Clause*>();

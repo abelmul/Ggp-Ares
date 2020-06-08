@@ -11,7 +11,10 @@ namespace Ares
     {
         std::size_t operator() (const char* name) const;
     };
-    
+    struct StrEq
+    {
+        bool operator()(const char* s1, const char* s2) const;
+    };
     //Used in Substitutions to index using a variable
     struct VarHasher
     {
@@ -26,16 +29,17 @@ namespace Ares
     {
         const char* name;
         const std::vector<Term*>* body;
+        bool p = true;
     };
 
     struct PoolKeyHasher
     {
-        std::size_t operator() (const PoolKey& k) const;
+        std::size_t operator() (const PoolKey* k) const;
     };
     
     struct PoolKeyEqual
     {
-        bool operator()(const PoolKey& v1, const PoolKey& v2) const;
+        bool operator()(const PoolKey* v1, const PoolKey* v2) const;
     };
 } // namespace Ares
 

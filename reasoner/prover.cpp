@@ -2,13 +2,13 @@
 
 namespace Ares
 {
-    bool Prover::prove(Clause& goal, bool one=true){
+    bool Prover::prove(Clause& goal, bool one/*=true*/){
         
     }
-    Resolvent* resolve(Clause& goal, Clause& c){
+    Resolvent* Prover::resolve(Clause& goal, Clause& c){
 
     }
-    Resolvent* handleNegation(Clause& goal){
+    Resolvent* Prover::handleNegation(Clause& goal){
 
     }
 } // namespace Ares

@@ -11,10 +11,10 @@ namespace Ares
     class Clause
     {
     private:
-        Literal* head = nullptr;
-        ClauseBody* _body = nullptr;
-        ClauseBody& body;
-        Substitution* theta = nullptr;
+        const Literal* head = nullptr;
+        const ClauseBody* _body = nullptr;
+        const ClauseBody& body;
+        const Substitution* theta = nullptr;
 
     public:
         /**
@@ -28,7 +28,7 @@ namespace Ares
          * A <- A0 and ... and An
          * where A0...An are literals(the body), and A is the head
          */
-        Clause(Literal* head, ClauseBody* _b)
+        Clause(Literal* head, const ClauseBody* _b)
         :head(head),_body(_b),body(std::ref(*_body))
         {
         };
@@ -39,7 +39,7 @@ namespace Ares
         Clause* rename(VarRenamer& vr){
             return nullptr;
         }
-        ClauseBody* getBody(){return _body;}
+        const ClauseBody* getBody(){return _body;}
         ~Clause(){
             //A literal is not unique to just a clause, its shared b/n clauses, managed by ExpressionPool.
             if (theta) delete theta;

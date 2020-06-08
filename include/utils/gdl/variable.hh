@@ -11,11 +11,13 @@ namespace Ares
     friend class ExpressionPool;
 
     private:
-        Variable(char* name):Term(name,VAR)
+        Variable(const char* name):Term(name,VAR)
         {
         }
         /*Managed By ExpressionPool*/
-        ~Variable(){}
+        ~Variable(){
+            delete name;
+        }
     public:
         /**
          * Apply the Substitution sub on this variable, creating an instance.

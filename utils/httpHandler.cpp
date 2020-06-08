@@ -5,16 +5,7 @@ namespace Ares
     private:
         /* data */
     public:
-        HttpHandler(/* args */);
-        ~HttpHandler();
+        HttpHandler(/* args */){}
+        ~HttpHandler(){}
     };
-    
-    HttpHandler::HttpHandler(/* args */)
-    {
-    }
-    
-    HttpHandler::~HttpHandler()
-    {
-    }
-    
 } // namespace Ares

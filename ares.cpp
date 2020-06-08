@@ -13,7 +13,8 @@ int main(int argc, char const *argv[])
     std::ifstream f(gdlF);
     std::string gdl((std::istreambuf_iterator<char>(f)),
                  std::istreambuf_iterator<char>());
-    GdlParser parser(1);
-    parser.parse(new Game(),gdl);
+    GdlParser* p = GdlParser::getParser(1);
+
+    p->parse(new Game(),gdl);
     return 0;
 }

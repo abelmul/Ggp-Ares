@@ -23,10 +23,10 @@ namespace Ares
     friend class ExpressionPool;
     
     protected:
-        char* name;
+        const char* const name;
 
         Type type;
-        Term(char* n,Type t):name(n),type(t){}
+        Term(const char* n,Type t):name(n),type(t){}
         virtual ~Term(){}
 
     public:
@@ -52,7 +52,7 @@ namespace Ares
             return this == &t;
         };
 
-        char* getName() const {return name;}
+        const char* getName() const {return name;}
         Type getType(){return type;}
         virtual std::string toString() = 0;
     };

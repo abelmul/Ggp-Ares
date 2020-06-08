@@ -12,6 +12,23 @@ namespace Ares
     /**
      * TODO: Look into caching
      */
+
+    /**
+     * This is used to return the computed answer(s) to the caller in a multi-threaded
+     * enviroment.
+     */
+    struct CallBack
+    {
+        virtual bool operator()(Substitution* computedAns) = 0;
+    };
+    /**
+     * The resulting resolvent,if any, in a single sldnf resolution step.
+     */
+    struct Resolvent        
+    {
+        Clause* gn;
+        bool ok;
+    };
     class Prover
     {
     public:
@@ -44,22 +61,6 @@ namespace Ares
             return not ( s == t);
         }
     };  
-    /**
-     * The resulting resolvent,if any, in a single sldnf resolution step.
-     */
-    struct Resolvent        
-    {
-        Clause* gn;
-        bool ok;
-    };
-    /**
-     * This is used to return the computed answer(s) to the caller in a multi-threaded
-     * enviroment.
-     */
-    struct CallBack
-    {
-        virtual bool operator()(Substitution* computedAns) = 0;
-    };
     
 } // namespace Ares
 

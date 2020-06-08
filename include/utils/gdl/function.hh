@@ -14,17 +14,17 @@ namespace Ares
     friend class ExpressionPool;
 
     private:
-        FnBody* _body = nullptr;
-        FnBody& body;
+        const FnBody* _body = nullptr;
+        const FnBody& body;
 
         //Create a function with an empty body, used only during instantiation.
-        Function(char* name,uint arity):
+        Function(const char* name,uint arity):
         Term(name,FN),_body(new FnBody(arity)),body(ref(*_body))
         {
         }
 
         //create an initialized function
-        Function(char* name,FnBody* _b)
+        Function(const char* name,const FnBody* _b)
         :Term(name,FN),_body(_b),body(ref(*_body))
         {
         }

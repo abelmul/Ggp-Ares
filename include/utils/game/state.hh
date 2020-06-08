@@ -24,7 +24,7 @@ namespace Ares
     struct KnowledgeBase
     {
         virtual std::vector<Clause*>* operator [](char* name) = 0;
-        virtual void add(char* name, Clause*) = 0;
+        virtual void add(const char* name, Clause*) = 0;
 
         protected:
             SpinLock slock;
@@ -36,17 +36,22 @@ namespace Ares
     class State : public KnowledgeBase
     {
     private:
-        std::unordered_map<char *, std::vector<Clause*>*, CharpHasher> base;
+        std::unordered_map<const char *, std::vector<Clause*>*, CharpHasher> state;
         
     public:
         State(){
 
         }
         virtual std::vector<Clause*>* operator [](char* name){
-            return base[name];
+            return state[name];
         }
-        virtual void add(char* name, Clause* c){
-            base[name]->push_back(c);
+        virtual void add(const char* name, Clause* c){
+            slock.lock();
+            if( state.find(name) == state.end() )
+                state[name] = new std::vector<Clause*>();
+            
+            state[name]->push_back(c);
+            slock.unlock();
         }
         ~State();
     };
