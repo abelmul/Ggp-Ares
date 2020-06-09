@@ -45,7 +45,7 @@ namespace Ares
             return nameHasher(name);
         }
 
-        virtual std::string toString(){
+        virtual std::string toString() const {
             return std::string(name);
         }
     };

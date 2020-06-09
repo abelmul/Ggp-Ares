@@ -35,8 +35,10 @@ namespace Ares
          * Use Term.operator()(Substitution sub) to create a deep clone.
          * Protect against accidental copying,assignment, and return by value.
         */
-        Term(const Term &t) = delete;
-        Term& operator = (const Term &t) = delete;
+        Term(const Term&) = delete;
+        Term(const Term&&) = delete;
+        Term& operator=(Term&&) = delete;
+        Term& operator = (const Term&) = delete;
         /**
          * Apply the Substitution sub on this term, creating an instance.
          * This is done by traversing the "chain" present within the substitution,
@@ -54,8 +56,13 @@ namespace Ares
 
         const char* getName() const {return name;}
         Type getType(){return type;}
-        virtual std::string toString() = 0;
+        virtual std::string toString() const = 0;
+        friend std::ostream & operator << (std::ostream &out, const Term &t){
+            out << t.toString();
+            return out;
+        }
     };
+    
     inline void hash_combine(std::size_t& seed, Term* v) {
         std::size_t hash = v->hash();
         seed ^= hash + 0x9e3779b9 + (seed<<6) + (seed>>2);

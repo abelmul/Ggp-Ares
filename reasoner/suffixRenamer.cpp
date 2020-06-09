@@ -22,6 +22,7 @@ namespace Ares
          * variables created here as a result of renaming.
          */
         virtual Substitution* rename(Substitution& sub){
+            return nullptr;
         }
         static SuffixRenamer* getRenamer(){
             //Lock the mutex, lock guard automatically releases lock when destroyed

@@ -20,8 +20,8 @@ namespace Ares
     {
 
     public:
-        typedef std::unordered_map<PoolKey*, Function*,PoolKeyHasher,PoolKeyEqual> FnPool;
-        typedef std::unordered_map<PoolKey*, Literal*,PoolKeyHasher,PoolKeyEqual> LitPool;
+        typedef std::unordered_map<PoolKey, Function*,PoolKeyHasher,PoolKeyEqual> FnPool;
+        typedef std::unordered_map<PoolKey, Literal*,PoolKeyHasher,PoolKeyEqual> LitPool;
 
         ExpressionPool(/* args */){}
         /**

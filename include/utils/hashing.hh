@@ -34,12 +34,12 @@ namespace Ares
 
     struct PoolKeyHasher
     {
-        std::size_t operator() (const PoolKey* k) const;
+        std::size_t operator() (const PoolKey& k) const;
     };
     
     struct PoolKeyEqual
     {
-        bool operator()(const PoolKey* v1, const PoolKey* v2) const;
+        bool operator()(const PoolKey& v1, const PoolKey& v2) const;
     };
 } // namespace Ares
 

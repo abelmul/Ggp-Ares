@@ -2,11 +2,15 @@
 
 namespace Ares
 {
-
+    /*Define static members*/
     GdlParser* GdlParser::_parser = nullptr;   
-    const vector<Term*>* GdlParser::EMPTY_BODY = new vector<Term*>();
-    const vector<Literal*>* GdlParser::EMPTY_CBODY = new vector<Literal*>();
+    const Body* GdlParser::EMPTY_BODY = new Body();
+    ClauseBody* GdlParser::EMPTY_CBODY = new ClauseBody();
     SpinLock GdlParser::slock;
+    Transformer* GdlParser::transformer = nullptr;
+    /*Define static members*/
+
+
     /**
      * Parse from a gdl file, and populate knowledgebase
      */
@@ -17,7 +21,7 @@ namespace Ares
                  istreambuf_iterator<char>());
         string processed = preprocess(gdl);
         parse(processed);
-        // pool->join();
+        pool->join();
     }
     /**
      * Parse a gdl string, and populate knowledgebase
@@ -27,50 +31,67 @@ namespace Ares
         string processed = "(" + preprocess(gdl) + ")";
         vector<string>::iterator it,start,end;
         parse(processed);
-        // pool->join();
+        pool->join();
     }
 
     void GdlParser::parse(string& processed){
-        vector<string> tokens;
         boost::trim(processed);
         boost::split_regex(tokens, processed, boost::regex(R"([\s]+)"));
-
+        
         vector<string>::iterator it, start, end;
         Pstate state = NEW;
-        for (it = tokens.begin()+1; it < tokens.end() ;)
+        for (it = tokens.begin()+1; it < tokens.end();)
         {
             switch (state)
             {
             case NEW:
-                if( it >= tokens.end()) throw "[*] GdlParser ::Error:: Gdl not well formed! Expecting a ')' at end.";
+                if( it >= tokens.end()) throw SyntaxError("[*] GdlParser ::Error:: Gdl not well formed! Expecting a ')' at end.");
                 if( (it+1) == tokens.end()){
                     //There should be an ending enclosing ')', ( clauses () () () ... )
                     //it+1 == ')'
-                    if( *it != ")" ) throw "[*] GdlParser ::Error:: Gdl not well formed! Expecting a ')' at end.";
+                    if( *it != ")" ) throw SyntaxError("[*] GdlParser ::Error:: Gdl not well formed! Expecting a ')' at end.");
                     state = END;
                     it++;  //break out of loop
                     continue;
                 }
-                if(*it != "(" )  throw "[*] GdlParser ::Error:: Gdl not well formed! Expecting a '('";
+                if(*it != "(" )  throw SyntaxError("[*] GdlParser ::Error:: Gdl not well formed! Expecting a '('");
                 start = it;
                 state = BALANCE;
                 break;
             case BALANCE:
-                getBalanced(it,tokens);
-                if( it >= tokens.end() ) throw "[*] GdlParser ::Error:: Gdl not well formed! unbalanced '(' and ')'.";
+                transformer->getBalanced(it,tokens.end());
+                if( it >= tokens.end() ) throw SyntaxError( "[*] GdlParser ::Error:: Gdl not well formed! unbalanced '(' and ')'.");
                 end = it;
-                if( *(start + 1) != "<" ){
+                if( *(start + 1) != "<=" ){
                     //Must be a fact
                     boost::asio::post(*pool, [this,start,end](){
                         //Parse on a separate thread
-                        Literal* l =  parseFact(start, end);
-                        Clause* c = new Clause(l, GdlParser::EMPTY_CBODY);
-                        this->base->add(l->getName(), c);
+                        vector<string>::iterator s = start;
+                        try
+                        {
+                            const Literal* l =  parseLiteral(s, end+1,true);
+                            Clause* c = new Clause(l, GdlParser::EMPTY_CBODY);
+                            this->base->add(l->getName(), c);
+                        }
+                        catch(std::runtime_error& e)
+                        {
+                            std::cout << "In catch "  << e.what()<< '\n';
+                            fflush(NULL);
+                        }
                     });
                 }
-                else {
+                else { 
                     Clause* c = new Clause(nullptr, new ClauseBody());
-                    boost::asio::post(*pool, [this,start,end, c](){parseRule(c, start, end);});
+                    boost::asio::post(*pool, [this,start,end, c](){
+                         try
+                    {
+                        parseRule(c, start, end);
+                    }
+                    catch(const std::string& e)
+                    {
+                        std::cerr << e << '\n';
+                    }
+                    });
                 }
                 it++;
                 state = NEW;
@@ -79,22 +100,8 @@ namespace Ares
                 break;
             }
         }
-        if( state != END ) throw "[*] GdlParser ::Error:: Gdl not well formed!";
+        if( state != END ) throw SyntaxError( "[*] GdlParser ::Error:: Gdl not well formed!");
     }
-    void GdlParser::getBalanced(vector<string>::iterator& it, vector<string>& tokens){
-        short i =0;
-        if( *it != "(" ) throw "[*] GdlParser ::Error:: Gdl not well formed! Expecting a '('";
-        do
-        {
-            if( *it == "(" ) i++;
-            else if( *it == ")" ) i--;
-            //Found an expression with balanced parantheses.
-            if( i ==  0 )
-                break;
-            it++;
-        } while ( it < tokens.end() );
-    }
-
     /**
      * Remove comments and [\n\r], replace \s\s+ by \s ,
      * replace '\s*(\s*' by '(', replace '\s*)\s*' by ')'
@@ -113,17 +120,22 @@ namespace Ares
         });
     }
 
-    /**
-     * TODO: YOU DON'T REALLY NEED end!
-     */
-    Literal* GdlParser::parseFact(vector<string>::iterator start, vector<string>::iterator end ){
-        if( *start != "(" or *end != ")") throw "[*] GdlParser ::Error:: A literal should be enclosed by parentheses.";
-        
+    const Literal* GdlParser::parseLiteral(vector<string>::iterator& start, const vector<string>::iterator& end ,bool p){
         stack<pair<string, Body*>> bodies;
-        checkValid( *(start+1) );       //Next token should be a valid name.
-        LitBody* lBody = new LitBody();
-        bodies.push(pair<string, Body*>(*(start+1), lBody ));
-        auto it = start+2;
+        if( *start != "(" ){
+            //Its a literal without  a body like 'terminal'
+            if( start >= end ) throw SyntaxError( "GDLParser :: Error :: Literal start > end");
+            checkValid(*start); //valid name
+            bodies.push(pair<string, Body*>(*start, new LitBody() ));
+            const Literal* l = _create(bodies,p);
+            return l;
+        }
+        checkValid( *(++start) );       //Next token should be a valid name.
+        auto& name = *start++;
+        bodies.push(pair<string, Body*>(name, new LitBody() ));
+        auto& it = start;
+        const Literal* l;
+
         while ( !bodies.empty() and it < end)
         {
             string& token = *it;
@@ -144,43 +156,56 @@ namespace Ares
             }
             else if( token == "("){
                 //Its a function, Pushing time! ;)
-                checkValid(*(it+1));    //Next token should be a valid name.
-                bodies.push(pair<string, Body*>( *(it+1), new Body() ));
-                it++;
+                checkValid(*++it);    //Next token should be a valid name.
+                bodies.push(pair<string, Body*>( string(*it), new Body() ));
             }
             else if ( token == ")"){
-                //Popping time!
-                const char* name = bodies.top().first.c_str();
-                Body* body = bodies.top().second;
-                
-                PoolKey key{name, body};
-                
-                bool exists;
-
-                bodies.pop();
-                if( bodies.empty() ){
-                    //Its the literals body thats been popped
-                    Literal* l = exprPool->getLiteral(key, ref(exists));
-                    if( exists ) delete body;
+                //Pop an element and check if we are done.
+                //a well formed expression should eventually get into the next if.
+                if( (l=_create(ref(bodies),p)) )   
                     return l;
-                }
-                Function * fn = exprPool->getFn(key,ref(exists));
-                if( exists ) delete body;
-                bodies.top().second->push_back(fn);
             }
             else 
-                throw "GdlParser :: Error :: Unexpected token : " + token + " \nWhile parsing " + *(start +1);
+                throw SyntaxError("GdlParser :: Error :: Unexpected token : " + token + " \nWhile parsing " + name);
 
             it++;   //Next token
         }
         //Control should not reach here!
-        throw  "GdlParser :: Error :: Unbalanced parantheses while parsing lieral " + *(start +1);   
+        throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
-    void GdlParser::parseRule(Clause* c, vector<string>::iterator start, vector<string>::iterator end ){
+    const Literal* GdlParser::_create(stack<pair<string,Body*>>& bodies,bool p) {
+        const char* name = bodies.top().first.c_str();
+        Body* body = bodies.top().second;
+        
+        PoolKey key{name, body,true};
+        
+        bool exists;
 
+        bodies.pop();
+        if( bodies.empty() ){       //Balanced parentheses
+            //Its the literals body thats been popped
+            key.p = p;
+            // if( body->size() == 0 ) throw SyntaxError("GdlParser :: Error :: Expecting a literal body : (" + string(name) + ")" );
+            const Literal* l = exprPool->getLiteral(key, ref(exists));
+            if( exists ) delete body;
+            return l;
+        }
+        //You can do further check to ensure Function and literal names are distinct! if necessary.
+        Function * fn = exprPool->getFn(key,ref(exists));
+        if( exists ) delete body;
+        bodies.top().second->push_back(fn);
+        return nullptr;
     }
-
-    void GdlParser::parseBody(Clause* c, vector<string>::iterator start, vector<string>::iterator end ){
-
+    void GdlParser::parseRule(Clause* c, vector<string>::iterator start,const vector<string>::iterator end ){
+        //*start == "(" , *end == ")" and *(start+1) == "<=" checked in parse(...) above
+        start += 2;
+        //Get the head
+        const Literal* head = parseLiteral(ref(start), end, true);
+        c->setHead(head);
+        start++;    //advance to the next token
+        if( start >= end ) throw SyntaxError( "GdlParser :: Error :: Empty Rule Body");
+        //populate the body by applying transformations as necessary
+        TokenStream* stream = new TokenStream(tokens, start, start, end);
+        transformer->applyTransformations(c, unique_ptr<TokenStream>(stream));
     }
 } // namespace Ares

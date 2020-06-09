@@ -34,8 +34,10 @@ namespace Ares
         }
         
     public:
-        Literal(const Literal& l) = delete;
-        Literal& operator = (const Literal &l) = delete;
+        Literal(const Literal&) = delete;
+        Literal(const Literal&&) = delete;
+        Literal& operator= (const Literal&) = delete;
+        Literal& operator= (const Literal&&) = delete;
 
         explicit operator bool() {
             return positive;
@@ -82,8 +84,8 @@ namespace Ares
             p.append(")");
             return p;
         }
-        const char* getName(){return name;}
-        std::string toString(){
+        const char* getName() const{return name;}
+        std::string toString() const {
             std::string s("(");
             s.append(name);
             for (auto &t : body){
@@ -91,6 +93,10 @@ namespace Ares
             }
             s.append(")");
             return s;
+        }
+        friend std::ostream & operator << (std::ostream &out, const Literal &l){
+            out << l.toString();
+            return out;
         }
     };
 } // namespace Ares

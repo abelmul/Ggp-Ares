@@ -22,7 +22,7 @@ namespace Ares
         virtual bool isGround(){
             return true;
         }
-        virtual std::string toString(){
+        virtual std::string toString() const{
             return std::string(name);
         }
         virtual std::size_t hash() const {

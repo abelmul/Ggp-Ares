@@ -13,7 +13,7 @@ STRATEGY_INC = $(IDIR)/$(STRATEGY_DIR)
 OBJS_DIR = ../objs
 
 CC = g++
-FLAGS = -Wall -std=c++17 -I$(IDIR) -lboost_regex -lboost_thread -lpthread -O3
+FLAGS = -Wall -std=c++17 -I$(IDIR) -lboost_regex -lboost_thread -lpthread  -O3
 
 ifdef debug
 FLAGS+= -ggdb

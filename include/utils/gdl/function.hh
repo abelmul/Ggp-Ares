@@ -78,7 +78,7 @@ namespace Ares
         }
 
         
-        virtual std::string toString(){
+        virtual std::string toString() const{
             std::string s("(");
             s.append(name);
             for (auto &t : body){

@@ -33,13 +33,14 @@ namespace Ares
         return cc;
     }
     Function* ExpressionPool::getFn(PoolKey& key, bool& exists){
+        exists = false;
         fnlock.lock_shared();
         auto it = fnPool.find(key.name);
         if( it != fnPool.end() ){
             Function* fn;
             //function name exists!
             FnPool& fp = it->second;
-            auto itp = fp.find(&key);
+            auto itp = fp.find(key);
             if( itp != fp.end() ){
                 //function exists!
                 exists = true;
@@ -51,10 +52,9 @@ namespace Ares
                 fnlock.unlock_shared();
                 fnlock.lock();  //Exclusive
                 //Doesn't exist
-                exists = false;
                 //share name i.e, it->first
                 fn = new Function(it->first,key.body);
-                fp[&key] = fn;
+                fp[key] = fn;
                 fnlock.unlock();  //Exclusive
                 return fn;
             }
@@ -64,7 +64,7 @@ namespace Ares
         fnlock.lock();  //Exclusive
         auto * name = strdup(key.name);
         auto* fn = new Function(name, key.body);
-        fnPool[name][&key] = fn;
+        fnPool[name][key] = fn;
         fnlock.unlock();  //Exclusive
         return fn;
     }
@@ -75,7 +75,7 @@ namespace Ares
             //Literal name exists
             Literal* l;
             auto& lp = it->second;
-            auto itp = lp.find(&key);
+            auto itp = lp.find(key);
             if( itp != lp.end() ){
                 //Literal exists
                 l = itp->second;
@@ -86,7 +86,7 @@ namespace Ares
                 litlock.unlock_shared();
                 litlock.lock(); //Exclusive
                 l = new Literal(it->first,key.p, key.body);
-                lp[&key] = l;
+                lp[key] = l;
                 litlock.unlock(); //Exclusive
                 return l;
             }
@@ -96,7 +96,7 @@ namespace Ares
         litlock.lock(); //Exclusive
         auto* name = strdup(key.name);
         auto* l = new Literal(name, key.p,key.body);
-        litPool[name][&key] = l;
+        litPool[name][key] = l;
         litlock.unlock(); //Exclusive
         return l;
     }
