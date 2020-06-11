@@ -1,37 +1,28 @@
-#ifndef STATE_HH
-#define STATE_HH
+#ifndef MATCH_HH
+#define MATCH_HH
 
 #include "utils/gdl/clause.hh"
-#include <unordered_map>
-#include <thread>
+#include "utils/game/game.hh"
 
 namespace Ares
 {
-    typedef Term Move;     
-    struct SpinLock
-    {
-        void lock(){
-            while (_lock.test_and_set(std::memory_order_acquire));
-        }
-        void unlock(){
-            _lock.clear(std::memory_order_release); 
-        }
-
-        private:
-            std::atomic_flag _lock = ATOMIC_FLAG_INIT;
-    };
+    class State;
     
-    struct KnowledgeBase
+    class Match
     {
-        virtual std::vector<Clause*>* operator [](char* name) = 0;
-        virtual void add(const char* name, Clause*) = 0;
+    private:
+        Game* game;
+        State* state;
+        uint strtClck;
+        uint plyClck;
+        std::string role;
 
-        protected:
-            SpinLock slock;
+    public:
+        Match(/* args */) {}
+        ~Match() {}
     };
-
     /**
-     * Represents the game's state.
+     * Represents the match's state.
      */
     class State : public KnowledgeBase
     {

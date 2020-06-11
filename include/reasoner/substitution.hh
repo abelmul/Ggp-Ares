@@ -3,6 +3,7 @@
 
 #include <unordered_map>
 #include <functional>
+#include <string>
 #include "utils/hashing.hh"
 
 namespace Ares

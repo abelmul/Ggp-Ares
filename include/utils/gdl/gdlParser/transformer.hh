@@ -3,7 +3,7 @@
 #include <string>
 #include <vector>
 #include "utils/gdl/clause.hh"
-#include "utils/game/state.hh"
+#include "utils/game/match.hh"
 #include "utils/gdl/gdlParser/exceptions.hh"
 #include <functional>
 #include <boost/asio.hpp>

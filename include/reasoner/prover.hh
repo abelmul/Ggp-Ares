@@ -4,9 +4,9 @@
 #include "reasoner/substitution.hh"
 #include "utils/gdl/clause.hh"
 #include <boost/asio/thread_pool.hpp>
+#include <condition_variable>
 #include <boost/asio/post.hpp>
-#include "utils/game/game.hh"
-
+#include "utils/game/match.hh"
 namespace Ares
 { 
     /**
@@ -36,12 +36,12 @@ namespace Ares
         Prover(CallBack* _cb):cb(_cb){};
         /**
          * Carry out backward chaining. Search the sld-tree for a successful refutation.
+         * Using kb + @param state as a combined knowledgebase.
          * if one == true, the method immediately returns if a single refutation is derived,
          * otherwise all such successful refutations are derived.
-         * if it returns true then there's atleast one successful refutation.
          * cb is called each time a successful refutation is derived.
          */
-        bool prove(Clause& goal, bool one=true);  
+        bool prove(Clause& goal, State* state, bool one=true);  
         static void setKB(KnowledgeBase* _kb){kb = _kb;}
     private:
         static KnowledgeBase* kb;
@@ -60,6 +60,9 @@ namespace Ares
         bool distinct(Term& s, Term& t){
             return not ( s == t);
         }
+
+        std::mutex lock;
+        std::condition_variable done;   
     };  
     
 } // namespace Ares
