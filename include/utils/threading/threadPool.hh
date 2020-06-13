@@ -14,50 +14,65 @@ namespace Ares
 {
     class ThreadPool
     {
-    private:
+    protected:
 
+        /**
+         * The worker threads execution loop.
+         */
         void workerThread();
+        /**
+         * The calling thread is valid iff it can schedule a job
+         * iff One of the following conditions is met
+         * 1. The calling thread is owning thread. or
+         * 2. The calling thread is one of the worker threads. 
+         * and
+         * 1. The pool is currently not stopped. and
+         * 2. The pool is currently owned.
+         */
         bool validThread();
+        /**
+         * The 'virtual' work queue is empty.
+         */ 
+        bool queueEmpty(){ return outstanding_work == 0; }
 
+        boost::asio::io_service ioService;
         boost::asio::io_service::work* work;
         std::thread* workT;
         std::vector<std::thread*> threads;
 
         /**
          * One thread pool is only used for an exploration of a single SLD-tree at a time
-         * This is because we want to guarantee this : all the worker threads free iff the
+         * This is because we want to guarantee this :- all the worker threads are free iff the
          * whole sld-tree has been explored (for a single tree). So if we use the thread pool
          * to explore multiple sld trees (that is used to prove different queries) at the same 
          * time the thread would be busy until both sld-trees are explored. So we wouldn't know
          * when one is proven. We would have to wait until both are proven. Which might even create 
-         * deadlocks!
+         * deadlocks if used to prove negative literals while proving the original query!
          */
         std::thread::id owner;
         std::unordered_set<std::thread::id> workersId;
 
         ushort nWorkers;                        //Number of worker threads.
-        ushort freeWorkers;                     //Workers not doing anything.
+        uint outstanding_work = 0;          //are there any remaning jobs posted by the current owner.
         
 
-        bool outstanding_work = false;          //is there any jobs posted by the current owner.
-        bool owned = false;                     //is member owner valid?
-        bool atleastOne = false;                //atleat on job is submitted by the current owner.
-        bool finished = false;                  //Workers constantly check this to know when if they should stop.
+        bool owned = false;                     //is member field this->owner valid?
+        bool atleastOne = false;                //atleat one job is submitted by the current owner.
+        bool stopped = false;                   //are we accepting jobs from current owner?
+        bool finished = false;                  //Workers constantly check this to know if they should exit processing loop.
 
         std::mutex mOutstdWork;
         std::mutex mOwner;
-        std::mutex mFreeWrkrs;
 
         std::condition_variable cvOutstdWork;
         std::condition_variable cvOwner;
-        std::condition_variable cvFreeWrkrs;
+        std::condition_variable cvCheckEmpty;
         
 
         // const static std::thread::id NO_OWNER = NULL;
 
     public:
-    boost::asio::io_service ioService;
-        ThreadPool(ushort workers): nWorkers(workers), freeWorkers(workers){
+        ThreadPool(ushort workers): nWorkers(workers){
             //Initialize the worker threads;
             std::thread* t;
             workT = new std::thread( [this](){
@@ -69,14 +84,12 @@ namespace Ares
                 t = new std::thread(boost::bind(&ThreadPool::workerThread,this) );
                 threads.push_back(t);
                 workersId.insert(t->get_id());
-                // std::cout << "Created thread : " << i << std::endl;
             }   
-            // std::cout << "Done Creating threads : " << std::endl;
         }
 
         /**
          * Schedule a task. T should be callable!
-         * @returns false if the calling thread is not the owner.
+         * @returns false if the calling thread is not the owner (or one of the delegated worker threads).
          */
         template <class T>
         bool post(T job);
@@ -86,16 +99,23 @@ namespace Ares
          * After this call returns the thread pool is not owned by any thread.
          */
         bool wait();
-
+        /**
+         * If called by the owning thread, then  no more jobs are scheduled after this point, untill ownership is re-acquired.
+         * It waits for all jobs, submitted before this point, to finish.
+         * @returns true iff called by the owning thread (or one of the delegated worker threads).
+         */
+        bool stop();
         /**
          * Blocks untill exclusive ownership of the pool is acquired. 
          * @returns the calling threads id.
          */
         std::thread::id acquire();
-
-        bool allFree(){
-            return freeWorkers == nWorkers;
-        }
+        /**
+         * A non blocking version of acquire.
+         * @returns true if the pool is acquired, false otherwise.
+         */
+        bool try_acquire();
+        
         ~ThreadPool() {
             delete work;
             workT->join();
@@ -116,18 +136,20 @@ namespace Ares
             }
             
         }
+        friend class TestableThreadPool;
     };
 
     template <class T>
     bool ThreadPool::post(T job){
-        //Only the owning thread or the worker thread should submit
+        //Only the owning thread or one of the delegated worker threads should submit
+        //and pool musn't be stopped and owned.
         if( !validThread() ) return false;
 
         ioService.post(job);
 
         {
             std::unique_lock<std::mutex> lck(mOutstdWork);
-            outstanding_work = true;
+            outstanding_work++;
         }
         cvOutstdWork.notify_one();
         return true;

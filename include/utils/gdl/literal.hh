@@ -39,7 +39,7 @@ namespace Ares
         Literal& operator= (const Literal&) = delete;
         Literal& operator= (const Literal&&) = delete;
 
-        explicit operator bool() {
+        explicit operator bool() const {
             return positive;
         }
         Term* getArg(uint i) const {

@@ -23,7 +23,25 @@ namespace Ares
         SyntaxError(const char* c):std::runtime_error(c) {}
         ~SyntaxError() {}
     };
-    
+
+    class DistinctNotGround : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        DistinctNotGround(std::string s):std::runtime_error(s) {}
+        DistinctNotGround(const char* c):std::runtime_error(c) {}
+        ~DistinctNotGround() {}
+    };
+    class NegationNotGround : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        DistinctNotGround(std::string s):std::runtime_error(s) {}
+        DistinctNotGround(const char* c):std::runtime_error(c) {}
+        ~DistinctNotGround() {}
+    };
 } // namespace Ares
 
 #endif

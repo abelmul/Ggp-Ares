@@ -10,11 +10,14 @@ namespace Ares
 
     class Clause
     {
+        friend class Transformer;
     private:
         const Literal* head = nullptr;
         ClauseBody* _body = nullptr;
         ClauseBody& body;
         const Substitution* theta = nullptr;
+
+        ClauseBody& getBody(){return body;}
 
     public:
         /**
@@ -25,6 +28,7 @@ namespace Ares
         Clause& operator =(const Clause&) = delete;
         Clause& operator =(const Clause&&) = delete;
 
+        static bool EMPTY_CLAUSE(const Clause& c) { return c.body.size() == 0; }
         /**
          * A clause has this kind of form:
          * A <- A0 and ... and An
@@ -45,9 +49,12 @@ namespace Ares
         Clause* rename(VarRenamer& vr){
             return nullptr;
         }
-        ClauseBody& getBody(){return body;}
         void setHead(const Literal* h){ if(!head) head = h;}
-        void setBody(ClauseBody* b){ if(!_body) _body = b;}
+        // void setBody(ClauseBody* b){ if(!_body) _body = b;}
+
+        const Literal& operator[](uint i) const {
+            return std::ref(*body[i]);
+        }
         std::string toString()const{
             std::string s("(");
             if( body.size() > 0) s.append(" <= ");
