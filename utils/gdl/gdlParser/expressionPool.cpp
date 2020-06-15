@@ -2,7 +2,7 @@
 
 namespace Ares
 {
-    Variable* ExpressionPool::getVar(const char * n){
+    const Variable* ExpressionPool::getVar(const char * n){
         varlock.lock_shared();
         if( varPool.find(n) != varPool.end()){
             Variable* v = varPool[n];
@@ -17,7 +17,7 @@ namespace Ares
         varlock.unlock();
         return v;
     }
-    Constant* ExpressionPool::getConst(const char* c){
+    const Constant* ExpressionPool::getConst(const char* c){
         constlock.lock_shared();
         if( constPool.find(c) != constPool.end() ){
             auto * cc = constPool[c];
@@ -32,7 +32,7 @@ namespace Ares
         constlock.unlock();
         return cc;
     }
-    Function* ExpressionPool::getFn(PoolKey& key, bool& exists){
+    const Function* ExpressionPool::getFn(PoolKey& key, bool& exists){
         exists = false;
         fnlock.lock_shared();
         auto it = fnPool.find(key.name);
@@ -68,7 +68,7 @@ namespace Ares
         fnlock.unlock();  //Exclusive
         return fn;
     }
-    Literal* ExpressionPool::getLiteral(PoolKey& key, bool& exists){
+    const Literal* ExpressionPool::getLiteral(PoolKey& key, bool& exists){
         litlock.lock_shared();
         auto it = litPool.find(key.name);
         if( it != litPool.end()){

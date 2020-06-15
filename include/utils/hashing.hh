@@ -6,7 +6,8 @@ namespace Ares
 {
     class Variable;
     class Term;
-    
+
+    typedef std::vector<const Term*> Body;
     struct CharpHasher
     {
         std::size_t operator() (const char* name) const;
@@ -28,7 +29,7 @@ namespace Ares
     struct PoolKey
     {
         const char* name;
-        const std::vector<Term*>* body;
+        const Body* body;
         bool p = true;
     };
 

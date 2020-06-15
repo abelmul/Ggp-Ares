@@ -7,7 +7,7 @@
 #include "utils/game/match.hh"
 #include "utils/threading/threadPool.hh"
 #include "utils/gdl/gdlParser/exceptions.hh"
-
+#include "utils/gdl/gdlParser/expressionPool.hh"
 namespace Ares
 { 
     /**
@@ -18,8 +18,32 @@ namespace Ares
      * This is used to return the computed answer(s) to the caller in a multi-threaded
      * enviroment.
      */
-    struct CallBack;
-    struct Query;
+    template <class T> 
+    struct CallBack
+    {
+        CallBack(T _cb):cb(_cb){}
+        void operator()(const Substitution& computedAns){
+            std::lock_guard<std::mutex> lk(m);
+            cb(computedAns);
+        };
+        T cb;
+        std::mutex m;
+    };
+
+    template <class T> 
+    struct Query{
+        Query(Clause* _g,const  State* _c , const CallBack<T>* _cb, const bool _one,bool& d)
+        :goal(_g),context(_c), cb(_cb), oneAns(_one),done(d)
+        {
+        }
+        
+        Clause* const goal;
+        const State* const context;
+        const CallBack<T>* const cb;
+        const bool oneAns;
+        ThreadPool* pool;
+        bool& done;
+    };
     /**
      * The resulting resolvent,if any, in a single sldnf resolution step.
      */
@@ -28,13 +52,13 @@ namespace Ares
         Clause* gn;
         bool ok;
     };
+    template <class T>
     class Prover
     {
     private:
         Prover(KnowledgeBase* _kb, ushort proverThreads, ushort negThreads):kb(_kb){
             proverPool = new ThreadPool(proverThreads);
             negationPool = new ThreadPool(negThreads);
-            waitingThreads = new ThreadPool(2);
         };
 
     public:
@@ -51,48 +75,45 @@ namespace Ares
          * otherwise all such successful refutations are derived.
          * cb is called each time a successful refutation is derived.
          */
-        void prove(Query* query);  
+        void prove(Query<T>& query);  
         void setKB(KnowledgeBase* _kb){kb = _kb;}
 
         ~Prover(){
             delete proverPool;
             delete negationPool;
-            delete waitingThreads;
         }
 
     private:
         /**
-         * Extension of prove(Query* query), needed for recursion.
+         * Extension of prove(Query<T>& query), needed for recursion.
          */ 
-        void _prove(Query* query);
+        void _prove(Query<T> query);
         /**
          * Carry out a single (normal) SLD-Resolution Step
          * Where the selected literal in goal is positive.
          */
-        Resolvent* resolve(Clause& goal, Clause& c);
+        Resolvent resolve(const Clause& goal, const Clause& c);
         /**
          * Carry out a single SLDNF-Resolution Step
          * Where the selected literal in goal is negative.
          */
-        Resolvent* handleNegation(Clause& goal);
+        bool handleNegation(Query<T>& query);
         /**
          * The distinct relation.
          */
+        bool proveDistinct(Clause& goal);
+
         bool distinct(Term& s, Term& t){
             if( not (s.isGround() and t.isGround()) )
                 throw DistinctNotGround("Distinct called with : (distinct " + s.toString() + " " + t.toString() +" )");
             
             return not ( s == t);
         }
-        /**
-         * Will Return when either of the following condition is met.
-         * 1. query->oneAns && query->waitOne() returned: 
-         *      In this case on answer has been computed. and 
-         *      thats all we want (query->oneAns == trues).
-         * 2. pool->wait() returned:
-         *      The sld-tree has been exhaustively searched.
-         */
-        void wait(Query* query);
+
+        bool contextual(const Query<T>& q, const Literal& g) const{
+            return (( strcasecmp( g.getName(), "does") == 0 ) or (strcasecmp( g.getName(), "true") == 0) \
+                    and q.context);
+        }
 
         static Prover* _prover;
         static SpinLock slock;
@@ -100,62 +121,12 @@ namespace Ares
 
         ThreadPool* proverPool;     //Used for the initial query, and subequent searches.
         ThreadPool* negationPool;   //Used when trying to prove a negative goal(literal).
-        ThreadPool* waitingThreads; //To wait on some conditions.
 
         bool done;
         std::mutex mDone;
         //Some thread will notify through this cv when either one ans is computed or sld tree is exhaustively searched.
         std::condition_variable cvDone;         
-    };  
-    struct CallBack
-    {
-        bool operator()(Substitution* computedAns){
-
-        }
-    };
-
-    struct Query{
-        Query( Clause* _g, State* _c , CallBack* _cb, bool _one)
-        :goal(_g),context(_c), cb(_cb), oneAns(_one)
-        {
-        }
-        void waitOne(){
-            std::unique_lock<std::mutex> lk(mFndOne);
-            cvFndOne.wait(lk, [this](){return this->fndOne;});  //Wait until one answer has been computed.
-        }
-
-        void notifyOne(){
-            {
-                std::unique_lock<std::mutex> lk(mFndOne);
-                fndOne = true;
-            }
-            cvFndOne.notify_all();      //Notify that one answer has been computed.
-        }
-
-        void done(bool _d){
-            std::unique_lock<std::mutex> lk(mDone);
-            _done = _d;
-        }
-        bool done(){return _done;}
-        
-        ThreadPool* pool(){ return _pool;};
-        void pool(ThreadPool* p ){ _pool = p;};
-
-        const Clause* const goal;
-        const State* const context;
-        const CallBack* const cb;
-        const bool oneAns;
-
-        private:
-            ThreadPool* _pool;
-            
-            bool fndOne = false;
-            std::mutex mFndOne;
-            std::condition_variable cvFndOne;
-
-            bool _done = false;
-            std::mutex mDone;
-    };
+    }; 
 } // namespace Ares
 
 #endif

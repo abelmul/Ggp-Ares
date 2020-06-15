@@ -90,7 +90,7 @@ struct Tester
 };
 
 Tester tester;
-void prove(pair<int , int> ip,TestableThreadPool& pool,std::mutex& m){
+void job(pair<int , int> ip,TestableThreadPool& pool,std::mutex& m){
     tester.assertExclusiveUse(ip.first);        //Assert only one job is being executed!
     auto f = std::bind([ip, &m](){ 
         // sleep(10);
@@ -108,7 +108,7 @@ void try_acquire(TestableThreadPool& pool,int i, std::mutex& m){
 
     assert( std::this_thread::get_id() == id);
     for (uint j = i*SUBJOBS; j < (i+1)*SUBJOBS; j++){
-        auto f = std::bind(&prove,make_pair(i,j), ref(pool), ref(m));
+        auto f = std::bind(&job,make_pair(i,j), ref(pool), ref(m));
         pool.post<decltype(f)>(f);
     }
     auto f = std::bind(&Tester::releaseOwnership,ref(tester), i);

@@ -4,11 +4,8 @@
 #include <mutex>
 #include <condition_variable>
 #include <boost/asio/io_service.hpp>
-#include <boost/bind.hpp>
-#include <boost/thread/thread.hpp>
 #include <thread>
 #include <unordered_set>
-#include <iostream>
 
 namespace Ares
 {
@@ -81,7 +78,7 @@ namespace Ares
 
             for (size_t i = 0; i < workers; i++)
             {
-                t = new std::thread(boost::bind(&ThreadPool::workerThread,this) );
+                t = new std::thread(std::bind(&ThreadPool::workerThread,this) );
                 threads.push_back(t);
                 workersId.insert(t->get_id());
             }   

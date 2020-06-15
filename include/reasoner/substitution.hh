@@ -12,7 +12,7 @@ namespace Ares
     class Variable;
     class Term;
     
-    typedef std::unordered_map<Variable*,Term*,VarHasher,VarEqual> Mapping;
+    typedef std::unordered_map<const Variable*,const Term*,VarHasher,VarEqual> Mapping;
 
     class Substitution
     {
@@ -30,17 +30,17 @@ namespace Ares
         Substitution(){}
         static Substitution emptySub;
 
-        bool bind(Variable* x, Term* t);
+        bool bind(const Variable* x, const Term* t);
 
         //To get the immediate mapping, without traversing the chain.
-        Term* get(Variable* x);
+        const Term* get(const Variable* x);
         //Overload the indexing operator, to get the underlying exact mapping        
-        std::string operator[](Variable* x);
+        const Term* operator[](Variable* x);
 
         /**
          * Check if this variable is bound
          */ 
-        bool isBound(Variable* x);
+        bool isBound(const Variable* x);
         /**
          * Compose this with sub.But this is shallow composition nd need to traverse "chain"
          * to get bound value.

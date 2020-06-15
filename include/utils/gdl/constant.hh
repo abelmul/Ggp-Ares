@@ -9,6 +9,8 @@ namespace Ares
     class Constant: public Term
     {
     friend class ExpressionPool;
+    friend class ExpressionPoolTest;
+
     private:
         ~Constant(){
             delete name;
@@ -16,10 +18,10 @@ namespace Ares
         
     public:
         Constant(const char* name):Term(name,CONST){}
-        virtual std::string operator ()(Substitution &sub,VarSet& vStack){
-            return std::string(name);
+        virtual const Term* operator ()(Substitution &sub,VarSet& vStack) const {
+            return this;
         }
-        virtual bool isGround(){
+        virtual bool isGround() const {
             return true;
         }
         virtual std::string toString() const{

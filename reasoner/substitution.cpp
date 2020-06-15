@@ -7,26 +7,26 @@ namespace Ares
 {
     Substitution Substitution::emptySub;
 
-    bool  Substitution::bind(Variable* x, Term* t){
+    bool  Substitution::bind(const Variable* x,const Term* t){
         //This variable has already been bound!
         if(mappping.find(x) != mappping.end()) return false;
         mappping[x] = t;
         return true;
     }
-    Term* Substitution::get(Variable* x){
+    const Term* Substitution::get(const Variable* x){
         return mappping[x];
     }
     //Overload the indexing operator, to get the underlying mapping        
-    std::string Substitution::operator[](Variable* x){
+    const Term* Substitution::operator[](Variable* x){
         if( not isBound(x)) return nullptr;
         
         VarSet vSet;
         vSet.insert(x);
-        Term* t = get(x);
-        return (*t)(*this,vSet);
+        const Term* t = get(x);
+        return (*t)(*this,vSet);    //Walk through the implicit `chain`
     }
 
-    bool Substitution::isBound(Variable* x){
+    bool Substitution::isBound(const Variable* x){
         return mappping.find(x) != mappping.end();
     }
     

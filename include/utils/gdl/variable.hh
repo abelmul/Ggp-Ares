@@ -9,6 +9,7 @@ namespace Ares
     {
     
     friend class ExpressionPool;
+    friend class ExpressionPoolTest;
 
     private:
         Variable(const char* name):Term(name,VAR)
@@ -25,19 +26,18 @@ namespace Ares
          * vset is used to detect any loops. if a variable is encountered more than once 
          * while traversing a chain then there is a loop.
          */
-        virtual std::string operator ()(Substitution &sub,VarSet& vSet){
-            if( not sub.isBound(this) ) return std::string(name);
-            // //There is a circular dependency
-            if( vSet.find(this) != vSet.end() ) return std::string();
+        virtual const Term* operator ()(Substitution &sub,VarSet& vSet) const {
+            if( not sub.isBound(this) ) return this;
+            if( vSet.find(this) != vSet.end() ) return nullptr;     //There is a circular dependency
             // //Remember this var in this particular path
             vSet.insert(this);
-            Term* t = sub.get(this);
-            std::string tInst = (*t)(sub,vSet);
+            const Term* t = sub.get(this);
+            const Term* tInst = (*t)(sub,vSet);
             // //Done
-            vSet.erase(this);
+            vSet.erase(this);   
             return tInst;
         }
-        virtual bool isGround(){
+        virtual bool isGround() const{
             return false;
         }
 

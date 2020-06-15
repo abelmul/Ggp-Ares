@@ -111,13 +111,15 @@ namespace Ares
         static boost::regex re_c(R"(;[^\n\r]*([\n\r]+|\Z))");
         static boost::regex re_b(R"((\s*\(\s*)|(\s*\)\s*))");
 
-        string result = boost::regex_replace(gdl,re_c,"");
-        return boost::regex_replace(result, re_b,  [](const boost::smatch & match){
+        string cmtRemoved = boost::regex_replace(gdl,re_c,"");
+        string result =  boost::regex_replace(cmtRemoved, re_b,  [](const boost::smatch & match){
             for (auto &&c :  match.str())
                 if ( !isspace(c) ) return string(" ") + string(1,c) + string(" ");
 
             return string();
         });
+        boost::to_lower(result);
+        return result;
     }
 
     const Literal* GdlParser::parseLiteral(vector<string>::iterator& start, const vector<string>::iterator& end ,bool p){
@@ -126,13 +128,13 @@ namespace Ares
             //Its a literal without  a body like 'terminal'
             if( start >= end ) throw SyntaxError( "GDLParser :: Error :: Literal start > end");
             checkValid(*start); //valid name
-            bodies.push(pair<string, Body*>(*start, new LitBody() ));
+            bodies.push(pair<string, Body*>(*start, new Body() ));
             const Literal* l = _create(bodies,p);
             return l;
         }
         checkValid( *(++start) );       //Next token should be a valid name.
         auto& name = *start++;
-        bodies.push(pair<string, Body*>(name, new LitBody() ));
+        bodies.push(pair<string, Body*>(name, new Body() ));
         auto& it = start;
         const Literal* l;
 
@@ -146,12 +148,12 @@ namespace Ares
                  * then add to body.
                  */
                 auto& body = bodies.top().second;
-                Constant* cnst = exprPool->getConst(token.c_str());
+                const Constant* cnst = exprPool->getConst(token.c_str());
                 body->push_back(cnst);
             }
             else if( token[0] == '?' and token.size() > 1 ){
                 auto& body = bodies.top().second;
-                Variable* var = exprPool->getVar(token.c_str());
+                const Variable* var = exprPool->getVar(token.c_str());
                 body->push_back(var);
             }
             else if( token == "("){
@@ -191,7 +193,7 @@ namespace Ares
             return l;
         }
         //You can do further check to ensure Function and literal names are distinct! if necessary.
-        Function * fn = exprPool->getFn(key,ref(exists));
+        const Function * fn = exprPool->getFn(key,ref(exists));
         if( exists ) delete body;
         bodies.top().second->push_back(fn);
         return nullptr;

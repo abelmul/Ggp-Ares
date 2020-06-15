@@ -38,9 +38,9 @@ namespace Ares
     private:
         /* data */
     public:
-        DistinctNotGround(std::string s):std::runtime_error(s) {}
-        DistinctNotGround(const char* c):std::runtime_error(c) {}
-        ~DistinctNotGround() {}
+        NegationNotGround(std::string s):std::runtime_error(s) {}
+        NegationNotGround(const char* c):std::runtime_error(c) {}
+        ~NegationNotGround() {}
     };
 } // namespace Ares
 

@@ -6,30 +6,38 @@
 
 namespace Ares
 {
-    typedef std::vector<Term*> FnBody;
+    /**
+     * TODO: Create A pool of FunctionBodies and create a user level cache of bodies
+     * managed by ExpressionPool, maybe rename it to MemoryPool.
+     */
+
     //This represents gdl functions
     class Function:public Term
     {
     
     friend class ExpressionPool;
+    friend class ExpressionPoolTest;
 
+    template<class T>
+    friend Body* instantiate(const T& expr,Substitution &sub,VarSet& vSet, bool fn);
+    
     private:
-        const FnBody* _body = nullptr;
-        const FnBody& body;
+        const Body* _body = nullptr;
+        const Body& body;
 
         //Create a function with an empty body, used only during instantiation.
         Function(const char* name,uint arity):
-        Term(name,FN),_body(new FnBody(arity)),body(ref(*_body))
+        Term(name,FN),_body(new Body(arity)),body(ref(*_body))
         {
         }
 
         //create an initialized function
-        Function(const char* name,const FnBody* _b)
+        Function(const char* name,const Body* _b)
         :Term(name,FN),_body(_b),body(ref(*_body))
         {
         }
         /*Managed By ExpressionPool*/
-        ~Function(){
+        virtual ~Function(){
             delete _body;
         }
     public:
@@ -37,20 +45,20 @@ namespace Ares
         uint getArity() const{
             return body.size();
         }
-        Term* getArg(uint i)const{
+        const Term* getArg(uint i)const{
             if( i >= body.size() ) return nullptr;
 
             return body[i];
         }
-        virtual bool isGround(){
-            for (Term* arg : body)
+        virtual bool isGround() const {
+            for (const Term* arg : body)
                 if (!arg->isGround()) return false;
             
             return true;
         }
         virtual std::size_t hash() const {
             std::size_t nHash = nameHasher(name);
-            for (Term* t : body)
+            for (const Term* t : body)
                 hash_combine(nHash,t);
             
             return nHash;
@@ -61,22 +69,7 @@ namespace Ares
          * Varset is used to detect any loops. if a variable is encountered more than once on a 
          * single dfs path then there is a loop.
          */
-        virtual std::string operator ()(Substitution &sub,VarSet& vSet){
-            std::string f("(");
-            f.append(name);
-            for (size_t i = 0; i < getArity(); i++)
-            {
-                Term* arg = getArg(i);
-                std::string argInst = (*arg)(sub,vSet);
-                if( argInst.size() == 0)
-                    //Detected loop
-                    return std::string();
-                f.append( " " + argInst);
-            }
-            f.append(")");
-            return f;
-        }
-
+        virtual const Term* operator ()(Substitution &sub,VarSet& vSet) const;
         
         virtual std::string toString() const{
             std::string s("(");

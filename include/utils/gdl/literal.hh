@@ -6,34 +6,38 @@
 
 namespace Ares
 {
-    typedef std::vector<Term*>  LitBody;
+    class ExpressionPool;
 
     class Literal
     {
     
     friend class ExpressionPool;
+    friend class ExpressionPoolTest;
+
+    template<class T>
+    friend Body* instantiate(const T& expr,Substitution &sub,VarSet& vSet, bool fn);
 
     private:
         const char* name;
         const bool positive;
-        const LitBody* _body;
-        const LitBody& body;
-
+        const Body* _body;
+        const Body& body;
         Literal(const char* n, bool p,uint arity)
-        :name(n),positive(p),_body(new LitBody(arity)),body(std::ref(*_body))
+        :name(n),positive(p),_body(new Body(arity)),body(std::ref(*_body))
         {
         }
 
-        Literal(const char* n,bool p,const LitBody* b)
+        Literal(const char* n,bool p,const Body* b)
         :name(n),positive(p),_body(b),body(std::ref(*_body))
         {
         }
         /*Managed By ExpressionPool*/
-        ~Literal(){
+        virtual ~Literal(){
             delete _body;
         }
         
     public:
+        ExpressionPool* pool;
         Literal(const Literal&) = delete;
         Literal(const Literal&&) = delete;
         Literal& operator= (const Literal&) = delete;
@@ -42,26 +46,27 @@ namespace Ares
         explicit operator bool() const {
             return positive;
         }
-        Term* getArg(uint i) const {
+        const Term* getArg(uint i) const {
             if( i >= body.size() ) return nullptr;
             
             return body[i];
         }
-
+        
+        const Body* getBody() const { return _body;}
         uint getArity() const {return body.size();}
         
         virtual std::size_t hash() const {
             std::size_t nHash = Term::nameHasher(name);
-            for (Term* t : body)
+            for (const Term* t : body)
                 hash_combine(nHash,t);
             
             return nHash;
         }
 
-        bool isGround(){
-            for (Term* arg : body)
+        bool isGround() const {
+            for (const Term* arg : body)
                 if (!arg->isGround()) return false;
-            
+
             return true;
         }
         /**
@@ -69,21 +74,7 @@ namespace Ares
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        virtual std::string operator ()(Substitution &sub,VarSet& vSet) {
-            std::string p("(");
-            p.append(name);
-            for (size_t i = 0; i < getArity(); i++)
-            {
-                Term* arg = getArg(i);
-                std::string argInst = (*arg)(sub,vSet);
-                if( argInst.size() == 0)
-                    //Detected loop
-                    return std::string();
-                p.append( " " + argInst);
-            }
-            p.append(")");
-            return p;
-        }
+        virtual const Literal* operator ()(Substitution &sub,VarSet& vSet)const ;
         const char* getName() const{return name;}
         std::string toString() const {
             std::string s("(");

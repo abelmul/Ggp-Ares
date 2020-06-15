@@ -3,10 +3,10 @@
 
 #include "utils/gdl/literal.hh"
 #include "reasoner/varRenamer.hh"
-
+#include <list>
 namespace Ares
 {
-    typedef std::vector<const Literal*> ClauseBody;
+    typedef std::list<const Literal*> ClauseBody;
 
     class Clause
     {
@@ -15,7 +15,7 @@ namespace Ares
         const Literal* head = nullptr;
         ClauseBody* _body = nullptr;
         ClauseBody& body;
-        const Substitution* theta = nullptr;
+        Substitution* theta = nullptr;
 
         ClauseBody& getBody(){return body;}
 
@@ -46,14 +46,24 @@ namespace Ares
          * Create a new renamed clause, used in a resolution step while resolving
          * a goal.
          */ 
-        Clause* rename(VarRenamer& vr){
-            return nullptr;
-        }
+        Clause* rename(VarRenamer& vr){ return nullptr; }
+
+        std::size_t size(){ return body.size(); }
+
         void setHead(const Literal* h){ if(!head) head = h;}
         // void setBody(ClauseBody* b){ if(!_body) _body = b;}
 
-        const Literal& operator[](uint i) const {
-            return std::ref(*body[i]);
+        Substitution* getSubstitution(){ return theta;}
+
+        const Literal& front() { return *body.front();}
+
+        void insertFront(const Literal* l) { body.push_front(l); }
+        void popFront() { body.pop_front();}
+
+        void delayFront(){
+            const Literal* l = body.front();
+            body.pop_front();
+            body.push_back(l);
         }
         std::string toString()const{
             std::string s("(");

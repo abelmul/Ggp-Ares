@@ -16,10 +16,9 @@ namespace Ares
         return true;   
     }
 
-    bool Unifier::unifyTerm(Term& s, Term& t,Substitution& sub){
+    bool Unifier::unifyTerm(const Term& s, const Term& t,Substitution& sub){
         if(s == t)
             return true;
-                
         if( isVar(s) ){
             auto* s_v = (Variable *) &s;
             if( sub.isBound(s_v) ) 

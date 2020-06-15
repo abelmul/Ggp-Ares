@@ -14,7 +14,6 @@ namespace Ares
     
     using namespace std;
     typedef boost::asio::thread_pool thread_pool;
-    typedef vector<Term*> Body;
     enum Pstate {NEW, BALANCE,END};
     struct TokenStream;
     class GdlParser
