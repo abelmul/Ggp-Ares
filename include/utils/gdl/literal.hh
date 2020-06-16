@@ -15,7 +15,7 @@ namespace Ares
     friend class ExpressionPoolTest;
 
     template<class T>
-    friend Body* instantiate(const T& expr,Substitution &sub,VarSet& vSet, bool fn);
+    friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
     private:
         const char* name;
@@ -74,14 +74,16 @@ namespace Ares
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        virtual const Literal* operator ()(Substitution &sub,VarSet& vSet)const ;
+        virtual const Literal* operator ()(const Substitution &sub,VarSet& vSet) const ;
         const char* getName() const{return name;}
         std::string toString() const {
             std::string s("(");
+            if(not positive) s.append("not ( ");
             s.append(name);
             for (auto &t : body){
                 s.append(" " + t->toString());
             }
+            if(not positive) s.append(" )");
             s.append(")");
             return s;
         }

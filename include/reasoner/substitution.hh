@@ -17,7 +17,7 @@ namespace Ares
     class Substitution
     {
 
-    private:
+    protected:
         Mapping mappping;
 
     public:
@@ -33,14 +33,15 @@ namespace Ares
         bool bind(const Variable* x, const Term* t);
 
         //To get the immediate mapping, without traversing the chain.
-        const Term* get(const Variable* x);
+        const Term* get(const Variable* x) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        const Term* operator[](Variable* x);
+        const Term* operator[]  (const Variable* x) const;
 
+        bool isRenaming() const { return false;}
         /**
          * Check if this variable is bound
          */ 
-        bool isBound(const Variable* x);
+        bool isBound(const Variable* x) const;
         /**
          * Compose this with sub.But this is shallow composition nd need to traverse "chain"
          * to get bound value.

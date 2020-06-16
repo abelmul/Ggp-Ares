@@ -21,7 +21,7 @@ namespace Ares
     
     struct KnowledgeBase
     {
-        virtual const std::vector<const Clause*>* operator [](const char* name) = 0;
+        virtual const std::vector<const Clause*>* operator [](const char* name)const = 0;
         virtual void add(const char* name, Clause*) = 0;
 
         protected:
@@ -36,8 +36,8 @@ namespace Ares
     public:
         Game(/* args */){}
 
-        virtual const std::vector<const Clause*>* operator [](const char* name){
-            return rules[name];
+        virtual const std::vector<const Clause*>* operator [](const char* name) const {
+            return rules.at(name);
         }
         
         virtual void add(const char* name, Clause* c){
@@ -48,6 +48,10 @@ namespace Ares
             rules[name]->push_back(c);
             slock.unlock();
         }
+        std::unordered_map<const char*, std::vector<const Clause*>*,CharpHasher> getRules(){
+            return rules;
+        }
+        
         ~Game(){
             for (auto& it : rules)
             {

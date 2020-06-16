@@ -33,8 +33,8 @@ namespace Ares
         State(){
 
         }
-        virtual const std::vector<const Clause*>* operator [](const char* name){
-            return state[name];
+        virtual const std::vector<const Clause*>* operator [](const char* name) const {
+            return state.at(name);
         }
         virtual void add(const char* name, Clause* c){
             slock.lock();

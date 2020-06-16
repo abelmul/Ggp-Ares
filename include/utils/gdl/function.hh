@@ -19,7 +19,7 @@ namespace Ares
     friend class ExpressionPoolTest;
 
     template<class T>
-    friend Body* instantiate(const T& expr,Substitution &sub,VarSet& vSet, bool fn);
+        friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
     
     private:
         const Body* _body = nullptr;
@@ -69,7 +69,7 @@ namespace Ares
          * Varset is used to detect any loops. if a variable is encountered more than once on a 
          * single dfs path then there is a loop.
          */
-        virtual const Term* operator ()(Substitution &sub,VarSet& vSet) const;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
         
         virtual std::string toString() const{
             std::string s("(");

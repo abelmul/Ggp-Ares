@@ -1,7 +1,7 @@
 #include "reasoner/unifier.hh"
 namespace Ares
 {
-    bool Unifier::unifyPredicate(Literal& l1, Literal& l2, Substitution& sub){
+    bool Unifier::unifyPredicate(const Literal& l1, const Literal& l2, Substitution& sub){
         bool dtName = strcasecmp(l1.getName(),l2.getName()) != 0;
         bool dtSign = ( (bool) l1 ) ^ (bool) l2;
         bool dtArity = (l1.getArity() != l2.getArity() );

@@ -18,7 +18,7 @@ namespace Ares
         
     public:
         Constant(const char* name):Term(name,CONST){}
-        virtual const Term* operator ()(Substitution &sub,VarSet& vStack) const {
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vStack) const {
             return this;
         }
         virtual bool isGround() const {

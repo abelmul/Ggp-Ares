@@ -51,7 +51,7 @@ namespace Ares
          * Varset is used to detect any loops. if a variable is encountered more than once then
          * there is a loop.
          */
-        virtual const Term* operator ()(Substitution &sub,VarSet& vSet) const = 0;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const = 0;
 
         virtual bool isGround() const = 0;
         virtual std::size_t hash() const = 0;

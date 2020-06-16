@@ -36,6 +36,7 @@ namespace Ares
             parseFml(c, *stream);
 
         if ( (*(*stream))!= ")" ) throw UnbalancedParentheses( "Gdl :: Error :: Clause needs to be enclosed by parentheses.");
+        parser->base->add(c->getHead().getName(), c);
     }
 
     void Transformer::parseFml(Clause* c, TokenStream& stream){
@@ -72,8 +73,9 @@ namespace Ares
                 for (size_t j = 0; j < streams.size(); j++){
                     auto* s = streams[j];
                     s->setNext(next_exp+1);
-                    boost::asio::post(*parser->pool, [this,c,s](){
-                         this->applyTransformations(c->clone(), unique_ptr<TokenStream>(s));
+                    auto* clone = c->clone();       //Capture after cloning
+                    boost::asio::post(*parser->pool, [this,clone,s](){
+                         this->applyTransformations(clone, unique_ptr<TokenStream>(s));
                     });
                 }
             }

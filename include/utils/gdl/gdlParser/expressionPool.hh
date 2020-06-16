@@ -15,14 +15,21 @@ namespace Ares
     class ExpressionPool
     {
 
-    public:
         typedef std::unordered_map<PoolKey, Function*,PoolKeyHasher,PoolKeyEqual> FnPool;
         typedef std::unordered_map<PoolKey, Literal*,PoolKeyHasher,PoolKeyEqual> LitPool;
 
+        friend class GdlParser;
+    private:
+        /**
+         * Only a single expression pool should exist through out the life time of the application
+         * and its created by the singleton gdlParser.
+         */
         ExpressionPool(){
             for (const char* c : constants)
                 litPool[c];         //Creates Empty LiteralPool 
         }
+
+    public:
         /**
          * The get* methods make sure only one instance of an object exists.
          * sets @param exists to true if the expression exists. if exists
@@ -67,6 +74,17 @@ namespace Ares
                     delete litIt.second;
             }
         }
+        const char* ROLE = "role";
+        const char* INIT = "init";
+        const char* LEGAL = "legal";
+        const char* NEXT = "next";
+        const char* TRUE = "true";
+        const char* DOES = "does";
+        const char* DISTINCT = "distinct";
+        const char* GOAL = "goal";
+        const char* TERMINAL = "terminal";
+        const char* INPUT = "input";
+        const char* BASE = "base";
 
     private:
         std::unordered_map<const char*, Variable*,CharpHasher,StrEq> varPool;
@@ -88,17 +106,6 @@ namespace Ares
          */
 
         const std::vector<const char *> constants{ ROLE,TRUE,INIT,NEXT,LEGAL,DOES,DISTINCT,GOAL,TERMINAL };
-        const char* ROLE = "role";
-        const char* INIT = "init";
-        const char* LEGAL = "legal";
-        const char* NEXT = "next";
-        const char* TRUE = "true";
-        const char* DOES = "does";
-        const char* DISTINCT = "distinct";
-        const char* GOAL = "goal";
-        const char* TERMINAL = "terminal";
-        const char* INPUT = "input";
-        const char* BASE = "base";
     };
 } // namespace Ares
 

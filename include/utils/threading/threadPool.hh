@@ -54,7 +54,6 @@ namespace Ares
         
 
         bool owned = false;                     //is member field this->owner valid?
-        bool atleastOne = false;                //atleat one job is submitted by the current owner.
         bool stopped = false;                   //are we accepting jobs from current owner?
         bool finished = false;                  //Workers constantly check this to know if they should exit processing loop.
 

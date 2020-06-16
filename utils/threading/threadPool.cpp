@@ -61,7 +61,6 @@ namespace Ares
         cvOwner.wait(lk, [this](){return not this->owned;} );
         owned = true;
         stopped = false;            //So that the new owner can submitt jobs.
-        atleastOne = false;         //No jobs posted yet.
         owner = std::this_thread::get_id(); 
         return owner;
     }
@@ -76,7 +75,6 @@ namespace Ares
         }
 
         owned = true;
-        atleastOne = false;
         owner = std::this_thread::get_id(); 
         return true;
     }

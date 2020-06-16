@@ -57,7 +57,7 @@ namespace Ares
             slock.unlock();
             return _parser;
         }
-
+        ExpressionPool* getExpressionPool(){ return exprPool;}
         void parse(KnowledgeBase* base, string& gdl);
         void parseFile(KnowledgeBase* base, string& gdlF);
         ~GdlParser(){

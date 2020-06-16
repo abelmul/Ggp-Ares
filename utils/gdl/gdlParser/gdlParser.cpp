@@ -83,13 +83,13 @@ namespace Ares
                 else { 
                     Clause* c = new Clause(nullptr, new ClauseBody());
                     boost::asio::post(*pool, [this,start,end, c](){
-                         try
+                    try
                     {
                         parseRule(c, start, end);
                     }
-                    catch(const std::string& e)
+                    catch(const std::runtime_error& e)
                     {
-                        std::cerr << e << '\n';
+                        std::cerr << e.what() << '\n';
                     }
                     });
                 }
@@ -176,7 +176,8 @@ namespace Ares
         throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
     const Literal* GdlParser::_create(stack<pair<string,Body*>>& bodies,bool p) {
-        const char* name = bodies.top().first.c_str();
+        auto s = bodies.top().first;
+        const char* name = s.c_str();
         Body* body = bodies.top().second;
         
         PoolKey key{name, body,true};
@@ -187,7 +188,6 @@ namespace Ares
         if( bodies.empty() ){       //Balanced parentheses
             //Its the literals body thats been popped
             key.p = p;
-            // if( body->size() == 0 ) throw SyntaxError("GdlParser :: Error :: Expecting a literal body : (" + string(name) + ")" );
             const Literal* l = exprPool->getLiteral(key, ref(exists));
             if( exists ) delete body;
             return l;

@@ -26,8 +26,10 @@ namespace Ares
          * vset is used to detect any loops. if a variable is encountered more than once 
          * while traversing a chain then there is a loop.
          */
-        virtual const Term* operator ()(Substitution &sub,VarSet& vSet) const {
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const {
             if( not sub.isBound(this) ) return this;
+            else if(sub.isRenaming() ) return sub[this];        //No need to traverse the chain
+
             if( vSet.find(this) != vSet.end() ) return nullptr;     //There is a circular dependency
             // //Remember this var in this particular path
             vSet.insert(this);

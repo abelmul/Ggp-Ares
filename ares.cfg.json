@@ -1,5 +1,7 @@
 {
     "parser_threads":1,
     "prover_threads":4,
-    "gdl":"tests/chess.gdl"
+    "neg_threads":4,
+    "gdl":"tests/chess.gdl",
+    "file":true
 }

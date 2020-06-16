@@ -4,9 +4,9 @@
 namespace Ares
 {
     template<class T>
-    Body* instantiate(const T& expr,Substitution &sub,VarSet& vSet, bool fn);
+    Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
-    const Term* Function::operator()(Substitution &sub,VarSet& vSet) const {
+    const Term* Function::operator()(const Substitution &sub,VarSet& vSet) const {
         Body* body = instantiate<Function>(*this, sub, vSet, true);
         if( !body ) return nullptr;
         PoolKey key{name, body,true};
@@ -16,7 +16,7 @@ namespace Ares
         return fnInst;
     }
 
-   const Literal* Literal::operator()(Substitution &sub,VarSet& vSet) const {
+   const Literal* Literal::operator()(const Substitution &sub,VarSet& vSet) const {
         Body* body = instantiate<Literal>(*this, sub, vSet, true);
         if( !body ) return nullptr;
         PoolKey key{name, body,this->positive};
@@ -27,7 +27,7 @@ namespace Ares
     }
 
     template<class T>
-    Body* instantiate(const T& expr, Substitution &sub,VarSet& vSet, bool fn){
+    Body* instantiate(const T& expr, const Substitution &sub,VarSet& vSet, bool fn){
 
         Body* body = new Body();
         for (const Term* arg : expr.body)

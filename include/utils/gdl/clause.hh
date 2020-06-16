@@ -2,11 +2,16 @@
 #define CLAUSE_HH
 
 #include "utils/gdl/literal.hh"
-#include "reasoner/varRenamer.hh"
-#include <list>
+#include "reasoner/substitution.hh"
+#include "reasoner/suffixRenamer.hh"
+
 namespace Ares
 {
-    typedef std::list<const Literal*> ClauseBody;
+    /**
+     * Apparently std::vector is faster than std::list even for situations 
+     * involving lots of insertions and deletions!
+     */
+    typedef std::vector<const Literal*> ClauseBody; 
 
     class Clause
     {
@@ -16,7 +21,6 @@ namespace Ares
         ClauseBody* _body = nullptr;
         ClauseBody& body;
         Substitution* theta = nullptr;
-
         ClauseBody& getBody(){return body;}
 
     public:
@@ -28,7 +32,7 @@ namespace Ares
         Clause& operator =(const Clause&) = delete;
         Clause& operator =(const Clause&&) = delete;
 
-        static bool EMPTY_CLAUSE(const Clause& c) { return c.body.size() == 0; }
+        static bool EMPTY_CLAUSE(const Clause& c) { return (c.body.size() == 0  and (not c.head) ); }
         /**
          * A clause has this kind of form:
          * A <- A0 and ... and An
@@ -46,30 +50,50 @@ namespace Ares
          * Create a new renamed clause, used in a resolution step while resolving
          * a goal.
          */ 
-        Clause* rename(VarRenamer& vr){ return nullptr; }
+        Clause* rename() const {
+            SuffixRenamer vr;
+            Clause* renamed = new Clause(head, new ClauseBody());
+            // renamed->body.resize()
+            auto vset = VarSet();
+            for (auto &&l : body){
+                auto lr = (*l)( *((Substitution*)&vr), vset);       //Apply renaming
+                renamed->body.push_back(lr);
+            }
+            return renamed;
+        }
 
-        std::size_t size(){ return body.size(); }
+        std::size_t size()const { return body.size(); }
 
-        void setHead(const Literal* h){ if(!head) head = h;}
+        void setHead(const Literal* h){head = h;}
+        const Literal& getHead() const { return *head;}
         // void setBody(ClauseBody* b){ if(!_body) _body = b;}
 
-        Substitution* getSubstitution(){ return theta;}
+        Substitution* getSubstitution() const { return theta;}
+        void setSubstitution(Substitution* t){ theta = t;}
 
-        const Literal& front() { return *body.front();}
+        const Literal& front() const { return *body[0];}
 
-        void insertFront(const Literal* l) { body.push_front(l); }
-        void popFront() { body.pop_front();}
+        void insertFront(const Literal* l) { body.insert(body.begin(),l); }
+        void popFront() { body.erase(body.begin());}
 
         void delayFront(){
             const Literal* l = body.front();
-            body.pop_front();
+            popFront();
             body.push_back(l);
         }
+
+        Clause& operator+=(const Clause& c){
+            //Experiment with both inserting at the back and the front
+            this->body.insert(body.begin(), c.body.begin()+1, c.body.end());
+            return *this;
+        }
+
         std::string toString()const{
             std::string s("(");
             if( body.size() > 0) s.append(" <= ");
+            if( head ) s.append( head ->toString() + " ");
             for (auto &l : body){
-                s.append(" " + l->toString());
+                s.append("\n" + l->toString());
             }
             s.append(")");
             return s;

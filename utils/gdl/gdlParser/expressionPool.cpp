@@ -54,6 +54,7 @@ namespace Ares
                 //Doesn't exist
                 //share name i.e, it->first
                 fn = new Function(it->first,key.body);
+                fn->pool = this;
                 fp[key] = fn;
                 fnlock.unlock();  //Exclusive
                 return fn;
@@ -64,11 +65,13 @@ namespace Ares
         fnlock.lock();  //Exclusive
         auto * name = strdup(key.name);
         auto* fn = new Function(name, key.body);
+        fn->pool = this;
         fnPool[name][key] = fn;
         fnlock.unlock();  //Exclusive
         return fn;
     }
     const Literal* ExpressionPool::getLiteral(PoolKey& key, bool& exists){
+        exists = false;
         litlock.lock_shared();
         auto it = litPool.find(key.name);
         if( it != litPool.end()){
@@ -78,6 +81,7 @@ namespace Ares
             auto itp = lp.find(key);
             if( itp != lp.end() ){
                 //Literal exists
+                exists = true;
                 l = itp->second;
                 litlock.unlock_shared();
                 return l;
@@ -86,6 +90,7 @@ namespace Ares
                 litlock.unlock_shared();
                 litlock.lock(); //Exclusive
                 l = new Literal(it->first,key.p, key.body);
+                l->pool = this;
                 lp[key] = l;
                 litlock.unlock(); //Exclusive
                 return l;
@@ -96,6 +101,7 @@ namespace Ares
         litlock.lock(); //Exclusive
         auto* name = strdup(key.name);
         auto* l = new Literal(name, key.p,key.body);
+        l->pool = this;
         litPool[name][key] = l;
         litlock.unlock(); //Exclusive
         return l;

@@ -13,11 +13,11 @@ namespace Ares
         mappping[x] = t;
         return true;
     }
-    const Term* Substitution::get(const Variable* x){
-        return mappping[x];
+    const Term* Substitution::get(const Variable* x) const {
+        return mappping.at(x);
     }
     //Overload the indexing operator, to get the underlying mapping        
-    const Term* Substitution::operator[](Variable* x){
+    const Term* Substitution::operator[] (const Variable* x) const {
         if( not isBound(x)) return nullptr;
         
         VarSet vSet;
@@ -26,7 +26,7 @@ namespace Ares
         return (*t)(*this,vSet);    //Walk through the implicit `chain`
     }
 
-    bool Substitution::isBound(const Variable* x){
+    bool Substitution::isBound(const Variable* x) const {
         return mappping.find(x) != mappping.end();
     }
     

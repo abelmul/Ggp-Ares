@@ -1,40 +1,24 @@
-#include "reasoner/varRenamer.hh"
-#include <string.h>
+#include "reasoner/suffixRenamer.hh"
+#include "utils/gdl/gdlParser/expressionPool.hh"
 
 namespace Ares
 {
+
     /**
-     * Renames variables by adding a unique suffix to them.
+     * Don't forget to initialize these!
      */
-    class SuffixRenamer : VarRenamer
-    {
-    private:
-        SuffixRenamer(){}
-        static SuffixRenamer* _renamer;
-        static std::mutex smutex;
-        static uint suffix;
-
-    public:
-        /**
-         * Rename all variables in Substitution to $SuffixRenamer::suffix
-         * Assuming no variable in gdl ends with $int
-         * This class is not responsible for deleting the new 
-         * variables created here as a result of renaming.
-         */
-        virtual Substitution* rename(Substitution& sub){
-            return nullptr;
-        }
-        static SuffixRenamer* getRenamer(){
-            //Lock the mutex, lock guard automatically releases lock when destroyed
-            std::lock_guard<std::mutex> g(smutex);
-            if(!_renamer)
-                _renamer = new SuffixRenamer();
-            
-            return _renamer;
-        }
-    };
-    SuffixRenamer* SuffixRenamer::_renamer=nullptr;
+    ExpressionPool* SuffixRenamer::pool = nullptr;
     std::mutex SuffixRenamer::smutex;
-    uint SuffixRenamer::suffix = 0; 
-
+    uint SuffixRenamer::suffix = 0;
+    
+    const Term* SuffixRenamer::get(const Variable* x) const {
+        uint ol = strlen(x->getName());
+        uint l = ol + (( (int) log10f(current_suffix) ) + 1 ) + 1;
+        char* newName = (char * ) malloc( l );
+        strcpy(newName, x->getName());
+        sprintf(newName + ol, "%d", current_suffix);
+        const Variable* x_r = pool->getVar(newName);
+        delete newName;
+        return x_r;
+    }
 } // namespace Ares
