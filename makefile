@@ -3,7 +3,7 @@ GDL_DIR = gdl
 GDLP_DIR = gdlParser
 STRATEGY_DIR = strategy
 UTILS_DIR = utils
-
+MEMORY_DIR = $(UTILS_DIR)/memory
 TESTS = tests
 TESTS_SIMP = $(TESTS)/simple
 
@@ -24,19 +24,22 @@ else
 FLAGS+= -O3
 endif
 
+ifdef testing
+FLAGS+=  -I$(TESTS_SIMP)/include
+endif
+
 #Get the source files with their path
 SOURCES := $(shell find . -not -path "*test*" -name '*.cpp' | sed 's/\.\///')
+# TESTS := $(shell find .  -path "*test*" -name '*.cpp' | sed 's/\.\///')
 
 #Create their respective object files
 OBJS := $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SOURCES))
-
+# OBJS_TESTS := $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(TESTS))
 #Create their respective include files
 INCLS := $(shell find . -name "*.hh")
-
-# common_dep = 
-# ARES_DEPS =  #$(OBJS_DIR)/$(STRATEGY_DIR)/<YOUR_STRATEGY>.o
-# ARES_DEPS +=  $(OBJS_DIR)/$(UTILS_DIR)/$(GDL_DIR)/$(GDLP_DIR)/gdlParser.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/ares.o 
-
+#create the directories
+OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
+# OBJ_TESTS_DIRS := $(shell mkdir -p `dirname $(OBJS_TESTS)`)
 
 ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
@@ -49,7 +52,13 @@ $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 $(TESTS_SIMP)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
 	$(CC) $(FLAGS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
 
-run_simpTest:
+$(TESTS_SIMP)/Test_MemPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_MemPool.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o
+	$(CC) $(FLAGS)  -o $@ -Wl,--start-group $^ -Wl,--end-group 
+
+Test_ThreadPool:
 	$(TESTS_SIMP)/Test_ThreadPool
-clean:	
-	find $(OBJS_DIR) -type f -name '*.o' -delete
+Test_MemPool:
+	$(TESTS_SIMP)/Test_MemPool
+
+.clean:	
+	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares

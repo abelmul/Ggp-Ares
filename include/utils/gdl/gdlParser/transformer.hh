@@ -4,11 +4,11 @@
 #include <vector>
 #include "utils/gdl/clause.hh"
 #include "utils/game/match.hh"
-#include "utils/gdl/gdlParser/exceptions.hh"
+#include "utils/utils/exceptions.hh"
 #include <functional>
 #include <boost/asio.hpp>
 
-namespace Ares
+namespace ares
 {
     using namespace std;
     class GdlParser;
@@ -123,6 +123,6 @@ namespace Ares
         vector<string>::iterator _end;
 
     };
-} // namespace Ares
+} // namespace ares
 
 #endif

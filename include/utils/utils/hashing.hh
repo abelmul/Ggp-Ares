@@ -1,13 +1,13 @@
 #ifndef HASHING_HH
 #define HASHING_HH
 #include <vector>
-
-namespace Ares
+#include <unordered_set>
+#include "utils/memory/body.hh"
+namespace ares
 {
     class Variable;
     class Term;
 
-    typedef std::vector<const Term*> Body;
     struct CharpHasher
     {
         std::size_t operator() (const char* name) const;
@@ -17,13 +17,16 @@ namespace Ares
         bool operator()(const char* s1, const char* s2) const;
     };
     //Used in Substitutions to index using a variable
-    struct VarHasher
+  
+    
+    struct SpVarHasher
     {
-        std::size_t operator() (const Variable* x) const;
+        std::size_t operator() (const cnst_var_sptr&) const;
     };
-    struct VarEqual
+
+    struct SpVarEqual
     {
-        bool operator()(const Variable *v1, const Variable *v2) const;
+        bool operator()(const cnst_var_sptr&,const  cnst_var_sptr&) const;
     };
 
     struct PoolKey
@@ -42,6 +45,12 @@ namespace Ares
     {
         bool operator()(const PoolKey& v1, const PoolKey& v2) const;
     };
-} // namespace Ares
+
+    // template<class T>
+    // class UniqueVector : public std::vector<T>{
+    //     std::unordered_set<T> _elements;
+
+    // };
+} // namespace ares
 
 #endif

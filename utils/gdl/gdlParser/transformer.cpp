@@ -1,7 +1,7 @@
 #include "utils/gdl/gdlParser/transformer.hh"
 #include "utils/gdl/gdlParser/gdlParser.hh"
 
-namespace Ares
+namespace ares
 {
     /*Define static members*/
     Transformer* Transformer::_t = nullptr;   
@@ -36,14 +36,14 @@ namespace Ares
             parseFml(c, *stream);
 
         if ( (*(*stream))!= ")" ) throw UnbalancedParentheses( "Gdl :: Error :: Clause needs to be enclosed by parentheses.");
-        parser->base->add(c->getHead().getName(), c);
+        parser->base->add(c->getHead()->get_name(), c);
     }
 
     void Transformer::parseFml(Clause* c, TokenStream& stream){
         auto& it = stream.current();
         if( *it != "("){
             // A literal without a body
-            const Literal* l = parser->parseLiteral(it,stream.end(),true);
+            cnst_lit_sptr l = parser->parseLiteral(it,stream.end(),true);
             c->getBody().push_back(l);
             ++stream;       //Advances stream position to the next formula.
             return;
@@ -91,7 +91,7 @@ namespace Ares
         else{
             //Should be a literal
 
-            const Literal* l = parser->parseLiteral(it,stream.end(),true);
+            cnst_lit_sptr l = parser->parseLiteral(it,stream.end(),true);
             c->getBody().push_back(l);
             ++stream;       //Advances stream position to the next formula.
         }
@@ -101,7 +101,7 @@ namespace Ares
     void Transformer::_transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream){
         if( *it != "("){
             // A literal without a body
-            const Literal* l = parser->parseLiteral(it,stream.end(),false);
+            cnst_lit_sptr l = parser->parseLiteral(it,stream.end(),false);
             it++;
             if( it >= stream.end() || *it != ")") throw SyntaxError( "GDLParser :: Error :: While parsing not.");
             c->getBody().push_back(l);
@@ -150,11 +150,11 @@ namespace Ares
         }
         else{
             //Should be a literal
-            const Literal* l = parser->parseLiteral(it,stream.end(),false);
+            cnst_lit_sptr l = parser->parseLiteral(it,stream.end(),false);
             c->getBody().push_back(l);
             it++;           //next token
             if( (it >= stream.end())  || ((*it) != ")") ) throw SyntaxError("GdlParser :: Error :: While parsing '(not literal' Expecting ')' before end.");
             ++stream;       //Advances stream position to the next formula.
         }
     }
-} // namespace Ares
+} // namespace ares

@@ -1,6 +1,6 @@
 #include "utils/threading/threadPool.hh"
 
-namespace Ares
+namespace ares
 {
     void ThreadPool::workerThread(){
         while (!finished)
@@ -60,7 +60,7 @@ namespace Ares
         if( owned && std::this_thread::get_id() == owner) return owner;         //Called acquire while owning the pool!
         cvOwner.wait(lk, [this](){return not this->owned;} );
         owned = true;
-        stopped = false;            //So that the new owner can submitt jobs.
+        stopped = false;            //So that the new owner can submit jobs.
         owner = std::this_thread::get_id(); 
         return owner;
     }
@@ -78,4 +78,4 @@ namespace Ares
         owner = std::this_thread::get_id(); 
         return true;
     }
-} // namespace Ares
+} // namespace ares

@@ -2,22 +2,16 @@
 #define GAME_HH
 #include <unordered_map>
 #include <thread>
-
-namespace Ares
+#include <iostream>
+#include "utils/threading/locks.hh"
+namespace ares
 {
-    typedef Term Move;     
-    struct SpinLock
-    {
-        void lock(){
-            while (_lock.test_and_set(std::memory_order_acquire));
-        }
-        void unlock(){
-            _lock.clear(std::memory_order_release); 
-        }
-
-        private:
-            std::atomic_flag _lock = ATOMIC_FLAG_INIT;
-    };
+    typedef const Term Role;
+    typedef const Term Move;
+    typedef std::shared_ptr<Move> move_sptr;
+    typedef std::shared_ptr<Role> role_sptr;
+    typedef std::vector<move_sptr> Moves;
+    typedef std::vector<role_sptr> Roles;
     
     struct KnowledgeBase
     {
@@ -31,36 +25,50 @@ namespace Ares
     {
     private:
         /*A mapping from head names --> [clauses with the same head name]*/
-        std::unordered_map<const char*, std::vector<const Clause*>*,CharpHasher> rules;
+        std::unordered_map<const char*, std::vector<const Clause*>*,CharpHasher, StrEq> rules;
 
     public:
         Game(/* args */){}
 
         virtual const std::vector<const Clause*>* operator [](const char* name) const {
-            return rules.at(name);
+            const std::vector<const Clause*>* v = nullptr;
+            try
+            {
+                v = rules.at(name);
+            }
+            catch(const std::exception& e)
+            {
+                std::cerr << e.what() << '\n';
+            }
+            
+            return v;
         }
         
         virtual void add(const char* name, Clause* c){
-            slock.lock();
+            std::lock_guard<SpinLock> lk(slock);
             if( rules.find(name) == rules.end() )
-                rules[name] = new std::vector<const Clause*>();
+                rules[strdup(name)] = new std::vector<const Clause*>();
             
             rules[name]->push_back(c);
-            slock.unlock();
         }
-        std::unordered_map<const char*, std::vector<const Clause*>*,CharpHasher> getRules(){
+        
+        std::unordered_map<const char *, std::vector<const Clause*>*, CharpHasher,StrEq>::iterator begin(){ return rules.begin();}
+        std::unordered_map<const char *, std::vector<const Clause*>*, CharpHasher,StrEq>::iterator end(){ return rules.end();}
+        
+        std::unordered_map<const char*, std::vector<const Clause*>*,CharpHasher,StrEq> getRules(){
             return rules;
         }
         
         ~Game(){
             for (auto& it : rules)
             {
+                delete it.first;
                 for (const Clause *c : *it.second)
                         delete c;
                 delete it.second;
             }   
         }
     };
-} // namespace Ares
+} // namespace ares
 
 #endif

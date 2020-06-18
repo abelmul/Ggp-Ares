@@ -4,27 +4,28 @@
 #include "utils/gdl/term.hh"
 #include <iostream>
 
-namespace Ares
+namespace ares
 {
     class Constant: public Term
     {
     friend class ExpressionPool;
     friend class ExpressionPoolTest;
-
-    private:
-        ~Constant(){
-            delete name;
-        }
-        
+    Constant(const char* name,cnst_const_sptr* _this):Term(name,(cnst_term_sptr*)_this,CONST){}
+    
     public:
-        Constant(const char* name):Term(name,CONST){}
-        virtual const Term* operator ()(const Substitution &sub,VarSet& vStack) const {
-            return this;
+        /**
+         * Deleting a constant does nothing.
+         * The Memory pool will free the malloc'd memory.
+         */
+        ~Constant(){ }
+        void operator delete(void* p){}
+        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vStack) const {
+            return *_this;
         }
-        virtual bool isGround() const {
+        virtual bool is_ground() const {
             return true;
         }
-        virtual std::string toString() const{
+        virtual std::string to_string() const {
             return std::string(name);
         }
         virtual std::size_t hash() const {
@@ -32,6 +33,6 @@ namespace Ares
         }
     };
     
-} // namespace Ares
+} // namespace ares
 
 #endif

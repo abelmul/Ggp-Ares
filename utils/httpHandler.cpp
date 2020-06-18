@@ -1,4 +1,4 @@
-namespace Ares
+namespace ares
 {
     class HttpHandler
     {
@@ -8,4 +8,4 @@ namespace Ares
         HttpHandler(/* args */){}
         ~HttpHandler(){}
     };
-} // namespace Ares
+} // namespace ares

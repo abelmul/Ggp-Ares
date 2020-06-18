@@ -1,12 +1,150 @@
-namespace Ares
+#include <reasoner/reasoner.hh>
+namespace ares
 {
-    class Reasoner
-    {
-    private:
-        /* data */
-    public:
-        Reasoner(/* args */){}
-        ~Reasoner(){}
-    };
+    const char* Reasoner::ROLE_QUERY        = "(role ?r)";
+    const char* Reasoner::INIT_QUERY        = "(init ?x) ";
+    const char* Reasoner::LEGAL_QUERY       = "(legal ?r ?x)";
+    const char* Reasoner::NEXT_QUERY        = "(next ?x)";
+    const char* Reasoner::GOAL_QUERY        = "(goal ?r ?x)";
+    const char* Reasoner::TRUE_QUERY        = "(true ?x)";
+    const char* Reasoner::TERMINAL_QUERY    = "terminal";
     
-} // namespace Ares
+    void Reasoner::initRoles(){
+        //the roles dont change once computed
+        if( roles.size() > 0 ) return;
+        //Just static things
+        static SpinLock rM;
+        
+        auto cb = [this](const Substitution& ans){
+            VarSet vset;
+            std::cout << " answer computed\n";
+            std::cout << ans.to_string() << "\n";
+            const role_sptr& role = (*this->r)(ans,vset);             //Instantiate
+            if(role){
+                std::lock_guard<SpinLock> lk(rM);
+                this->roles.push_back(role);          //Initialize the roles vector.
+            }
+        };
+
+        query(ROLE_GOAL, nullptr,cb , false);
+    }
+    void Reasoner::_init(){
+        //the initial state doesn't change once computed
+        static auto cb = [this](const Substitution& ans){
+            VarSet vset;
+            auto& l = (*Reasoner::INIT_GOAL->front())(ans,vset);
+            const cnst_lit_sptr& l_init = *(cnst_lit_sptr*)&l;                //Instantiate
+            if( not l_init) return;
+            //build the 'true' relation
+            PoolKey key{"true", new Body(l_init->getBody().begin(),l_init->getBody().end() ), true};
+            const auto& true_ = expPool.getLiteral(key);
+            init.add("true", new Clause(true_, new ClauseBody(0) ));      //This is thread safe
+        };
+
+        query(INIT_GOAL,nullptr, cb, false);
+    }
+    
+    State* Reasoner::getNext(const State& state,Moves& moves){
+        printf("Next query Begin \n\n");
+        fflush(NULL);
+        if( roles.size() == 0 ) 
+            throw std::runtime_error("Reasoner : Error : Reasoner::getNext called before Reasoner::getRoles!");
+        
+
+        State* context = new State();
+        (*context) += state;
+        PoolKey key;
+        for (size_t i = 0; i < moves.size(); i++)
+        {
+            Body* body = new Body{roles[i], moves[i]};
+            key = PoolKey{"does", body,true};
+            auto l = expPool.getLiteral(key);
+            context->add("does", new Clause(l,new ClauseBody(0)));           //This is thread safe
+        }
+        auto* s =new State();
+        NxtCallBack cb = NxtCallBack(this,  s);
+        std::cout << "Next cb Created : " << &cb << " state is " << s<<"\n";
+        query<NxtCallBack>(NEXT_GOAL, context, cb, false);
+        printf("Next query end \n\n");
+        fflush(NULL);
+        return cb.newState;
+    }
+
+    Moves* Reasoner::legalMoves(const State& state,Role& role){
+        printf("Legal Moves Begin \n\n");
+        fflush(NULL);
+        const cnst_lit_sptr& legal = roleLegalMap[role.get_name()];        //Get the legal query specific to this role 
+        LegalCallBack cb(this, role);
+        query<LegalCallBack>(new Clause(nullptr, new ClauseBody{legal}), &state, cb, false);
+        printf("Legal Moves end \n\n");
+        fflush(NULL);
+        return cb.moves;
+    }
+    
+    bool Reasoner::isTerminal(const State& state){
+        printf("isTerminal Begin \n\n");
+        fflush(NULL);
+        TerminalCallBack cb;
+        query<TerminalCallBack>(TERMINAL_GOAL, &state, cb, true);
+        printf("isTerminal end \n\n");
+        fflush(NULL);
+        return cb.terminal;
+    }
+    
+    float Reasoner::getReward(Role& role, const State* state){
+        printf("getReward Begin \n\n");
+        fflush(NULL);
+        cnst_lit_sptr& goal = roleGoalMap[role.get_name()];        //Get the query specific to this role
+        RewardCallBack cb(this);
+        query<RewardCallBack>(new Clause(nullptr, new ClauseBody{goal}), state, cb, true);
+        printf("getReward end \n\n");
+        fflush(NULL);
+        return cb.reward;
+    }
+
+    void Reasoner::initMapping(){
+            if( roles.size() == 0 )
+                throw std::runtime_error("Reasoner : Error : cant init map without roles!");
+            
+            if( roleLegalMap.size() > 0) return;
+
+            /**
+             * Template for (legal some_role ?x) and (goal some_role ?x)
+             */
+            const char* legal = "legal";
+            const char* goal = "goal";
+
+            auto& template_body_legal = LEGAL_GOAL->front()->getBody();
+            auto& template_body_goal = GOAL_GOAL->front()->getBody();
+
+
+            Body* body_legal = new Body(template_body_legal.begin(), template_body_legal.end());
+            Body* body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
+
+
+            PoolKey key_legal{legal, body_legal, true};
+            PoolKey key_goal{goal, body_goal, true};
+
+
+            for (auto &&r : roles)
+            {
+                //Init legal query for role
+                (*body_legal)[0] = r;
+                const cnst_lit_sptr& legal_l = expPool.getLiteral(key_legal);
+                roleLegalMap[r->get_name()] = legal_l;
+                body_legal = new Body(template_body_legal.begin(), template_body_legal.end());
+                key_legal.body = body_legal;
+                key_legal.name = legal;
+                
+                //Init goal query for role
+                (*body_goal)[0] = r;
+                const cnst_lit_sptr& goal_l = expPool.getLiteral(key_goal);
+                roleGoalMap[r->get_name()] = goal_l;
+                body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
+                key_goal.body = body_goal;
+                key_goal.name = goal;
+            }
+            
+        }
+
+} // namespace ares

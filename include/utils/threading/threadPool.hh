@@ -7,7 +7,7 @@
 #include <thread>
 #include <unordered_set>
 
-namespace Ares
+namespace ares
 {
     class ThreadPool
     {
@@ -121,7 +121,7 @@ namespace Ares
             //if any threads are waiting unblock them
             {
                 std::unique_lock<std::mutex> lk(mOutstdWork);
-                outstanding_work = true;    
+                outstanding_work = 1;    
             }
             cvOutstdWork.notify_all();
             //by now every thread is unblocked and out of their processing loop.
@@ -150,7 +150,7 @@ namespace Ares
         cvOutstdWork.notify_one();
         return true;
     }
-} // namespace Ares
+} // namespace ares
 
 
 #endif

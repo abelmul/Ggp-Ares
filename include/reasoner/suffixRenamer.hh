@@ -5,48 +5,47 @@
 #include <mutex>
 #include <string.h>
 
-namespace Ares
+namespace ares
 {
     class ExpressionPool;
     /**
      * Renames variables by adding a unique suffix to them.
      */
-    class SuffixRenamer : Substitution
+    class SuffixRenamer : public Substitution
     {
     private:
-        static std::mutex smutex;
-        static uint suffix;                     //Universally unique 
-
         static ExpressionPool* pool;
-        uint current_suffix;                    //Save it for the current renaming
+        uint suffix = 0;                    //Save it for the current renaming
 
     public:
-        SuffixRenamer(){ 
-            std::lock_guard<std::mutex> lk(smutex);
-            current_suffix = suffix++;
-        }
-
+        SuffixRenamer(){ }
+        SuffixRenamer(const SuffixRenamer& sr){ suffix=sr.suffix;}
+        void setSuffix(uint suff ) { suffix = suff;}
+        uint getNxtSuffix() { return suffix+1;}
+        static void setPool(ExpressionPool* p) {pool = p;}
         /**
          * Protect against accidental copying, pass by value, ...
          */
-        SuffixRenamer(const SuffixRenamer& s) = delete;
+        SuffixRenamer(const SuffixRenamer&& s) = delete;
         SuffixRenamer& operator = (const SuffixRenamer& other) = delete;
+        SuffixRenamer& operator = (const SuffixRenamer&& other) = delete;
 
-        bool bind(const Variable* x, const Term* t){ return true;}
-        // const Term* Substitution::get(const Variable* x) const 
-        // const Term* Substitution::operator[] (const Variable* x) const
-        // bool Substitution::isBound(const Variable* x) const 
+        static Substitution emptySub;
 
-        //rename x
-        const Term* get(const Variable* x) const ;
-        //rename x        
-        const Term* operator[](const Variable* x) const {  return get(x); }
+        virtual bool bind(cnst_var_sptr&,const cnst_term_sptr& t){return true;}
 
-        bool isRenaming() const { return true;}
+        //To get the immediate mapping, without traversing the chain.
+        virtual const cnst_term_sptr get(cnst_var_sptr&) const ;
+        //Overload the indexing operator, to get the underlying exact mapping        
+        virtual const cnst_term_sptr operator[]  (cnst_var_sptr& x) const{ return get(x);} 
+
+        virtual bool isRenaming() const { return true;}
         /**
-         * Any variable can be renamed
+         * Check if this variable is bound
          */ 
-        bool isBound(const Variable* x) const { return true;}
+        virtual bool isBound(cnst_var_sptr&) const {return true;}
+        
+        virtual ~SuffixRenamer(){}
     };
 } // namespace Ares
 

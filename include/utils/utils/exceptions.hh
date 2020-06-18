@@ -3,7 +3,7 @@
 
 #include <stdexcept>
 
-namespace Ares
+namespace ares
 {
     class UnbalancedParentheses : public std::runtime_error
     {
@@ -42,6 +42,44 @@ namespace Ares
         NegationNotGround(const char* c):std::runtime_error(c) {}
         ~NegationNotGround() {}
     };
-} // namespace Ares
+    class IndexOutOfRange : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        IndexOutOfRange(std::string s):std::runtime_error(s) {}
+        IndexOutOfRange(const char* c):std::runtime_error(c) {}
+        ~IndexOutOfRange() {}
+    };
+    class EmptyBodyPop : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        EmptyBodyPop(std::string s):std::runtime_error(s) {}
+        EmptyBodyPop(const char* c):std::runtime_error(c) {}
+        ~EmptyBodyPop() {}
+    };
+
+    class NonExistentTerm : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        NonExistentTerm(std::string s):std::runtime_error(s) {}
+        NonExistentTerm(const char* c):std::runtime_error(c) {}
+        ~NonExistentTerm() {}
+    };
+
+    class BadAllocation : public std::runtime_error
+    {
+    private:
+        /* data */
+    public:
+        BadAllocation(std::string s):std::runtime_error(s) {}
+        BadAllocation(const char* c):std::runtime_error(c) {}
+        ~BadAllocation() {}
+    };
+} // namespace ares
 
 #endif

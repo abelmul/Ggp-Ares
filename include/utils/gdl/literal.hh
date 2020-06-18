@@ -4,11 +4,11 @@
 #include <vector>
 #include "utils/gdl/term.hh"
 
-namespace Ares
+namespace ares
 {
     class ExpressionPool;
 
-    class Literal
+    class Literal : public structured_term
     {
     
     friend class ExpressionPool;
@@ -18,80 +18,37 @@ namespace Ares
     friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
     private:
-        const char* name;
-        const bool positive;
-        const Body* _body;
-        const Body& body;
-        Literal(const char* n, bool p,uint arity)
-        :name(n),positive(p),_body(new Body(arity)),body(std::ref(*_body))
+        Literal(const char* n,bool p,const Body* b,lit_sptr* _this)
+        :structured_term(n,p,b,(cnst_term_sptr*)_this,LIT)
         {
+        }
+        /**
+         * Only ExpressionPool could create terms, to ensure only one instance exists 
+         */
+        void* operator new(std::size_t s);
+    public:
+        void operator delete(void* p);
+        
+        virtual ~Literal(){
+            name = nullptr;
+            if( _body )
+                delete _body;
+            _body = nullptr;
         }
 
-        Literal(const char* n,bool p,const Body* b)
-        :name(n),positive(p),_body(b),body(std::ref(*_body))
-        {
-        }
-        /*Managed By ExpressionPool*/
-        virtual ~Literal(){
-            delete _body;
-        }
-        
-    public:
-        ExpressionPool* pool;
         Literal(const Literal&) = delete;
         Literal(const Literal&&) = delete;
         Literal& operator= (const Literal&) = delete;
         Literal& operator= (const Literal&&) = delete;
 
-        explicit operator bool() const {
-            return positive;
-        }
-        const Term* getArg(uint i) const {
-            if( i >= body.size() ) return nullptr;
-            
-            return body[i];
-        }
         
-        const Body* getBody() const { return _body;}
-        uint getArity() const {return body.size();}
-        
-        virtual std::size_t hash() const {
-            std::size_t nHash = Term::nameHasher(name);
-            for (const Term* t : body)
-                hash_combine(nHash,t);
-            
-            return nHash;
-        }
-
-        bool isGround() const {
-            for (const Term* arg : body)
-                if (!arg->isGround()) return false;
-
-            return true;
-        }
         /**
          * Create an instance of this literal do 
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        virtual const Literal* operator ()(const Substitution &sub,VarSet& vSet) const ;
-        const char* getName() const{return name;}
-        std::string toString() const {
-            std::string s("(");
-            if(not positive) s.append("not ( ");
-            s.append(name);
-            for (auto &t : body){
-                s.append(" " + t->toString());
-            }
-            if(not positive) s.append(" )");
-            s.append(")");
-            return s;
-        }
-        friend std::ostream & operator << (std::ostream &out, const Literal &l){
-            out << l.toString();
-            return out;
-        }
+        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const;
     };
-} // namespace Ares
+} // namespace ares
 
 #endif

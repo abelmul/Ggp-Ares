@@ -1,6 +1,6 @@
 #ifndef GDL_PARSER_HH
 #define GDL_PARSER_HH
-#include "utils/gdl/gdlParser/expressionPool.hh"
+#include "utils/memory/expressionPool.hh"
 #include "utils/gdl/gdlParser/transformer.hh"
 #include <iostream>
 #include <fstream>
@@ -9,7 +9,7 @@
 #include <stack>
 #include <memory>
 
-namespace Ares
+namespace ares
 {
     
     using namespace std;
@@ -22,29 +22,25 @@ namespace Ares
     
     private:
 
-        GdlParser(uint nThreads): pool(new thread_pool(nThreads)){
-            exprPool = new ExpressionPool();
-        }
+        GdlParser(uint nThreads): pool(new thread_pool(nThreads)), exprPool(new ExpressionPool()){}
 
         void parse(string& expr);
         string preprocess(string& expr);
-        const Literal* parseLiteral(vector<string>::iterator& start, const vector<string>::iterator& end,bool p=true);
+        cnst_lit_sptr parseLiteral(vector<string>::iterator& start, const vector<string>::iterator& end,bool p=true);
         void parseRule(Clause* c, vector<string>::iterator start,const vector<string>::iterator end);
-        const Literal* _create(stack<pair<string,Body*>>& bodies,bool p=true);
+        cnst_lit_sptr _create(stack<pair<string,Body*>>& bodies,bool p=true);
+        string removeComments(string gdl);
 
         vector<string> tokens;
-        ExpressionPool* exprPool;
         KnowledgeBase* base;
         thread_pool* pool;
+        ExpressionPool* exprPool;
         
         //Static members
         static GdlParser* _parser;
         static Transformer* transformer;
         static SpinLock slock;
-
-        //Constants
-        const static Body* EMPTY_BODY;
-        static ClauseBody* EMPTY_CBODY;
+        
 
     public:
         //Singleton parser/transformer
@@ -60,11 +56,10 @@ namespace Ares
         ExpressionPool* getExpressionPool(){ return exprPool;}
         void parse(KnowledgeBase* base, string& gdl);
         void parseFile(KnowledgeBase* base, string& gdlF);
+        cnst_lit_sptr parseQuery(const char * query);
         ~GdlParser(){
             delete pool;
             delete exprPool;
-            delete EMPTY_BODY;
-            delete EMPTY_CBODY;
         }
     };
     

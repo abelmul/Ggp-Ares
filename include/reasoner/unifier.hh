@@ -9,17 +9,17 @@
 
 #include <string.h>
 
-namespace Ares
+namespace ares
 {
     class Unifier
     {
     private:
         Unifier(/* args */){};
     public:
-        static bool unifyPredicate(const Literal& l1,const  Literal& l2,Substitution& sub);
-        static bool unifyTerm(const Term& t1,const  Term& t2,Substitution& sub);
+        static bool unifyPredicate(const cnst_lit_sptr& l1,const cnst_lit_sptr& l2,Substitution& sub);
+        static bool unifyTerm(cnst_term_sptr t1,cnst_term_sptr t2,Substitution& sub);
         ~Unifier(){}
     };
-} // namespace Ares
+} // namespace ares
 
 #endif

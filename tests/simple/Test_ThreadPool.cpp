@@ -2,15 +2,14 @@
 #include <cstdlib>
 #include <ctime>
 #include <iostream>
+#include "common.hh"
 
 using namespace std;
-using namespace Ares;
+using namespace ares;
 
 uint JOBS;
 uint SUBJOBS;
 
-const std::string green("\033[38;5;40m");
-const std::string reset("\033[0m");
 
 class TestableThreadPool : public ThreadPool
 {
@@ -93,11 +92,13 @@ Tester tester;
 void job(pair<int , int> ip,TestableThreadPool& pool,std::mutex& m){
     tester.assertExclusiveUse(ip.first);        //Assert only one job is being executed!
     auto f = std::bind([ip, &m](){ 
-        // sleep(10);
+        sleep( rand() % 2 );
+        // sleep(a);
         tester.assertExclusiveUse(ip.first);    //Assert only one job is being executed!
         tester.countSubjobs(ip.first);        
         std::unique_lock<std::mutex> l(m);
     });
+    // cout << "Posted Job (" << ip.first << ", "<<ip.second<<")" << "\n";
     pool.post<decltype(f)>(f);
 }
 
@@ -123,8 +124,8 @@ int main(int argc, char const *argv[])
         tester.nSubJobs = 0;
         tester.currentJobId = -1;
 
-        JOBS = (rand() % 61) + 20;
-        SUBJOBS = (rand() % 400) + 200;
+        JOBS = (rand() % 10) + 10;
+        SUBJOBS = (rand() % 40) + 20;
         uint poolSize = (rand() % 20) + 1;
         TestableThreadPool pool(poolSize);
         cout << "Testing with Pool of size : "<< poolSize << " Initial Jobs :" << JOBS << ", and "<<  "Submitted Handlers : " << SUBJOBS << endl;

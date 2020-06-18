@@ -1,7 +1,9 @@
 {
     "parser_threads":1,
-    "prover_threads":4,
-    "neg_threads":4,
-    "gdl":"tests/chess.gdl",
-    "file":true
+    "prover_threads":16,
+    "neg_threads":0,
+    "gdl":"tests/games/tic.kif",
+    "debug":false,
+    "file":true,
+    "deletionPeriod":3600
 }
