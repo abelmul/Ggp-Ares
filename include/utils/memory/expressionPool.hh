@@ -35,8 +35,8 @@ namespace ares
             //Create the thread which polls the deletion queue
             pollDone = false;
             auto poll = [&](){
-                remove(this->litQueue, this->litlock);
-                remove(this->fnQueue, this->fnlock);
+                remove(this->litQueue,litPool, this->litlock);
+                remove(this->fnQueue,fnPool, this->fnlock);
             };
             queueThread = new std::thread(poll);
         }
@@ -98,10 +98,33 @@ namespace ares
             return lr;
         }
        /**
-        * Poll the deletion pool and reset queued shared pointers
+        * Poll the deletion queue and reset queued shared pointers
         * if the only reference that exists is within the pool.
         */
-        void remove(DeletionQueue& queue, boost::shared_mutex& lock);
+       template<class T,class TP>
+       void remove(DeletionQueue<T>& queue,TP& pool, boost::shared_mutex& lock){
+           while (!pollDone)
+            {
+                sleep(cfg.deletionPeriod);
+                {
+                    std::lock_guard<boost::shared_mutex> lk(lock);//Exclusively lock the pool
+                    /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
+                    auto _reset = [&](T st){
+                        /* use_count could be > 1 b/c st could be reused between the time
+                        * its queued for deletion and its actuall deletion. 
+                        */
+                        if( st->_this->use_count() > 1 ) return; 
+                        auto it = pool.find(st->name);
+                        if( it == pool.end() ) throw BadAllocation("Removing Function whose name is non existent in pool.");
+                        PoolKey key{nullptr, st->_body, st->positive};
+                        auto itspt = it->second.find(key);
+                        if( itspt == it->second.end()) throw BadAllocation("Removing Function non existent in pool.");
+                        it->second.erase(itspt);
+                    };
+                    queue.apply(_reset);
+                }
+            }
+       }
 
     public:
         /**
@@ -145,7 +168,9 @@ namespace ares
             fn->reset();
         }
         
-        ~ExpressionPool(){}
+        ~ExpressionPool(){
+            queueThread->join();
+        }
 
         const char* ROLE = "role";
         const char* INIT = "init";
@@ -166,8 +191,8 @@ namespace ares
         NameFnMap fnPool;
         NameLitMap litPool;
 
-        DeletionQueue fnQueue;
-        DeletionQueue litQueue;
+        DeletionQueue<const Function*> fnQueue;
+        DeletionQueue<const Literal*> litQueue;
 
         std::thread* queueThread;
         bool pollDone;

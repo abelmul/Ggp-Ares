@@ -1,6 +1,7 @@
 #include "ares.hh"
 #include <unistd.h>
 #include <random>
+#include <chrono>
 ares::Cfg ares::cfg;
 
 int main(int argc, char const *argv[])
@@ -23,7 +24,7 @@ int main(int argc, char const *argv[])
     p->parse(kb,cfg.gdl);
 
     SuffixRenamer::setPool(p->getExpressionPool());
-    Prover* prover = Prover::getProver(kb, cfg.proverThreads, cfg.negThreads);
+    Prover* prover = Prover::getProver(kb);
     
     std::cout << "------Knoweledge base-------\n\n";
     for(auto &&i : *kb){
@@ -35,88 +36,73 @@ int main(int argc, char const *argv[])
 
     Reasoner reasoner(*kb, *p, *prover);
     
-    std::cout << "-----Roles------\n\n";
-    std::cout << *reasoner.roles[0] << std::endl;
-    std::cout << *reasoner.roles[1] << std::endl;
-    std::cout << "-----Roles------\n\n";
+    role_sptr r0 = reasoner.roles[0];
+    role_sptr r1 = reasoner.roles[1];
 
-    
-
-    
-    std::vector<std::vector<std::pair<std::string, std::string>>> record;
+    std::cout << "-----Roles------\n\n";
+    std::cout << *r0 << std::endl;
+    std::cout << *r1 << std::endl;
+    std::cout << "-----Roles------\n\n";
     srand(time(NULL));
     const State& init = reasoner.getInit();
-    while (true)
+    uint sims = 0;
+    auto c = std::chrono::high_resolution_clock();
+    auto begin = c.now();
+    while (sims < cfg.simulaions)
     {
-        int l;
-        std::cout <<"Continue: ";
-        // std::cin >> l;
-        // std::cout <<"\n";
         const State* state = &init;
-        record.push_back(std::vector<std::pair<std::string, std::string>>());
         while (true)
         {
-
-            std::cout << "------state -------\n\n";
-            for (auto &&i : *state)
-            {
-                for (auto &&j : *i.second)
-                {
-                    std::cout << *j << std::endl;
-                }
-
-            }
-            std::cout << "------state -------\n\n";
-            std::cout << "------isTerminal -------\n\n";
+            // for (auto &&s : *(*state)["true"])
+            //     std::cout << *s << "\n";
+                
             if( reasoner.isTerminal(*state) ){
-                auto reward_0 = reasoner.getReward(*reasoner.roles[0], state);
-                auto reward_1 = reasoner.getReward(*reasoner.roles[1], state);
-                std::cout << "Rewards for " << *reasoner.roles[0] << " : " << reward_0 << std::endl;
-                std::cout << "Rewards for " << *reasoner.roles[1] << " : " << reward_1 << std::endl;
+                auto reward_0 = reasoner.getReward(*r0, state);
+                auto reward_1 = reasoner.getReward(*r1, state);
+                std::cout << "Rewards for " << r0 << reward_0 << "\n";
+                std::cout << "Rewards for " << r1 << reward_1 << "\n";
                 break;
             }
-            std::cout << "------isTerminal -------\n\n";
-            printf("Reasoner is at : %p, ", &reasoner);
-            std::cout << "--- Legal Moves for " << *reasoner.roles[0] << "----\n";
-            Moves* moves = reasoner.legalMoves(*state, *reasoner.roles[0]);
-            for (uint i=0; i < moves->size() ;i++){
-                auto m = (* moves)[i];
-                std::cout << "["<<i<<"]"<< m->to_string() << std::endl;
-            }
-            std::cout << "--- Legal Moves for " << *reasoner.roles[0] << "----\n";
+            Moves* moves = reasoner.legalMoves(*state, *r0);
+            Moves* moves1 = reasoner.legalMoves(*state, *r1);
 
-            fflush(NULL);
+            // std::cout << "Legal Moves for : " << *r0 << "\n";
             
-            std::cout << "--- Legal Moves for " << *reasoner.roles[1] << "----\n";
-            Moves* moves1 = reasoner.legalMoves(*state, *reasoner.roles[1]);
+            // for (uint i=0;i<moves->size();i++)
+            //     std::cout << "\t\t["<<i<<"]"<< *(*moves)[i]  <<"\n";
 
-            for (uint i=0; i < moves1->size() ;i++){
-                auto m = (* moves1)[i];
-                std::cout << "["<<i<<"]"<< m->to_string() << std::endl;
-            }
-            std::cout << "--- Legal Moves for " << *reasoner.roles[1] << "----\n";
+            // std::cout << "Legal Moves for : " << r1 << "\n";
+            // for (uint i=0;i<moves1->size();i++)
+            //     std::cout << "\t\t["<<i<<"]"<< *(*moves1)[i]  <<"\n";
 
-
-            int m0 = rand() % moves->size();
-            int m1 = rand() % moves1->size();
-            record.back().push_back(make_pair((*moves)[m0]->to_string(), (*moves1)[m1]->to_string()));
-            std::cout << "Move " << *reasoner.roles[0] << ": " << (*moves)[m0]->to_string()   << "\n";
-            std::cout << "Move " << *reasoner.roles[1] << ": " <<  (*moves1)[m1]->to_string() << "\n";
+            int m0= rand() % moves->size();
+            int m1= rand() % moves1->size();
+            // if(moves->size() > 1){
+            //     std::cout << "Move "<< *r0 <<": ";
+            //     std::cin >> m0;   
+            // }
+            // if(moves1->size() > 1){
+            //     std::cout << "Move "<< *r1 <<": ";
+            //      std::cin >> m1;
+            // }
 
             Moves nmoves{(*moves)[m0], (*moves1)[m1]};
 
             State* nxt = reasoner.getNext(*state, nmoves);
-            printf("\n\nAfter next ...\n");
-            // delete moves;
-            // delete moves1;
-            // delete state;
+            MemoryPool::remove(moves,true);
+            MemoryPool::remove(moves1,true);
+            
+            if( state != &init ) delete state;
             state = nxt;
             // return 0;
+            sims++;
         }
     }
-    
-    
-    
+    auto end = c.now();
+    auto dur = std::chrono::duration_cast<std::chrono::milliseconds>(end-begin);
+    std::cout <<cfg.proverThreads <<" threads." <<"\n";
+    std::cout << cfg.simulaions << " simulations in : " << dur.count()<<"milliseconds\n";
+    std::cout << "a simulation in : " << dur.count()/cfg.simulaions<<"milliseconds\n";
     return 0;
 }
 
@@ -127,7 +113,9 @@ namespace ares
     
     //Initialize static members of term
     CharpHasher Term::nameHasher;
-    std::shared_ptr<const Term>     Term::null_term_sptr(nullptr);
+    cnst_term_sptr     Term::null_term_sptr(nullptr);
+    cnst_lit_sptr     Term::null_literal_sptr(nullptr);
+    
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;
 

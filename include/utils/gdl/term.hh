@@ -43,7 +43,8 @@ namespace ares
 
     public:
         static CharpHasher nameHasher;  
-        static std::shared_ptr<const Term> null_term_sptr;
+        static cnst_term_sptr null_term_sptr;
+        static cnst_lit_sptr null_literal_sptr;
         /**
          * Use Term.operator()(Substitution sub) to create a deep clone.
          * Protect against accidental copying,assignment, and return by value.
@@ -68,6 +69,11 @@ namespace ares
             //Only one instance of a term exists.
             return this == &t;
         };
+        virtual bool operator!=(const Term& t) const{
+            //They are equal iff they have the same address.
+            //Only one instance of a term exists.
+            return this != &t;
+        };
 
 
         const char* get_name() const {return name;}
@@ -80,7 +86,8 @@ namespace ares
         }
     };
 
-    inline void hash_combine(std::size_t& seed,const Term* v)
+    template<class T>
+    inline void hash_combine(std::size_t& seed,const T& v)
     {
         std::size_t hash = v->hash();
         seed ^= hash + 0x9e3779b9 + (seed<<6) + (seed>>2);

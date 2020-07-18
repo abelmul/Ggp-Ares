@@ -17,6 +17,7 @@ namespace ares
     class Clause
     {
         friend class Transformer;
+        friend class ClauseHasher;
     private:
         cnst_lit_sptr head = nullptr;
         ClauseBody* _body = nullptr;
@@ -101,7 +102,10 @@ namespace ares
         std::size_t size()const { return body.size(); }
 
         void setHead(cnst_lit_sptr h){head = h;}
-        const cnst_lit_sptr& getHead() const { return head;}
+        const cnst_lit_sptr& getHead() const { 
+            if ( head )return head; 
+            return Term::null_literal_sptr;
+        }
         // void setBody(ClauseBody* b){ if(!_body) _body = b;}
 
         Substitution& getSubstitution() const { return *theta;}

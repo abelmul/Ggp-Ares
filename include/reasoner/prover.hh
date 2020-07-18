@@ -11,6 +11,7 @@
 #include "utils/memory/expressionPool.hh"
 #include "reasoner/unifier.hh"
 #include "utils/utils/cfg.hh"
+#include "utils/threading/loadBalancer.hh"
 
 namespace ares
 { 
@@ -18,29 +19,14 @@ namespace ares
      * TODO: Look into caching
      */
 
-    struct ClauseHasher
-    {
-        std::size_t operator()(const Clause& c) const {
-            return c.hash();
-        }
-    };
-
-    struct ClauseEqual{
-        bool operator()(const Clause& c1, const Clause& c2) const{
-            return c1.hash() == c2.hash();
-        }
-    };
-
     template <class T> 
     struct Query{
         Query(Clause* _g,const  State* _c ,T& _cb, const bool _one,bool& d)
         :goal(_g),context(_c), cb(_cb), oneAns(_one),done(d)
         {
         }
-        
-        void deleteGoal(){ delete goal;}
-
-        Clause* const goal;
+        void deleteGoal(){ delete goal; goal = nullptr;}
+        Clause* goal;
         const State* const context;
         T& cb;                    //This is used to return the computed answer(s) to the caller in a multi-threaded enviroment.
         ThreadPool* pool = nullptr;
@@ -48,6 +34,7 @@ namespace ares
         const bool oneAns;
         bool& done;
     };
+    
     /**
      * The resulting resolvent,if any, in a single sldnf resolution step.
      */
@@ -56,24 +43,19 @@ namespace ares
         Clause* gn;
         bool ok;
     };
-    
+
     class Prover
     {
     private:
-        std::unordered_map<const Clause, long int , ClauseHasher,ClauseEqual> clauseCount;
-        Prover(KnowledgeBase* _kb,ushort proverThreads, ushort negThreads)
+        Prover(const KnowledgeBase* _kb)
         :kb(_kb)
         {
-            debug("Prover Threads : " , proverThreads, " negThreads " , negThreads);
-            
-            if( proverThreads > 0 ) proverPool = new ThreadPool(proverThreads);
-            if( negThreads > 0  ) negationPool = new ThreadPool(negThreads);
+            if( cfg.proverThreads > 0 ) proverPool = new ThreadPool(new LoadBalancerRR(cfg.proverThreads));
         };
-        
     public:
-        static Prover* getProver(KnowledgeBase* _kb,ushort proverThread, ushort negThreads){
+        static Prover* getProver(const KnowledgeBase* _kb){
             slock.lock();
-            if(not  _prover) _prover = new Prover(_kb,proverThread, negThreads);
+            if(not  _prover) _prover = new Prover(_kb);
             slock.unlock();
             return _prover;     //singleton
         }
@@ -86,13 +68,10 @@ namespace ares
          */
         template <class T>
         void prove(Query<T>& query);  
-        void setKB(KnowledgeBase* _kb){kb = _kb;}
-        
+        void setKB(const KnowledgeBase* _kb){kb = _kb;}
         ~Prover(){
             if(proverPool) delete proverPool;
-            if(negationPool) delete negationPool;
         }
-
     private:
         /**
          * Extension of prove(Query<T>& query), needed for recursion.
@@ -113,52 +92,42 @@ namespace ares
          * The distinct relation.
          */
         bool proveDistinct(Clause& goal);
-        
         template <class T>
         inline bool contextual(const Query<T>& q, const cnst_lit_sptr& g) const{
             bool c = ( ( strcasecmp( g->get_name(), "does") == 0 ) or (strcasecmp( g->get_name(), "true") == 0) ) ;
             return ( c and q.context );
         }
-
         static Prover* _prover;
         static SpinLock slock;
-        KnowledgeBase* kb;
+        const KnowledgeBase* kb;
         Substitution* renamer;
         ThreadPool* proverPool = nullptr;     //Used for the initial query, and subequent searches.
-        ThreadPool* negationPool = nullptr;   //Used when trying to prove a negative goal(literal).
-
         bool done;
         std::mutex mDone;
         //Some thread will notify through this cv when either one ans is computed or sld tree is exhaustively searched.
         std::condition_variable cvDone;         
     }; 
 
-
     /**
      * Implementation for template methods of Prover.
      */
-
     template<class T>                                   //T is the callback functions type
     void Prover::prove(Query<T>& query){
         query.pool = proverPool;                          //This is the initial query
         if( proverPool ){
-            proverPool->acquire();                          //Need ownership of pool
-            auto f = std::bind([&](){
+            proverPool->restart();
+            auto f = [&](){
                 this->_prove<T>(query);
-            });
-
-            proverPool->post<decltype(f)>(f);               //Schedule an sld tree search to prove this query.
-            proverPool->wait();                             //Wait until query is answered. Release ownership.
+            };
+            proverPool->post(f);               //Schedule an sld tree search to prove this query.
+            proverPool->wait();                             //Wait until query is answered.
         }
         else _prove(query);
     }
-
+    
     template<class T>                                       //T is the callback functiions type
     void Prover::_prove(Query<T> query){
-        debug("?here");
-        debug("\n\n-----_prove called with : -----", query.goal->to_string(), "\n\n");
         if( query.done ) return;                            //one answer has been found, No need to keep on searching.
-
         //Recursively explore the sld tree 
         if( Clause::EMPTY_CLAUSE(*query.goal) ){
             //Successful derivation
@@ -167,12 +136,11 @@ namespace ares
                 if( query.pool ) query.pool->stop();       //No need to schedule further searches.
             }
             query.cb(query.goal->getSubstitution());
-            delete query.goal;
+            query.deleteGoal();
             return;
         }
 
         const cnst_lit_sptr& g = (*query.goal).front();
-
         if( strcasecmp( g->get_name(), "distinct") == 0 ){
             bool ok = proveDistinct(*query.goal);    
             if( !ok ) return;          
@@ -180,9 +148,7 @@ namespace ares
             _prove(query);       //Just prove the next goal clause   
             return;
         }
-
         if( not (*g) ){
-            // clauseCount[*query.goal]++;
             bool ok = handleNegation(*query.goal, query.context,query.renamer);
             if( !ok ) return;
             //Has Modified query by doing query.goal.pop_front()
@@ -192,46 +158,33 @@ namespace ares
 
         //At this point the goal is positive, try to unify it with clauses in knowledge base.
         const KnowledgeBase* kb_t = contextual(query,g)  ? query.context : this->kb;
-        // if( not contextual(query,g) ) clauseCount[*query.goal]++;
         //Get the clauses g might unify with
-        const std::vector<const Clause*>* _clauses = (*kb_t)[g->get_name()];
+        const UniqueClauseVec* _clauses = (*kb_t)[g->get_name()];
         if( not _clauses ){
             query.deleteGoal();     //Won't ever use goal again.
             return;
         }
-        
+
         Resolvent g_n;
-        debug("\n\n----Beginning of for loop :----" , query.goal->to_string() ,"\n");
         for (auto &&c : *_clauses)
         {
             g_n = resolve(*query.goal, *c, query.renamer);     //Perfom a normal sld resolution step.
-            debug( "after resolve");
             if(!g_n.ok) continue;               //Didn't unify
             //query.goal[0] and head of c unify
             Query<T> q(g_n.gn, query.context, query.cb, query.oneAns, query.done);  //The next goal clause to prove
             q.pool = query.pool;
             q.renamer.setSuffix( query.renamer.getNxtSuffix());
-            debug( "after resolve2");
             //Pool Might not be available due to proving negations.
-            auto handler = std::bind([&, q](){
+            auto handler = [&, q](){
                 this->_prove(q);
-            });
-            debug( "after resolve3");
-
+            };
             if ( not q.pool ){
-                debug("no pool");
                 this->_prove<T>(q);
             }
-
             else
-                q.pool->template post<decltype(handler)>(handler);
-            debug( "after resolve5");
-
+                q.pool->post(handler);
         }
-        debug("-----End of for loop :----" , query.goal->to_string() , "\n\n");
-        delete query.goal;
+        query.deleteGoal();
     }
-
 } // namespace ares
-
 #endif

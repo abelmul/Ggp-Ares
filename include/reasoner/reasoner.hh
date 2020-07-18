@@ -26,14 +26,10 @@ namespace ares
         ,x(expPool.getVar("?x"))
         ,r(expPool.getVar("?r"))
         {
-            debug("b4 Legal goal ", LEGAL_GOAL->to_string());
             goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
             initRoles();        //might as well just get the roles now
-            debug("after roles Legal goal ", LEGAL_GOAL->to_string());
             _init();            //similar with the initial state
-            debug("after init Legal goal ", LEGAL_GOAL->to_string());
            initMapping();      //Role to legal/goal query mapping
-            debug("Legal goal ", LEGAL_GOAL->to_string());
         }
 
         static Clause* makeGoal(GdlParser& _p, const char * q){
@@ -174,7 +170,6 @@ namespace ares
                 newState->add("true", new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
         }
         ~NxtCallBack(){
-            std::cout << "Next cb deleted : " << this <<"\n";
             _this = (Reasoner*)0xbeef;
             newState = (State*)0xbeef;
         }
@@ -183,7 +178,7 @@ namespace ares
     };
     struct LegalCallBack : public CallBack
     {
-        LegalCallBack(Reasoner* _t, Role& r):_this(_t),moves(new Moves()){}
+        LegalCallBack(Reasoner* _t):_this(_t),moves(new Moves()){}
         void operator()(const Substitution& ans){
             // isCurrent()
             VarSet vset;

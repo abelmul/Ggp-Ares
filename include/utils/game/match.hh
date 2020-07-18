@@ -27,14 +27,14 @@ namespace ares
     class State : public KnowledgeBase
     {
     private:
-        std::unordered_map<const char *, std::vector<const Clause*>*, CharpHasher,StrEq> state;
+        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher,StrEq> state;
         
     public:
         State(){
 
         }
-        virtual const std::vector<const Clause*>* operator [](const char* name) const {
-            const std::vector<const Clause*>* v = nullptr;
+        virtual const UniqueClauseVec* operator [](const char* name) const {
+            const UniqueClauseVec* v = nullptr;
             try
             {
                 v = state.at(name);
@@ -46,13 +46,13 @@ namespace ares
         virtual void add(const char* name, Clause* c){
             std::lock_guard<SpinLock> lk(slock);
             if( state.find(name) == state.end() )
-                state[strdup(name)] = new std::vector<const Clause*>();
+                state[strdup(name)] = new UniqueClauseVec();
             
             state[name]->push_back(c);
         }
-        std::unordered_map<const char *, std::vector<const Clause *> *, CharpHasher>::const_iterator begin()const
+        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher>::const_iterator begin()const
         { return state.cbegin();}
-        std::unordered_map<const char *, std::vector<const Clause *> *, CharpHasher>::const_iterator end()const
+        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher>::const_iterator end()const
         { return state.cend();}
         
         State& operator +=(const State& s){
@@ -63,6 +63,9 @@ namespace ares
             for (auto &&i : state)
             {
                 delete i.first;
+                for (auto &&c : *i.second)
+                    delete c;
+                
                 delete i.second;
             }
             

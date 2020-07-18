@@ -20,11 +20,13 @@ namespace ares
             ptree pt;
             read_json(cfg_s, pt);
             
-            parserThreads  = pt.get<uint>("parser_threads");
-            proverThreads  = pt.get<uint>("prover_threads");
-            negThreads     = pt.get<uint>("neg_threads");
-            debug          = pt.get<bool>("debug");
-            deletionPeriod = pt.get<uint>("deletionPeriod");
+            parserThreads     = pt.get<uint>("parser_threads");
+            proverThreads     = pt.get<uint>("prover_threads");
+            debug             = pt.get<bool>("debug");
+            simulaions        = pt.get<uint>("simulaions");
+            deletionPeriod    = pt.get<uint>("deletionPeriod");
+            deletionQueueSize = pt.get<uint>("deletionQueueSize");
+            // jobQueue          = pt.get<uint>("jobQueue");
             if( not pt.get<bool>("file") ) return;
 
             std::string gdlF = pt.get<std::string>("gdl");
@@ -36,8 +38,10 @@ namespace ares
         std::string gdl;
         uint parserThreads;
         uint proverThreads;
-        uint negThreads;
         uint deletionPeriod;
+        uint deletionQueueSize;
+        // uint jobQueue;
+        uint simulaions;
         bool debug;
     };
     extern Cfg cfg;

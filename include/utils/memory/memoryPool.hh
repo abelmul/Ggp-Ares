@@ -36,6 +36,9 @@ namespace ares
     typedef std::shared_ptr<Function>         fn_sptr;
     typedef std::shared_ptr<Literal>          lit_sptr;
 
+    template<class T>
+    using sptr_container = std::vector<std::shared_ptr<T>>;
+
     /**
      * Containers of shared_ptrs of terms and literals 
      */
@@ -165,8 +168,27 @@ namespace ares
         void deallocate(cnst_term_container* vec);
         void deallocate(cnst_lit_container* vec);
         
+        /**
+         * Remove methods for convinience.
+         */
+        /**
+         * removes @param lit from expression if lit->use_count() == 2.
+         */
         static void remove(cnst_lit_sptr& lit);
+        /**
+         * removes @param lit from expression if lit->use_count() == 2.
+         */
         static void remove(cnst_term_sptr& fn);
+        /**
+         * remove check if elements of @param vec need to be removed.
+         */
+        template<class T>
+        inline static void remove(sptr_container<T>* vec,bool _delete = false){
+            for (auto &&el : *vec)
+                MemoryPool::remove(el);
+            
+            if( _delete ) delete vec;
+        }
 
         inline std::size_t capacity(pool_type t,arity_t arity=0){
             switch (t)

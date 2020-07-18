@@ -6,150 +6,119 @@
 #include <boost/asio/io_service.hpp>
 #include <thread>
 #include <unordered_set>
+#include <atomic>
+#include <condition_variable>
+#include "utils/threading/loadBalancer.hh"
 
 namespace ares
 {
     class ThreadPool
     {
     protected:
-
-        /**
-         * The worker threads execution loop.
-         */
-        void workerThread();
-        /**
-         * The calling thread is valid iff it can schedule a job
-         * iff One of the following conditions is met
-         * 1. The calling thread is owning thread. or
-         * 2. The calling thread is one of the worker threads. 
-         * and
-         * 1. The pool is currently not stopped. and
-         * 2. The pool is currently owned.
-         */
-        bool validThread();
-        /**
-         * The 'virtual' work queue is empty.
-         */ 
-        bool queueEmpty(){ return outstanding_work == 0; }
-
-        boost::asio::io_service ioService;
-        boost::asio::io_service::work* work;
-        std::thread* workT;
-        std::vector<std::thread*> threads;
-
-        /**
-         * One thread pool is only used for an exploration of a single SLD-tree at a time
-         * This is because we want to guarantee this :- all the worker threads are free iff the
-         * whole sld-tree has been explored (for a single tree). So if we use the thread pool
-         * to explore multiple sld trees (that is used to prove different queries) at the same 
-         * time the thread would be busy until both sld-trees are explored. So we wouldn't know
-         * when one is proven. We would have to wait until both are proven. Which might even create 
-         * deadlocks if used to prove negative literals while proving the original query!
-         */
-        std::thread::id owner;
-        std::unordered_set<std::thread::id> workersId;
-
-        ushort nWorkers;                        //Number of worker threads.
-        uint outstanding_work = 0;          //are there any remaning jobs posted by the current owner.
-        
-
-        bool owned = false;                     //is member field this->owner valid?
-        bool stopped = false;                   //are we accepting jobs from current owner?
+        LoadBalancer* loadBalancer;
+        std::atomic<bool> stopped = false;                   //are we accepting jobs from current owner?
         bool finished = false;                  //Workers constantly check this to know if they should exit processing loop.
 
-        std::mutex mOutstdWork;
-        std::mutex mOwner;
-
-        std::condition_variable cvOutstdWork;
-        std::condition_variable cvOwner;
-        std::condition_variable cvCheckEmpty;
-        
-
-        // const static std::thread::id NO_OWNER = NULL;
-
     public:
-        ThreadPool(ushort workers): nWorkers(workers){
-            //Initialize the worker threads;
-            std::thread* t;
-            workT = new std::thread( [this](){
-                this->work = new boost::asio::io_service::work(this->ioService);
-            });
-
-            for (size_t i = 0; i < workers; i++)
-            {
-                t = new std::thread(std::bind(&ThreadPool::workerThread,this) );
-                threads.push_back(t);
-                workersId.insert(t->get_id());
-            }   
-        }
+        ThreadPool(LoadBalancer* ldB):loadBalancer(ldB){}
 
         /**
-         * Schedule a task. T should be callable!
-         * @returns false if the calling thread is not the owner (or one of the delegated worker threads).
+         * Schedule a job.
          */
-        template <class T>
-        bool post(T job);
-        /**
-         * Wait untill all submitted jobs by the owner thread are executed.
-         * Returns false immediatley if calling thread != owner.
-         * After this call returns the thread pool is not owned by any thread.
-         */
-        bool wait();
-        /**
-         * If called by the owning thread, then  no more jobs are scheduled after this point, untill ownership is re-acquired.
-         * It waits for all jobs, submitted before this point, to finish.
-         * @returns true iff called by the owning thread (or one of the delegated worker threads).
-         */
-        bool stop();
-        /**
-         * Blocks untill exclusive ownership of the pool is acquired. 
-         * @returns the calling threads id.
-         */
-        std::thread::id acquire();
-        /**
-         * A non blocking version of acquire.
-         * @returns true if the pool is acquired, false otherwise.
-         */
-        bool try_acquire();
-        
-        ~ThreadPool() {
-            delete work;
-            workT->join();
-            delete workT;
-            ioService.stop();
-            finished = true;
-            //if any threads are waiting unblock them
-            {
-                std::unique_lock<std::mutex> lk(mOutstdWork);
-                outstanding_work = 1;    
-            }
-            cvOutstdWork.notify_all();
-            //by now every thread is unblocked and out of their processing loop.
-            for (std::thread* t : threads)
-            {
-                t->join();
-                delete t;
-            }
+        inline void post(JobQueue::Job_t job){
+            //queue the job
+            if( stopped.load() ) return;
             
+            loadBalancer->submit(job);
+        }
+        /**
+         * Wait untill all submitted jobs are executed.
+         */
+        inline void wait(){
+            std::unique_lock<std::mutex> lk(loadBalancer->mOutstdWork);
+            loadBalancer->cvCheckEmpty.wait(lk, [this](){ return loadBalancer->noJobs(); });
+            stop();
+        }
+        /**
+         * No more jobs are scheduled after this point, untill pool is re-started using restart().
+         */
+        inline void stop(){
+            stopped.store(true);
+        }
+        /**
+         * Start accepting jobs.
+         */
+        inline void restart(){
+            stopped.store(false);
+        }
+        ~ThreadPool(){
+            loadBalancer->shutdown();
+            delete loadBalancer;
         }
         friend class TestableThreadPool;
     };
 
-    template <class T>
-    bool ThreadPool::post(T job){
-        //Only the owning thread or one of the delegated worker threads should submit
-        //and pool musn't be stopped and owned.
-        if( !validThread() ) return false;
-
-        ioService.post(job);
-
+    /**
+    * This class encapsulates the idea of a worker thread.
+    * each worker thread has 1 job queue  1 thread  which it
+    * accepts and executes a job on.
+    */
+    struct WorkerThread{
+        typedef std::function<void(uint)> cb_t;
+        WorkerThread(cb_t c):cb(c)
         {
-            std::unique_lock<std::mutex> lck(mOutstdWork);
-            outstanding_work++;
+            finished = false;
+            auto f = std::bind(&WorkerThread::operator(), this);
+            thread = new std::thread(f);
         }
-        cvOutstdWork.notify_one();
-        return true;
-    }
+        WorkerThread(const WorkerThread&)=delete;
+        WorkerThread(const WorkerThread&&)=delete;
+        WorkerThread& operator=(const WorkerThread&)=delete;
+        WorkerThread& operator=(const WorkerThread&&)=delete;
+        /**
+            * The worker threads' processing loop.
+            */
+        void operator()(){
+            while (!finished)
+            {
+                {
+                    std::unique_lock<std::mutex> lck(jobs.mOutstdWork);
+                    cvOutstdWork.wait(lck, [this](){
+                        return (!jobs.empty()) or finished;
+                    });
+                    if( finished ) return;
+                }
+
+                uint executed = jobs.poll();
+                cb(executed);
+            }
+        }
+        /**
+            * submit a job for this worker thread. Does all the job present
+            * in its jobqueue and @returns the number jobs executed.
+            */
+        inline void submit(JobQueue::Job_t job){
+            jobs.enqueue(job);
+            cvOutstdWork.notify_one();
+        }
+        inline void join(){ 
+            {
+                std::unique_lock<std::mutex> lck(jobs.mOutstdWork);
+                finished = true;
+            }
+            cvOutstdWork.notify_one();
+            thread->join(); 
+            delete thread; 
+        }
+        
+        private:
+            cb_t cb;        //Is called evertime this worker executes a job.
+            bool finished;
+            
+            std::condition_variable cvOutstdWork;
+            std::thread* thread;
+            JobQueue jobs;
+    };
 } // namespace ares
 
 

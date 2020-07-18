@@ -29,8 +29,8 @@ class TestableThreadPool : public ThreadPool
                 if( (owner != id) or !owned ) return false;
             }
 
-            std::unique_lock<std::mutex> lk(mOutstdWork);
-            cvCheckEmpty.wait(lk, [this](){ return this->queueEmpty(); });
+            std::unique_lock<std::mutex> lk(jobs.mOutstdWork);
+            cvCheckEmpty.wait(lk, [this](){ return jobs.empty(); });
             
             {
                 //At this point all submmitted jobs are executed, No more job will be posted using the owning thread!
@@ -92,14 +92,14 @@ Tester tester;
 void job(pair<int , int> ip,TestableThreadPool& pool,std::mutex& m){
     tester.assertExclusiveUse(ip.first);        //Assert only one job is being executed!
     auto f = std::bind([ip, &m](){ 
-        sleep( rand() % 2 );
+        // sleep( rand() % 2 );
         // sleep(a);
         tester.assertExclusiveUse(ip.first);    //Assert only one job is being executed!
         tester.countSubjobs(ip.first);        
         std::unique_lock<std::mutex> l(m);
     });
     // cout << "Posted Job (" << ip.first << ", "<<ip.second<<")" << "\n";
-    pool.post<decltype(f)>(f);
+    pool.post(f);
 }
 
 void try_acquire(TestableThreadPool& pool,int i, std::mutex& m){
@@ -110,7 +110,7 @@ void try_acquire(TestableThreadPool& pool,int i, std::mutex& m){
     assert( std::this_thread::get_id() == id);
     for (uint j = i*SUBJOBS; j < (i+1)*SUBJOBS; j++){
         auto f = std::bind(&job,make_pair(i,j), ref(pool), ref(m));
-        pool.post<decltype(f)>(f);
+        pool.post(f);
     }
     auto f = std::bind(&Tester::releaseOwnership,ref(tester), i);
     pool.wait<decltype(f)>(f);
@@ -124,8 +124,8 @@ int main(int argc, char const *argv[])
         tester.nSubJobs = 0;
         tester.currentJobId = -1;
 
-        JOBS = (rand() % 10) + 10;
-        SUBJOBS = (rand() % 40) + 20;
+        JOBS = (rand() % 100) + 100;
+        SUBJOBS = (rand() % 400) + 200;
         uint poolSize = (rand() % 20) + 1;
         TestableThreadPool pool(poolSize);
         cout << "Testing with Pool of size : "<< poolSize << " Initial Jobs :" << JOBS << ", and "<<  "Submitted Handlers : " << SUBJOBS << endl;

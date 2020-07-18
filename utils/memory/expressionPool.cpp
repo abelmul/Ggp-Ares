@@ -111,30 +111,4 @@ namespace ares
         // lit_sptr& l = litPool[name][key];
         return add<Literal,NameLitMap>(litPool,key, litlock);
     }
-
-    /**
-    * Poll the deletion pool and reset queued shared pointers
-    * if the only reference that exists is within the pool.
-    */
-    void ExpressionPool::remove(DeletionQueue& queue, boost::shared_mutex& lock){
-        while (!pollDone)
-        {
-            sleep(cfg.deletionPeriod);
-            {
-                // std::lock_guard<boost::shared_mutex> lk(lock);//Exclusively lock the pool
-                // /**
-                //  * if use_count() == 1 then the only copy that exists is within
-                //  * the expression pool. So delete it. 
-                //  */
-                // auto _reset = [&](const structured_term* st){
-                //     /* use_count could be > 1 b/c st could be reused between the time
-                //         * its queued for deletion and its actuall deletion. 
-                //         */
-                //     if( st->_this->use_count() > 1 ) return; 
-                //     st->_this->reset();
-                // };
-                // queue.apply<decltype(_reset)>(_reset);
-            }
-        }
-    }
 } // namespace ares
