@@ -39,9 +39,10 @@ namespace ares
 
     struct PoolKey
     {
-        const char* name;
-        const Body* body;
+        const char* name=nullptr;
+        const Body* body=nullptr;
         bool p = true;
+        structured_term* _this;
     };
 
     struct PoolKeyHasher
@@ -57,8 +58,7 @@ namespace ares
     template<class T,class Hash = std::hash<T>, class Eq=std::equal_to<T>>
     class UniqueVector{
         typedef typename std::vector<T>::const_iterator iterator;
-        typedef std::size_t hash_t;
-        typedef std::vector<T> bucket_t;
+
         public:
             UniqueVector() = default;
 
@@ -68,35 +68,30 @@ namespace ares
             }
             void push_back(T el){
                 //check if el exists
-                hash_t h = hash(el);
-                auto it = lookup.find(h);
+                auto it = lookup.find(el);
                 if( it == lookup.end()){
-                    // Doesn't exist
-                    //remember it
-                    lookup[h].push_back(el);
+                    // Doesn't exist, remember it
+                    lookup.insert(el);
                     elements.push_back(el);
                 }
-                else{
-                    //exists
-                    bucket_t& bk = it->second;
-
-                    auto itf = std::find_if(bk.begin(), bk.end(),[&](T& e){return eq(e, el);});
-                    if( itf == bk.end()) bk.push_back(el);
-                }
             }
-            void clear(){
+
+            inline bool exists(const T& el){
+                if( lookup.find(el) == lookup.end()) return false;
+
+                return true;
+            }
+            inline void clear(){
                 elements.resize(0);
                 lookup.clear();
             }
-
+            inline std::size_t size()const { return elements.size();}
             iterator begin()const { return elements.cbegin();}
             iterator end()const { return elements.cend();}
 
         private:
             std::vector<T> elements;
-            std::unordered_map<hash_t,bucket_t> lookup;
-            Hash hash;
-            Eq eq;
+            std::unordered_set<T,Hash,Eq> lookup;
     };
 } // namespace ares
 

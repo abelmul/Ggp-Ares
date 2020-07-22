@@ -13,13 +13,14 @@ namespace ares
     
     friend class ExpressionPool;
     friend class ExpressionPoolTest;
+    friend class visualizer;
 
     template<class T>
     friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
     private:
-        Literal(const char* n,bool p,const Body* b,lit_sptr* _this)
-        :structured_term(n,p,b,(cnst_term_sptr*)_this,LIT)
+        Literal(const char* n,bool p,const Body* b)
+        :structured_term(n,p,b,LIT)
         {
         }
         /**

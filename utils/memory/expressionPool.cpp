@@ -1,8 +1,10 @@
 #include "utils/memory/expressionPool.hh"
+#include <chrono> 
 
 namespace ares
 {
     cnst_var_sptr ExpressionPool::getVar(const char * n){
+        timer t(this);
         varlock.lock_shared();
         if( varPool.find(n) != varPool.end()){
             cnst_var_sptr v = varPool[n];
@@ -23,6 +25,7 @@ namespace ares
         return vr;
     }
     cnst_const_sptr ExpressionPool::getConst(const char* c){
+        timer t(this);
         constlock.lock_shared();
         if( constPool.find(c) != constPool.end() ){
             cnst_const_sptr cc = constPool[c];
@@ -43,6 +46,7 @@ namespace ares
         return ccr;
     }
     cnst_fn_sptr ExpressionPool::getFn(PoolKey& key){
+        timer t(this);
         fnlock.lock_shared();
         auto it = fnPool.find(key.name);
         if( it != fnPool.end() ){
@@ -52,25 +56,23 @@ namespace ares
             auto itp = fp.find(key);
             if( itp != fp.end()){
                 //function exists!
-                fn_sptr& fn = itp->second;
-                //check if deleted
-                if(fn.use_count() == 0){ //Has been deleted
-                    fnlock.unlock_shared();
-                    return reset(fn, it->first, key, fnlock);
-                }
-                else{
-                    fn_sptr fnr = fn;
+                //check if deleted/hasn't expired
+                if(auto fn = itp->second.lock()){ //Hasn't been deleted
                     fnlock.unlock_shared();
                     delete key.body;
                     key.body = nullptr;
-                    return fnr;
+                    return fn;
+                }
+                else{//Has been deleted
+                    fnlock.unlock_shared();
+                    return reset<Function, FnPool>(fp, it->first, key, fnlock);
                 }
             }
             else{
                 fnlock.unlock_shared();
                 //Doesn't exist
                 //share name i.e, it->first
-                return add<Function,FnPool>(fp, it->first, key, fnlock);
+                return reset<Function,FnPool>(fp, it->first, key, fnlock);
             }
         }
         fnlock.unlock_shared();
@@ -78,6 +80,7 @@ namespace ares
         return add<Function,NameFnMap>(fnPool,key, fnlock);
     }
     cnst_lit_sptr ExpressionPool::getLiteral(PoolKey& key){
+        timer t(this);
         litlock.lock_shared();
         auto it = litPool.find(key.name);
         if( it != litPool.end()){
@@ -87,23 +90,22 @@ namespace ares
             auto itp = lp.find(key);
             if( itp != lp.end() ){
                 //Literal exists
-                lit_sptr& l = itp->second;
-                if(l.use_count() == 0 ){//could've been deleted
+                //could've been deleted
+                if(auto l = itp->second.lock()){
                     litlock.unlock_shared();
-                    return reset(l, it->first, key, litlock);
+                    delete key.body;
+                    key.body = nullptr;
+                    return l;
                 }
                 else{
-                    cnst_lit_sptr lr =l;
                     litlock.unlock_shared();
-                    key.body = nullptr;
-                    delete key.body;
-                    return lr;
+                    return reset<Literal>(lp, it->first, key, litlock);
                 }
             }
             else{
                 //Haven't seen literal before add it.
                 litlock.unlock_shared();
-                return add<Literal, LitPool>( lp, it->first, key,litlock);
+                return reset<Literal, LitPool>( lp, it->first, key,litlock);
             }
         }
          //Both name and body do not exist 

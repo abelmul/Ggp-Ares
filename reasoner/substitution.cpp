@@ -44,8 +44,4 @@ namespace ares
         return s;
     }
 
-    Substitution::~Substitution()
-    {
-    }
-
 } // namespace ares

@@ -3,7 +3,6 @@
 
 #include <mutex>
 #include <condition_variable>
-#include <boost/asio/io_service.hpp>
 #include <thread>
 #include <unordered_set>
 #include <atomic>
@@ -115,9 +114,9 @@ namespace ares
             cb_t cb;        //Is called evertime this worker executes a job.
             bool finished;
             
+            JobQueue jobs;
             std::condition_variable cvOutstdWork;
             std::thread* thread;
-            JobQueue jobs;
     };
 } // namespace ares
 

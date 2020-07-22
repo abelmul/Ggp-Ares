@@ -37,7 +37,10 @@ namespace ares
             
             queues[j].clear();
         }
-        private:
+        inline bool exists(const T el){
+            return queues[i].exists(el);
+        }
+        // private:
             UniqueVector<T> queues[2];
             SpinLock lock;
             byte i;
@@ -49,7 +52,7 @@ namespace ares
         
         private : struct Node;
         public:
-            JobQueue(){
+            JobQueue():mOutstdWork(){
                 //remove from front, push to back
                 front = new Node();
                 front->next = new Node();

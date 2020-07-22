@@ -58,7 +58,7 @@ namespace ares
     */
     class LoadBalancerRR : public LoadBalancer{
         public:
-            LoadBalancerRR(ushort nWorkers):LoadBalancer(nWorkers){}
+            LoadBalancerRR(ushort nWorkers):LoadBalancer(nWorkers),current(0){}
         protected:
             /**
             * Assigns the @param job to one of the worker threads.

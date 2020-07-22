@@ -34,7 +34,7 @@ namespace ares
             const cnst_lit_sptr& l_init = *(cnst_lit_sptr*)&l;                //Instantiate
             if( not l_init) return;
             //build the 'true' relation
-            PoolKey key{"true", new Body(l_init->getBody().begin(),l_init->getBody().end() ), true};
+            PoolKey key{"true", new Body(l_init->getBody().begin(),l_init->getBody().end() ), true,nullptr};
             const auto& true_ = expPool.getLiteral(key);
             init.add("true", new Clause(true_, new ClauseBody(0) ));      //This is thread safe
         };
@@ -52,7 +52,7 @@ namespace ares
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
-            key = PoolKey{"does", body,true};
+            key = PoolKey{"does", body,true,nullptr};
             auto l = expPool.getLiteral(key);
             context->add("does", new Clause(l,new ClauseBody(0)));           //This is thread safe
         }
@@ -101,8 +101,8 @@ namespace ares
             Body* body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
 
 
-            PoolKey key_legal{legal, body_legal, true};
-            PoolKey key_goal{goal, body_goal, true};
+            PoolKey key_legal{legal, body_legal, true,nullptr};
+            PoolKey key_goal{goal, body_goal, true,nullptr};
 
 
             for (auto &&r : roles)

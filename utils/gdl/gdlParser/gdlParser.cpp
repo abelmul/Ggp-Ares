@@ -127,6 +127,11 @@ namespace ares
             return _create(bodies,p);
         }
         checkValid( *(++start) );       //Next token should be a valid name.
+        // if( start->find("role") != std::string::npos and ((start +1)->find("?player") != std::string::npos )){
+        //     int i;
+        //     std::cout << "Role Reached\n";
+        //     std::cin >> i;
+        // }
         auto& name = *start++;
         bodies.push(pair<string, Body*>(name, new Body() ));
         auto& it = start;
@@ -158,7 +163,7 @@ namespace ares
             else if ( token == ")"){
                 //Pop an element and check if we are done.
                 //a well formed expression should eventually get into the next if.
-                if( (l=_create(ref(bodies),p)) )   
+                if( (l=_create(ref(bodies),p)) )
                     return l;
             }
             else 

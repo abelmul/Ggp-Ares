@@ -23,7 +23,9 @@ namespace ares
             parserThreads     = pt.get<uint>("parser_threads");
             proverThreads     = pt.get<uint>("prover_threads");
             debug             = pt.get<bool>("debug");
+            random             = pt.get<bool>("random");
             simulaions        = pt.get<uint>("simulaions");
+            steps        = pt.get<uint>("steps");
             deletionPeriod    = pt.get<uint>("deletionPeriod");
             deletionQueueSize = pt.get<uint>("deletionQueueSize");
             // jobQueue          = pt.get<uint>("jobQueue");
@@ -42,7 +44,9 @@ namespace ares
         uint deletionQueueSize;
         // uint jobQueue;
         uint simulaions;
+        uint steps;
         bool debug;
+        bool random;
     };
     extern Cfg cfg;
 

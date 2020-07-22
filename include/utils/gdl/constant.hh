@@ -10,8 +10,8 @@ namespace ares
     {
     friend class ExpressionPool;
     friend class ExpressionPoolTest;
-    Constant(const char* name,cnst_const_sptr* _this):Term(name,(cnst_term_sptr*)_this,CONST){}
-    
+    Constant(const char* name,cnst_const_sptr* _t):Term(name,CONST),_this(_t){}
+    cnst_const_sptr* _this = nullptr;
     public:
         /**
          * Deleting a constant does nothing.

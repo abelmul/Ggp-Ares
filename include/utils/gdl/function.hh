@@ -28,13 +28,13 @@ namespace ares
         Function& operator = (const Function&) = delete;
 
         //create an initialized function
-        Function(const char* name,const Body* _b,fn_sptr* _this)
-        :structured_term(name,true,_b,(cnst_term_sptr*)_this,FN)
+        Function(const char* name,const Body* _b)
+        :structured_term(name,true,_b,FN)
         {
         }
 
-        Function(const char* name,bool p, const Body* _b,fn_sptr* _this)
-        :Function(name, _b, _this)
+        Function(const char* name,bool p, const Body* _b)
+        :Function(name, _b)
         {}
         /**
          * Only ExpressionPool could create terms, to ensure only one instance exists 

@@ -207,7 +207,8 @@ namespace ares
             // isCurrent()
             VarSet vset;
             const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
-            reward = atoi(rewardTerm->get_name());
+            reward = atof(rewardTerm->get_name());
+            std::cout << "Reward is : " << reward << "\n";
         }
         float reward;
         Reasoner* _this;

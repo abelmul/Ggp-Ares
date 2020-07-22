@@ -15,9 +15,10 @@ namespace ares
         /**
          * Only ExpressionPool could create terms, to ensure only one instance exists 
          */
-        Variable(const char* name,cnst_var_sptr* _this):Term(name,(cnst_term_sptr*)_this,VAR)
+        Variable(const char* name,cnst_var_sptr* _t):Term(name,VAR),_this(_t)
         {
         }
+        cnst_var_sptr* _this = nullptr;
     public:
         /**
          * Deleting a variable does nothing.
@@ -32,16 +33,16 @@ namespace ares
          * while traversing a chain then there is a loop.
          */
         virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const {
-            if( not sub.isBound(*(cnst_var_sptr*)_this) ) return *_this;
-            else if(sub.isRenaming() ) return sub.get(*(cnst_var_sptr*)_this);        //No need to traverse the chain
+            if( not sub.isBound(*_this) ) return *_this;
+            else if(sub.isRenaming() ) return sub.get(*_this);        //No need to traverse the chain
 
-            if( vSet.find(*(cnst_var_sptr*)_this) != vSet.end() ) return null_term_sptr;     //There is a circular dependency
+            if( vSet.find(*_this) != vSet.end() ) return null_term_sptr;     //There is a circular dependency
             // //Remember this var in this particular path
-            vSet.insert(*(cnst_var_sptr*)_this);
-            const cnst_term_sptr& t = sub.get(*(cnst_var_sptr*)_this);
+            vSet.insert(*_this);
+            const cnst_term_sptr& t = sub.get(*_this);
             const cnst_term_sptr& tInst = (*t)(sub,vSet);
             // //Done
-            vSet.erase(*(cnst_var_sptr*)_this);   
+            vSet.erase(*_this);   
             return tInst;
         }
         virtual bool is_ground() const{

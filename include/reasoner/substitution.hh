@@ -56,7 +56,7 @@ namespace ares
         Mapping getMapping(){return mapping;}
         std::string to_string() const ;
 
-        virtual ~Substitution();
+        virtual ~Substitution(){}
     };
     
     #define EMPTY_SUB Substitution::emptySub

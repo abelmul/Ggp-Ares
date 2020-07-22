@@ -23,7 +23,7 @@ namespace ares
 
     typedef _Body<const Term> Body;
     typedef _Body<const Literal> ClauseBody;
-    
+
     typedef std::shared_ptr<const Term>             cnst_term_sptr;
     typedef std::shared_ptr<const structured_term>  cnst_structured_term_sptr;
     typedef std::shared_ptr<const Variable>         cnst_var_sptr;
@@ -36,8 +36,11 @@ namespace ares
     typedef std::shared_ptr<Function>         fn_sptr;
     typedef std::shared_ptr<Literal>          lit_sptr;
 
-    template<class T>
-    using sptr_container = std::vector<std::shared_ptr<T>>;
+    typedef std::weak_ptr<Term>             term_wkptr;
+    typedef std::weak_ptr<structured_term>  structured_term_wkptr;
+    typedef std::weak_ptr<Function>         fn_wkptr;
+    typedef std::weak_ptr<Literal>          lit_wkptr;
+
 
     /**
      * Containers of shared_ptrs of terms and literals 
@@ -62,12 +65,12 @@ namespace ares
     class MemoryPool
     {
     private:
-    
-    inline void* allocate(std::vector<void *>& pool){
-        void * el = pool.back();
-        pool.pop_back();
-        return el;
-    }
+        inline void* allocate(std::vector<void *>& pool){
+            void * el = pool.back();
+            pool.pop_back();
+            return el;
+        }
+
     public:
         /**
          * TODO: CHECK USAGE STATISICS OF THE OBJECTS IN THE POOL TO ACTUALLY DETERMINE
@@ -104,6 +107,24 @@ namespace ares
                 }
             }
         }
+        /**
+         * Register names, and assign unique nums to them.
+         */
+        static inline ushort registerVar(std::string s){
+            static ushort id=0;
+            varNameNum[s] = id;
+            varNumName[id] = s;
+            return id++;
+        }
+
+        static inline ushort registerName(std::string s){
+            static ushort id=0;
+            nameNum[s] = id;
+            numName[id] = s;
+            return id++;
+        }
+        static inline std::string vname(ushort id){ return varNumName.at(id); }
+        static inline std::string name(ushort id){ return numName.at(id); }
         /**
          * @param type could be sterm_pool_t,clause_pool_t and 
          * @returns a structured_term from the free function pool.
@@ -167,28 +188,6 @@ namespace ares
          */
         void deallocate(cnst_term_container* vec);
         void deallocate(cnst_lit_container* vec);
-        
-        /**
-         * Remove methods for convinience.
-         */
-        /**
-         * removes @param lit from expression if lit->use_count() == 2.
-         */
-        static void remove(cnst_lit_sptr& lit);
-        /**
-         * removes @param lit from expression if lit->use_count() == 2.
-         */
-        static void remove(cnst_term_sptr& fn);
-        /**
-         * remove check if elements of @param vec need to be removed.
-         */
-        template<class T>
-        inline static void remove(sptr_container<T>* vec,bool _delete = false){
-            for (auto &&el : *vec)
-                MemoryPool::remove(el);
-            
-            if( _delete ) delete vec;
-        }
 
         inline std::size_t capacity(pool_type t,arity_t arity=0){
             switch (t)
@@ -217,9 +216,6 @@ namespace ares
                     free(vp);
             // delete EMPTY_CONTAINER;
         }
-
-
-
         const static lit_container* EMPTY_CONTAINER;
         static ExpressionPool* exprPool;
 
@@ -259,6 +255,11 @@ namespace ares
 
         std::vector<std::vector<void*>*> POOLS;
 
+        static std::unordered_map<ushort, std::string> varNumName;
+        static std::unordered_map<std::string, ushort> varNameNum;
+
+        static std::unordered_map<ushort, std::string> numName;
+        static std::unordered_map<std::string, ushort> nameNum;
     };
 } // namespace ares
 

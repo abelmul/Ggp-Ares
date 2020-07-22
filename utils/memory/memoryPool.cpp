@@ -84,24 +84,6 @@ namespace ares
     void MemoryPool::deallocate(cnst_lit_container* vec){
         deallocate((cnst_term_container*) vec);
     }
-
-
-    void MemoryPool::remove(cnst_lit_sptr& lit){
-        auto f = [&](){ Ares::exprpool->remove(&lit);};
-        lit->synchronized<decltype(f),void>(f);
-    }
-    void MemoryPool::remove(cnst_term_sptr& t){
-        if( is_fn(t) ) {
-            const Function* fn =(const Function*)t.get();
-            auto f = [&](){ Ares::exprpool->remove((cnst_fn_sptr*)&t);};
-            fn->synchronized<decltype(f),void>(f);
-        }
-        else if( is_lit(t)){
-            const Literal* lit =(const Literal*)t.get();
-            auto f = [&](){ Ares::exprpool->remove((cnst_lit_sptr*)&t);};
-            lit->synchronized<decltype(f),void>(f);
-        }
-    }
 } // namespace ares
 
 

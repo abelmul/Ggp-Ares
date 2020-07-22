@@ -26,9 +26,23 @@ namespace ares
              */
             _Body(){
                 _front = 0;
-                container = new std::vector<std::shared_ptr<T>>();}
-
-            void push_back(std::shared_ptr<T> t){ container->push_back(t);}
+                container = new std::vector<std::shared_ptr<T>>();
+            }
+            /**
+             * Same as _Body _Body(const_vec_iterator& begin, const_vec_iterator& end) 
+             * but with no arity check for zero.
+             */
+            _Body(const_vec_iterator& begin, const_vec_iterator& end,bool no_arity):_Body(){
+                container->insert(container->begin(), begin, end);
+            }
+            void push_back(std::shared_ptr<T> t){
+                if( (const lit_container*)container == MemoryPool::EMPTY_CONTAINER){
+                    int i;
+                    std::cout << "tried to push to Body size 0, Stopping...\n";
+                    std::cin >> i;
+                }
+                container->push_back(t);
+            }
 
         public:
             _Body(const _Body&) = delete;
@@ -77,10 +91,8 @@ namespace ares
 
             ~_Body(){
                 const auto& arity =  container->size();
-                for (uint i=_front;i < arity;i++){
-                    auto& t=(*container)[i];
-                    mempool->remove(t);
-                }
+                for (uint i=_front;i < arity;i++)
+                    (*container)[i].reset();
 
                 if(arity > 0)
                     mempool->deallocate(container);
@@ -112,7 +124,7 @@ namespace ares
             }
             void pop_front(){
                 if( this->size() == 0 ) throw EmptyBodyPop("pop_front called on an empty body.");
-                mempool->remove((*container)[_front]);
+                (*container)[_front].reset();
                 _front++;
             }
             std::size_t size()const{ return container->size() - _front;}

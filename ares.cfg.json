@@ -1,11 +1,13 @@
 {
     "parser_threads":1,
-    "prover_threads":4,
+    "prover_threads":0,
     "gdl":"tests/games/chess.kif",
     "debug":false,
     "file":true,
-    "deletionPeriod":10,
-    "deletionQueueSize":64,
+    "random":true,
+    "deletionPeriod":1,
+    "deletionQueueSize":4096,
     "jobQueue":24,
-    "simulaions":1
+    "simulaions":1,
+    "steps":30
 }

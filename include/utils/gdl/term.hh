@@ -31,15 +31,15 @@ namespace ares
         const char* name;
         /*_this is a reference to the shared_ptr in the expression pool.
           Used to quickly reset/delete it in the expression pool.*/
-        cnst_term_sptr* _this = nullptr;
+        // cnst_term_sptr* _this = nullptr;
         /**
          * TODO: pre-computed ground value 
          */
         bool ground;    
         Type type;        
 
-        Term(const char* n,cnst_term_sptr* _th, Type t):name(n),_this(_th),type(t){}
-        virtual ~Term(){name =nullptr; _this=nullptr;/* null assignment is just for debugging purposes */}
+        Term(const char* n, Type t):name(n),type(t){}
+        virtual ~Term(){name =nullptr;}
 
     public:
         static CharpHasher nameHasher;  
@@ -97,7 +97,7 @@ namespace ares
     class structured_term : public Term
     {
     friend class ExpressionPool;
-
+    friend class visualizer;
     protected:
         mutable SpinLock slk;
         mutable bool positive;
@@ -105,8 +105,8 @@ namespace ares
         const Body& body;
 
     public:
-        structured_term(const char* n, bool p,const Body* b,cnst_term_sptr* _this,Type t)
-        :Term(n,_this,t),positive(p),_body(b),body(std::ref(*_body))
+        structured_term(const char* n, bool p,const Body* b,Type t)
+        :Term(n,t),positive(p),_body(b),body(std::ref(*_body))
         {
         }
 

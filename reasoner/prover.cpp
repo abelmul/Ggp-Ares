@@ -13,7 +13,6 @@ namespace ares
             if( goal.size() == 1 ) 
                 throw DistinctNotGround("Distinct called with : (distinct " + l->to_string());
             goal.delayFront();
-            Ares::mempool->remove(l);
             return true;
         }
         //Check s != t
@@ -21,10 +20,8 @@ namespace ares
         // const Term& s = *l->getArg(0);
         // const Term& t = *l->getArg(1);
         if( (*lptr->getArg(0)) == (*lptr->getArg(1)) ){
-            Ares::mempool->remove(l);
             return false;
         }
-        Ares::mempool->remove(l);
         goal.pop_front();
         return true;
     }
@@ -40,7 +37,7 @@ namespace ares
         }
         //Try to prove <-(not l)  l is negative
         cnst_lit_sptr* _lp = (cnst_lit_sptr*)&l;
-        PoolKey key{l->get_name(), new Body(_lp->get()->getBody().begin(),_lp->get()->getBody().end()), true};
+        PoolKey key{l->get_name(), new Body(_lp->get()->getBody().begin(),_lp->get()->getBody().end()), true,nullptr};
         cnst_lit_sptr lp = Ares::exprpool->getLiteral(key);
         bool success = false;
         bool done = false;              //Shared among threads set to true when an answer is found
@@ -55,8 +52,6 @@ namespace ares
         nQuery.pool = nullptr;
         _prove<decltype(cb)>(nQuery);     //Good old fashioned recursion
 
-        Ares::mempool->remove(l);
-        Ares::mempool->remove(lp);
         if( success )   //Just proved <- lp meaning we have refuted (<-l) meaning P |= lp. <-l has failed finitely
             return false;
         goal.pop_front();
@@ -68,10 +63,10 @@ namespace ares
         cnst_term_sptr _r = (*c.getHead())(vr,vset);
         cnst_lit_sptr* renamedHead = (cnst_lit_sptr*)&_r;
         Substitution* mgu = new Substitution(goal.getSubstitution());
-        bool ok = Unifier::unifyPredicate(goal.front(), *renamedHead, *mgu);
+        bool ok = Unifier::unifyPredicate(*goal.front(), **renamedHead, *mgu);
         Resolvent gn;
         gn.ok = ok;
-        Ares::mempool->remove(*renamedHead);
+        // Ares::mempool->remove(*renamedHead);
         if( not ok ){
             delete mgu;
             return gn;

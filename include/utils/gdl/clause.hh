@@ -18,6 +18,8 @@ namespace ares
     {
         friend class Transformer;
         friend class ClauseHasher;
+        friend class visualizer;
+        
     private:
         cnst_lit_sptr head = nullptr;
         ClauseBody* _body = nullptr;
@@ -54,7 +56,6 @@ namespace ares
         void* operator new(std::size_t);
         void  operator delete(void*);
         ~Clause(){
-            if( head ) MemoryPool::remove(head);
             if (theta) delete theta;
             if( _body ) delete _body;
             head = nullptr;
@@ -125,14 +126,15 @@ namespace ares
         std::size_t hash()const{ return 0;}
 
         std::string to_string()const{
-            std::string s("(");
+            std::string s("");
+            if( body.size() > 0) s.append("(");
             if( head ) s.append( head->to_string() + " ");
             if( body.size() > 0) s.append(" <= ");
 
             for (auto &l : body)
                 s.append("\n" + l->to_string());
 
-            s.append(")");
+            if( body.size() > 0) s.append(")");
         if( theta and (not theta->isEmpty()) ) 
             s.append("\nSubstitution :\n" + theta->to_string());
         return s;

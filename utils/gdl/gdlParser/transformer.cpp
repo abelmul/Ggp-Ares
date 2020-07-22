@@ -73,7 +73,7 @@ namespace ares
                 for (size_t j = 0; j < streams.size(); j++){
                     auto* s = streams[j];
                     s->setNext(next_exp+1);
-                    auto* clone = c->clone();       //Capture after cloning
+                    auto* clone = new Clause(c->head, new ClauseBody(c->body.begin(), c->body.end(),true));
                     boost::asio::post(*parser->pool, [this,clone,s](){
                          this->applyTransformations(clone, unique_ptr<TokenStream>(s));
                     });

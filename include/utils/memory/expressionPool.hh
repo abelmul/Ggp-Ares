@@ -18,61 +18,72 @@ namespace ares
     class ExpressionPool
     {
 
-        typedef std::unordered_map<PoolKey, fn_sptr,PoolKeyHasher,PoolKeyEqual> FnPool;
-        typedef std::unordered_map<PoolKey, lit_sptr,PoolKeyHasher,PoolKeyEqual> LitPool;
+
+        typedef std::unordered_map<PoolKey, fn_wkptr,PoolKeyHasher,PoolKeyEqual> FnPool;
+        typedef std::unordered_map<PoolKey, lit_wkptr,PoolKeyHasher,PoolKeyEqual> LitPool;
         typedef std::unordered_map<const char*, FnPool, CharpHasher,StrEq> NameFnMap;
         typedef std::unordered_map<const char*, LitPool,CharpHasher,StrEq> NameLitMap;
         friend class GdlParser;
+    public:
+        struct timer{
+            timer(ExpressionPool* _t):_this(_t){
+                begin = _this->crono.now();
+            }
+            ~timer(){
+                end = _this->crono.now();
+                std::lock_guard<SpinLock> lk(_this->ts);
+                _this->time_spent += std::chrono::duration_cast<std::chrono::microseconds>(end - begin).count();
+            }
+            ExpressionPool* _this;
+            std::chrono::high_resolution_clock::time_point begin;
+            std::chrono::high_resolution_clock::time_point end;
+        };
     private:
+        std::chrono::high_resolution_clock crono;
+        template <class T>
+        struct Deleter;
         /**
          * Only a single expression pool should exist through out the life time of the application
          * and its created by the singleton gdlParser.
          */
         ExpressionPool(){
+            time_spent = 0.0;
             for (const char* c : constants)
                 litPool[c];         //Creates Empty LiteralPool 
             
-            //Create the thread which polls the deletion queue
-            pollDone = false;
-            auto poll = [&](){
-                remove(this->litQueue,litPool, this->litlock);
-                remove(this->fnQueue,fnPool, this->fnlock);
-            };
-            queueThread = new std::thread(poll);
+            auto poll_fn=[&]{ remove(fnQueue,fnPool,fnlock,FN); };
+            auto poll_lit=[&]{ remove(litQueue, litPool, litlock, LIT);};
+            litQueueTh = new std::thread(poll_lit);
+            fnQueueTh = new std::thread(poll_fn);
         }
         /**
          * The key exists in pool but the pool[key] (= shared_ptr) has been reseted so its assume gone.
          * Therefore reset it with a new object of type T.
          */
-        template<class T>
-        inline std::shared_ptr<T> reset(std::shared_ptr<T>& st_ptr, const char* name, PoolKey& key,boost::shared_mutex& lock){
-            std::lock_guard<boost::shared_mutex> lk(lock); //Exclusive
-            if(st_ptr.use_count() == 0 )
-                st_ptr.reset(new T(name,key.p, key.body,&st_ptr));
-            else{
-                delete key.body;
-            } 
-
-            key.body = nullptr;
-            std::shared_ptr<T> lr = st_ptr;
-            return lr;
-        }
-        /**
-         * The key does not exist in pool so might need to create it(if another thread han't already).
-         * The name exists and is shared.
-         */
         template<class T,class PT>
-        inline std::shared_ptr<T> add(PT& pool, const char* name, PoolKey& key,boost::shared_mutex& lock){
-            std::lock_guard<boost::shared_mutex> lk(lock); //Exclusive
+        inline std::shared_ptr<T> reset(PT& pool, const char* name, PoolKey& key,boost::shared_mutex& lock,bool doLock=true){
+            if (doLock) lock.lock();    //Exclusive
+            std::shared_ptr<T> lr;
+            //Check if its been erased
+            auto it = pool.find(key);
+            if( it == pool.end() )      //Its been erased before exclusive ownership could be obained.
+            {
+                key._this =  new T(name,key.p, key.body);
+                lr.reset((T*)key._this,Deleter<T*>(this));  //Create a new entry with key
+                pool[key] = lr;
+            }
+            else        //Reallocation after the structured term is queued for deletion.
+            {
+                lr = pool[key].lock();
+                if(not lr){
+                    lr.reset((T*)it->first._this,Deleter<T*>(this));                   //Just reuse the previous value
+                    pool[key] = lr;    //check if another thread has added it.
+                }
 
-            std::shared_ptr<T>& st_ptr = pool[key];         //THis gets the st_ptr or creates a new one.
-            if(st_ptr.use_count() == 0 )
-                st_ptr.reset(new T(name,key.p, key.body,&st_ptr));
-            else
                 delete key.body;
-
+            }
             key.body = nullptr;
-            std::shared_ptr<T> lr = st_ptr;
+            if (doLock) lock.unlock(); //Exclusive
             return lr;
         }
         /**
@@ -82,44 +93,59 @@ namespace ares
         template<class T,class PT>
         inline std::shared_ptr<T> add(PT& pool,PoolKey& key,boost::shared_mutex& lock){
             char* name = strdup(key.name);  //Create the name
-
-            std::lock_guard<boost::shared_mutex> lk(lock); //Exclusive
-            std::shared_ptr<T>& st_ptr = pool[name][key];       //THis gets the st_ptr or creates a new one.
-            
-            if(st_ptr.use_count() == 0 )
-                st_ptr.reset(new T(name,key.p, key.body,&st_ptr));
-            else{
-                delete key.body;
-                delete name;
-            } 
             key.name = nullptr;
-            key.body = nullptr;
-            std::shared_ptr<T> lr = st_ptr;
-            return lr;
+            std::lock_guard<boost::shared_mutex> lk(lock); //Exclusive
+            std::shared_ptr<T> stp;
+            if( pool.find(name) != pool.end()){
+                //some other thread has inserted.
+                stp = reset<T>(pool[name], name, key,lock,false);
+                delete name;
+            }
+            else
+                stp = reset<T>(pool[name], name, key,lock,false);
+            
+            return stp;
         }
+        template <class T>
+        struct Deleter{
+            Deleter(ExpressionPool* exp):_this(exp){}
+            void operator()(T st){
+                if (st->get_type() == FN)   _this->fnQueue.enqueue((const Function*)st);
+                else if(st->get_type()==LIT) _this->litQueue.enqueue((const Literal*)st);
+            }
+            ExpressionPool* _this =nullptr;
+        };
        /**
         * Poll the deletion queue and reset queued shared pointers
         * if the only reference that exists is within the pool.
         */
        template<class T,class TP>
-       void remove(DeletionQueue<T>& queue,TP& pool, boost::shared_mutex& lock){
+       void remove(DeletionQueue<T>& queue,TP& pool, boost::shared_mutex& lock,Type type){
            while (!pollDone)
             {
                 sleep(cfg.deletionPeriod);
                 {
+                    timer t(this); 
                     std::lock_guard<boost::shared_mutex> lk(lock);//Exclusively lock the pool
                     /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
                     auto _reset = [&](T st){
                         /* use_count could be > 1 b/c st could be reused between the time
                         * its queued for deletion and its actuall deletion. 
                         */
-                        if( st->_this->use_count() > 1 ) return; 
+                        if( not st->name ) return;
+                        if( type != st->get_type() ){
+                            if( type == FN ) litQueue.enqueue((const ares::Literal*)st);
+                            else if( type == LIT ) fnQueue.enqueue((const ares::Function*)st);
+                            return;
+                        }
                         auto it = pool.find(st->name);
-                        if( it == pool.end() ) throw BadAllocation("Removing Function whose name is non existent in pool.");
+                        if( it == pool.end() ) throw BadAllocation("Removing Structured Term whose name is non existent in pool.");
                         PoolKey key{nullptr, st->_body, st->positive};
                         auto itspt = it->second.find(key);
-                        if( itspt == it->second.end()) throw BadAllocation("Removing Function non existent in pool.");
+                        if( itspt == it->second.end()) throw BadAllocation("Removing Structured Term non existent in pool.");
+                        if( itspt->second.use_count() > 0 ) return;
                         it->second.erase(itspt);
+                        delete st;
                     };
                     queue.apply(_reset);
                 }
@@ -127,6 +153,9 @@ namespace ares
        }
 
     public:
+        double  time_spent;
+        SpinLock ts;
+        
         /**
          * The get* methods make sure only one instance of an object exists.
          * sets @param exists to true if the expression exists. if exists
@@ -148,28 +177,13 @@ namespace ares
          * assigned to other objects at any point. This is to avoid copying the body while creation.
          */
         cnst_lit_sptr getLiteral(PoolKey& key);
-
-        /**
-         * reset the shared_ptr of st if use_count == 2 hence
-         * the only copy that exists is only in the expr pool.
-         */
-        inline void remove(cnst_lit_sptr* lit){
-            if( lit->use_count() > 2 ) return;
-            if( lit->use_count() < 2 ) throw BadAllocation("Removing Literal non existent in pool.");
-            //The references that exist are just this and in the pool, schedule deletion
-            litQueue.enqueue(lit->get());
-            lit->reset();
-        }
-        inline void remove(cnst_fn_sptr* fn){
-            if(fn->use_count() > 2 ) return;
-            if( fn->use_count() < 2 ) throw BadAllocation("Removing Function non existent in pool.");
-            //The references that exist are just this and in the pool, schedule deletion
-            fnQueue.enqueue(fn->get());
-            fn->reset();
-        }
-        
+ 
         ~ExpressionPool(){
-            queueThread->join();
+            pollDone = true;
+            litQueueTh->join();
+            fnQueueTh->join();
+            delete litQueueTh;
+            delete fnQueueTh;
         }
 
         const char* ROLE = "role";
@@ -194,7 +208,7 @@ namespace ares
         DeletionQueue<const Function*> fnQueue;
         DeletionQueue<const Literal*> litQueue;
 
-        std::thread* queueThread;
+        std::thread *litQueueTh,*fnQueueTh;
         bool pollDone;
 
         /** 
