@@ -25,7 +25,7 @@ OBJS_DIR = ../objs
 CC = g++
 FLAGS = -Wall -std=c++17 -I$(IDIR) 
 LIBS =  -lboost_regex -lboost_thread -lpthread
-ifdef debug
+ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else
 FLAGS+= -O3
