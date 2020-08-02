@@ -42,6 +42,7 @@ int main(int argc, char const *argv[])
     std::cout << *r0 << std::endl;
     std::cout << *r1 << std::endl;
     std::cout << "-----Roles------\n\n";
+    std::cout << cfg << "\n";
     srand(time(NULL));
     visualizer viz;
     const State& init = reasoner.getInit();
@@ -49,7 +50,8 @@ int main(int argc, char const *argv[])
     while (sims < cfg.simulaions)
     {
         const State* state = &init;
-        while (sims < cfg.steps)
+        ushort steps=0;
+        while (steps < cfg.steps)
         {
             if( reasoner.isTerminal(*state) ){
                 auto reward_0 = reasoner.getReward(*r0, state);
@@ -76,8 +78,10 @@ int main(int argc, char const *argv[])
             if( state != &init ) delete state;
             state = nxt;
             // return 0;
-            sims++;
+            steps++;
         }
+        std::cout << "Steps : " << steps << "\n";
+        sims++;
     }
     auto end = c.now();
     auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
@@ -136,5 +140,8 @@ namespace ares
     
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;
-
+    std::ostream& operator<<(std::ostream& os, const Cfg& cfg){
+        os << cfg.str();
+        return os;
+    }
 } // namespace ares
