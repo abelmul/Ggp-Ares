@@ -11,7 +11,7 @@ namespace ares
     /**
      * new and delete for class Function
      */
-    void* Function::operator new(std::size_t s){
+    void* Function::operator new(std::size_t){
         return Ares::mempool->allocate(sterm_pool_t);
     }
     void Function::operator delete(void *p){
@@ -20,7 +20,7 @@ namespace ares
     /**
      * new and delete for class Literal
      */
-    void* Literal::operator new(std::size_t s){
+    void* Literal::operator new(std::size_t){
         return Ares::mempool->allocate(sterm_pool_t);
     }
     void Literal::operator delete(void *p){
@@ -29,7 +29,7 @@ namespace ares
     /**
      * new and delete for class Clause.
      */
-    void* Clause::operator new(std::size_t s){
+    void* Clause::operator new(std::size_t){
         return Ares::mempool->allocate(clause_pool_t);
     }
     void Clause::operator delete(void *p){
@@ -39,25 +39,25 @@ namespace ares
      * Instantiation of Functions and Literals.
      */
     template<class T>
-    Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
+    Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet);
 
     const cnst_term_sptr Function::operator()(const Substitution &sub,VarSet& vSet) const {
-        Body* body = instantiate<Function>(*this, sub, vSet, true);
+        Body* body = instantiate<Function>(*this, sub, vSet);
         if( !body ) return null_term_sptr;
-        PoolKey key{name, body,true};
+        PoolKey key{name, body,true,nullptr};
         return Ares::exprpool->getFn(key);
     }
 
    const cnst_term_sptr Literal::operator()(const Substitution &sub,VarSet& vSet) const {
 
-        Body* body = instantiate<Literal>(*this, sub, vSet, true);
+        Body* body = instantiate<Literal>(*this, sub, vSet);
         if( !body ) return null_term_sptr;
-        PoolKey key{name, body,this->positive};
+        PoolKey key{name, body,this->positive,nullptr};
         return Ares::exprpool->getLiteral(key);
     }
 
     template<class T>
-    Body* instantiate(const T& expr, const Substitution &sub,VarSet& vSet, bool fn){
+    Body* instantiate(const T& expr, const Substitution &sub,VarSet& vSet){
         uint arity = expr.getArity();
         Body* body = new Body(arity);
         const Body& bodyExp = expr.getBody();

@@ -3,7 +3,7 @@
 
 namespace ares
 {
-    cnst_var_sptr ExpressionPool::getVar(const char * n){
+    cnst_var_sptr ExpressionPool::getVar(ushort n){
         timer t(this);
         varlock.lock_shared();
         if( varPool.find(n) != varPool.end()){
@@ -14,17 +14,14 @@ namespace ares
         varlock.unlock_shared();
         //Exclusive ownership for writing
         std::lock_guard<boost::shared_mutex> lk(varlock);
-        auto name = strdup(n);
-        cnst_var_sptr& v = varPool[name];
+        cnst_var_sptr& v = varPool[n];
         if( v.use_count() == 0)
-            v.reset( new Variable(name,&v));
-        else
-            delete name;
-        
+            v.reset( new Variable(n,&v));
+
         cnst_var_sptr vr = v;
         return vr;
     }
-    cnst_const_sptr ExpressionPool::getConst(const char* c){
+    cnst_const_sptr ExpressionPool::getConst(ushort c){
         timer t(this);
         constlock.lock_shared();
         if( constPool.find(c) != constPool.end() ){
@@ -35,12 +32,10 @@ namespace ares
         constlock.unlock_shared();
         //upgrade lock to exclusive
         std::lock_guard<boost::shared_mutex> lk(constlock);
-        auto name = strdup(c);
-        cnst_const_sptr& cc = constPool[name];
+        cnst_const_sptr& cc = constPool[c];
         if( cc.use_count()  == 0 )
-            cc.reset(new Constant(name, &cc));
-        else
-            delete name;
+            cc.reset(new Constant(c, &cc));
+      
         
         cnst_const_sptr ccr =cc;
         return ccr;
@@ -51,7 +46,6 @@ namespace ares
         auto it = fnPool.find(key.name);
         if( it != fnPool.end() ){
             //function name exists!
-            key.name = nullptr; 
             FnPool& fp = it->second;
             auto itp = fp.find(key);
             if( itp != fp.end()){
@@ -84,7 +78,6 @@ namespace ares
         litlock.lock_shared();
         auto it = litPool.find(key.name);
         if( it != litPool.end()){
-            key.name = nullptr; 
             //Literal name exists
             auto& lp = it->second;
             auto itp = lp.find(key);

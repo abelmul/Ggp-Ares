@@ -6,6 +6,7 @@
 #include "utils/memory/memoryPool.hh"
 #include <boost/thread/pthread/shared_mutex.hpp>
 #include "utils/memory/queue.hh"
+#include "utils/memory/namer.hh"
 #include <thread>
 
 namespace ares
@@ -21,8 +22,8 @@ namespace ares
 
         typedef std::unordered_map<PoolKey, fn_wkptr,PoolKeyHasher,PoolKeyEqual> FnPool;
         typedef std::unordered_map<PoolKey, lit_wkptr,PoolKeyHasher,PoolKeyEqual> LitPool;
-        typedef std::unordered_map<const char*, FnPool, CharpHasher,StrEq> NameFnMap;
-        typedef std::unordered_map<const char*, LitPool,CharpHasher,StrEq> NameLitMap;
+        typedef std::unordered_map<ushort, FnPool> NameFnMap;
+        typedef std::unordered_map<ushort, LitPool> NameLitMap;
         friend class GdlParser;
     public:
         struct timer{
@@ -46,11 +47,7 @@ namespace ares
          * Only a single expression pool should exist through out the life time of the application
          * and its created by the singleton gdlParser.
          */
-        ExpressionPool(){
-            time_spent = 0.0;
-            for (const char* c : constants)
-                litPool[c];         //Creates Empty LiteralPool 
-            
+        ExpressionPool(){            
             auto poll_fn=[&]{ remove(fnQueue,fnPool,fnlock,FN); };
             auto poll_lit=[&]{ remove(litQueue, litPool, litlock, LIT);};
             litQueueTh = new std::thread(poll_lit);
@@ -61,7 +58,7 @@ namespace ares
          * Therefore reset it with a new object of type T.
          */
         template<class T,class PT>
-        inline std::shared_ptr<T> reset(PT& pool, const char* name, PoolKey& key,boost::shared_mutex& lock,bool doLock=true){
+        inline std::shared_ptr<T> reset(PT& pool, ushort name, PoolKey& key,boost::shared_mutex& lock,bool doLock=true){
             if (doLock) lock.lock();    //Exclusive
             std::shared_ptr<T> lr;
             //Check if its been erased
@@ -92,17 +89,13 @@ namespace ares
          */
         template<class T,class PT>
         inline std::shared_ptr<T> add(PT& pool,PoolKey& key,boost::shared_mutex& lock){
-            char* name = strdup(key.name);  //Create the name
-            key.name = nullptr;
             std::lock_guard<boost::shared_mutex> lk(lock); //Exclusive
             std::shared_ptr<T> stp;
-            if( pool.find(name) != pool.end()){
+            if( pool.find(key.name) != pool.end())
                 //some other thread has inserted.
-                stp = reset<T>(pool[name], name, key,lock,false);
-                delete name;
-            }
+                stp = reset<T>(pool[key.name], key.name, key,lock,false);
             else
-                stp = reset<T>(pool[name], name, key,lock,false);
+                stp = reset<T>(pool[key.name], key.name, key,lock,false);
             
             return stp;
         }
@@ -140,7 +133,7 @@ namespace ares
                         }
                         auto it = pool.find(st->name);
                         if( it == pool.end() ) throw BadAllocation("Removing Structured Term whose name is non existent in pool.");
-                        PoolKey key{nullptr, st->_body, st->positive};
+                        PoolKey key{0, st->_body, st->positive,nullptr};
                         auto itspt = it->second.find(key);
                         if( itspt == it->second.end()) throw BadAllocation("Removing Structured Term non existent in pool.");
                         if( itspt->second.use_count() > 0 ) return;
@@ -161,8 +154,8 @@ namespace ares
          * sets @param exists to true if the expression exists. if exists
          * They are all thread safe. 
          */
-        cnst_var_sptr getVar(const char* var);
-        cnst_const_sptr getConst(const char* c);
+        cnst_var_sptr getVar(ushort var);
+        cnst_const_sptr getConst(ushort c);
         /**
          * if the function is in the pool, then the existing function is returned. 
          * else a new function with name key.name and body key.body is created. 
@@ -186,22 +179,10 @@ namespace ares
             delete fnQueueTh;
         }
 
-        const char* ROLE = "role";
-        const char* INIT = "init";
-        const char* LEGAL = "legal";
-        const char* NEXT = "next";
-        const char* TRUE = "true";
-        const char* DOES = "does";
-        const char* DISTINCT = "distinct";
-        const char* GOAL = "goal";
-        const char* TERMINAL = "terminal";
-        const char* INPUT = "input";
-        const char* BASE = "base";
-
     private:
 
-        std::unordered_map<const char*, cnst_var_sptr,CharpHasher,StrEq> varPool;
-        std::unordered_map<const char*, cnst_const_sptr,CharpHasher,StrEq> constPool;
+        std::unordered_map<ushort, cnst_var_sptr> varPool;
+        std::unordered_map<ushort, cnst_const_sptr> constPool;
         NameFnMap fnPool;
         NameLitMap litPool;
 
@@ -219,12 +200,6 @@ namespace ares
         boost::shared_mutex constlock;
         boost::shared_mutex fnlock;
         boost::shared_mutex litlock;
-
-        /**
-         * Define the GDL specific(game independant) constants
-         */
-
-        const std::vector<const char *> constants{ ROLE,TRUE,INIT,NEXT,LEGAL,DOES,DISTINCT,GOAL,TERMINAL };
     };
 } // namespace ares
 

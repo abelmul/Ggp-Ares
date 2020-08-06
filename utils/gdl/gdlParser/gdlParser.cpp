@@ -147,12 +147,12 @@ namespace ares
                  * then add to body.
                  */
                 auto& body = bodies.top().second;
-                cnst_const_sptr cnst = exprPool->getConst(token.c_str());
+                cnst_const_sptr cnst = exprPool->getConst(Namer::registerName(token));
                 body->push_back(cnst);
             }
             else if( token[0] == '?' and token.size() > 1 ){
                 auto& body = bodies.top().second;
-                cnst_var_sptr var = exprPool->getVar(token.c_str());
+                cnst_var_sptr var = exprPool->getVar(Namer::registerVname(token));
                 body->push_back(var);
             }
             else if( token == "("){
@@ -175,11 +175,10 @@ namespace ares
         throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
     cnst_lit_sptr GdlParser::_create(stack<pair<string,Body*>>& bodies,bool p) {
-        auto s = bodies.top().first;
-        const char* name = s.c_str();
+        auto name = bodies.top().first;
         Body* body = bodies.top().second;
         
-        PoolKey key{name, body,true};
+        PoolKey key{Namer::registerName(name), body,true,nullptr};
         
         bodies.pop();
         if( bodies.empty() ){       //Balanced parentheses

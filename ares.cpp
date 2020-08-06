@@ -7,8 +7,8 @@ int main(int argc, char const *argv[])
     using namespace ares;
     Ares ares;
     cfg = Cfg("./ares.cfg.json");
-    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,256),make_pair(2,256),make_pair(3,256),make_pair(4,256),make_pair(5,256),make_pair(6,256),make_pair(7,256),make_pair(8,256)};
-    MemoryPool* mempool = new MemoryPool(1024,1024,arities);
+    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,4096),make_pair(2,2048),make_pair(3,2048),make_pair(4,4096),make_pair(5,16384),make_pair(6,8192),make_pair(7,4096),make_pair(8,4096),make_pair(9,512),make_pair(10,2048),make_pair(11,512),make_pair(12,256)};
+    MemoryPool* mempool = new MemoryPool(16384,65536,arities);
     GdlParser* p = GdlParser::getParser(cfg.parserThreads);
     
     ares.mempool = mempool;
@@ -88,7 +88,9 @@ int main(int argc, char const *argv[])
     std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
     std::cout << "Total time in Expression Pool : " << ares.exprpool->time_spent <<" microseconds\n";
     std::cout << "Ratio of Expression Pool / total time : " << ares.exprpool->time_spent/dur.count() <<"\n";
-
+    ares.mempool->printStat();
+    delete kb;
+    sleep(3);
     // std::cout <<cfg.proverThreads <<" threads." <<"\n";
     // std::cout << cfg.simulaions << " simulations in : " << dur.count()<<"milliseconds\n";
     // std::cout << "a simulation in : " << dur.count()/cfg.simulaions<<"milliseconds\n";
@@ -137,6 +139,27 @@ namespace ares
     CharpHasher Term::nameHasher;
     cnst_term_sptr     Term::null_term_sptr(nullptr);
     cnst_lit_sptr     Term::null_literal_sptr(nullptr);
+    
+    //Namer static
+    std::unordered_map<ushort, std::string> Namer::vIdName;
+    std::unordered_map<std::string, ushort> Namer::vNameId;
+    
+    std::unordered_map<ushort, std::string> Namer::idName;
+    std::unordered_map<std::string, ushort> Namer::nameId;
+
+    const ushort Namer::ROLE = Namer::registerName(std::string("role"));
+    const ushort Namer::INIT = Namer::registerName(std::string("init"));
+    const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));
+    const ushort Namer::NEXT = Namer::registerName(std::string("next"));
+    const ushort Namer::TRUE = Namer::registerName(std::string("true"));
+    const ushort Namer::DOES = Namer::registerName(std::string("does"));
+    const ushort Namer::DISTINCT = Namer::registerName(std::string("distinct"));
+    const ushort Namer::GOAL = Namer::registerName(std::string("goal"));
+    const ushort Namer::TERMINAL = Namer::registerName(std::string("terminal"));
+    const ushort Namer::INPUT = Namer::registerName(std::string("input"));
+    const ushort Namer::BASE = Namer::registerName(std::string("base"));
+    const ushort Namer::X = Namer::registerVname(std::string("?x"));
+    const ushort Namer::R = Namer::registerVname(std::string("?r"));
     
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;

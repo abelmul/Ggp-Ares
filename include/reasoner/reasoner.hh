@@ -23,8 +23,8 @@ namespace ares
         ,TERMINAL_GOAL( makeGoal(_p,TERMINAL_QUERY) )
         ,GOAL_GOAL( makeGoal(_p,GOAL_QUERY))
         ,TRUE_LITERAL(_p.parseQuery(TRUE_QUERY))
-        ,x(expPool.getVar("?x"))
-        ,r(expPool.getVar("?r"))
+        ,x(expPool.getVar(Namer::X))
+        ,r(expPool.getVar(Namer::R))
         {
             goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
             initRoles();        //might as well just get the roles now
@@ -89,7 +89,7 @@ namespace ares
             bool done = false;
             auto* g = goal->clone();
             g->setSubstitution(new Substitution());
-            Query<T> query(g,context, cb, false, std::ref(done));
+            Query<T> query(g,context, cb, one, std::ref(done));
             prover.prove<T>(query);
         }
 
@@ -111,9 +111,9 @@ namespace ares
         State init;
 
         //Just to "pre-create" and hold the legal query, (legal some_role ?x)
-        std::unordered_map<const char*, cnst_lit_sptr, CharpHasher, StrEq> roleLegalMap;
+        std::unordered_map<ushort, cnst_lit_sptr> roleLegalMap;
         //Just to "pre-create" and hold the goal query, (goal some_role ?x)
-        std::unordered_map<const char*, cnst_lit_sptr, CharpHasher, StrEq> roleGoalMap;
+        std::unordered_map<ushort, cnst_lit_sptr> roleGoalMap;
 
         const Clause* ROLE_GOAL;
         const Clause* INIT_GOAL;
@@ -167,7 +167,7 @@ namespace ares
             VarSet vset;
             const cnst_term_sptr& true_ = (*_this->TRUE_LITERAL)(ans,vset);      //Instantiate
             if(true_)
-                newState->add("true", new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
+                newState->add(Namer::TRUE, new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
         }
         ~NxtCallBack(){
             _this = (Reasoner*)0xbeef;
@@ -207,7 +207,7 @@ namespace ares
             // isCurrent()
             VarSet vset;
             const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
-            reward = atof(rewardTerm->get_name());
+            reward = atof(Namer::name(rewardTerm->get_name()).c_str());
             std::cout << "Reward is : " << reward << "\n";
         }
         float reward;

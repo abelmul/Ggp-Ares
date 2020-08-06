@@ -10,7 +10,7 @@ namespace ares
     {
     friend class ExpressionPool;
     friend class ExpressionPoolTest;
-    Constant(const char* name,cnst_const_sptr* _t):Term(name,CONST),_this(_t){}
+    Constant(ushort name,cnst_const_sptr* _t):Term(name,CONST),_this(_t){}
     cnst_const_sptr* _this = nullptr;
     public:
         /**
@@ -18,18 +18,18 @@ namespace ares
          * The Memory pool will free the malloc'd memory.
          */
         ~Constant(){ }
-        void operator delete(void* p){}
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vStack) const {
+        void operator delete(void*){}
+        virtual const cnst_term_sptr operator ()(const Substitution &,VarSet&) const {
             return *_this;
         }
         virtual bool is_ground() const {
             return true;
         }
         virtual std::string to_string() const {
-            return std::string(name);
+            return Namer::name(name);
         }
         virtual std::size_t hash() const {
-            return nameHasher(name);
+            return std::hash<ushort>()(name);
         }
     };
     

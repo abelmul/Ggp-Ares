@@ -35,18 +35,18 @@ namespace ares
         Substitution(){}
         static Substitution emptySub;
 
-        virtual bool bind(cnst_var_sptr&,const cnst_term_sptr& t);
+        virtual bool bind(const cnst_var_sptr&,const cnst_term_sptr& t);
 
         //To get the immediate mapping, without traversing the chain.
-        virtual const cnst_term_sptr get(cnst_var_sptr&) const ;
+        virtual const cnst_term_sptr get(const cnst_var_sptr&) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        virtual const cnst_term_sptr operator[]  (cnst_var_sptr&) const ;
+        virtual const cnst_term_sptr operator[]  (const cnst_var_sptr&) const ;
 
         virtual bool isRenaming() const { return false;}
         /**
          * Check if this variable is bound
          */ 
-        virtual bool isBound(cnst_var_sptr&) const;
+        virtual bool isBound(const cnst_var_sptr&) const;
         /**
          * Compose this with sub.But this is shallow composition nd need to traverse "chain"
          * to get bound value.

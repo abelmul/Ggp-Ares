@@ -32,7 +32,7 @@ namespace ares
              * Same as _Body _Body(const_vec_iterator& begin, const_vec_iterator& end) 
              * but with no arity check for zero.
              */
-            _Body(const_vec_iterator& begin, const_vec_iterator& end,bool no_arity):_Body(){
+            _Body(const_vec_iterator& begin, const_vec_iterator& end,bool):_Body(){
                 container->insert(container->begin(), begin, end);
             }
             void push_back(std::shared_ptr<T> t){
@@ -81,7 +81,7 @@ namespace ares
                 }
             }
             
-            void* operator new(std::size_t s){
+            void* operator new(std::size_t){
                 return mempool->allocate(body_pool_t);
             }
 

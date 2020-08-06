@@ -19,7 +19,7 @@ namespace ares
     friend class ExpressionPoolTest;
 
     template<class T>
-        friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
+        friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet);
     
     private:
         Function(const Function&) = delete;
@@ -28,12 +28,12 @@ namespace ares
         Function& operator = (const Function&) = delete;
 
         //create an initialized function
-        Function(const char* name,const Body* _b)
+        Function(ushort name,const Body* _b)
         :structured_term(name,true,_b,FN)
         {
         }
 
-        Function(const char* name,bool p, const Body* _b)
+        Function(ushort name,bool, const Body* _b)
         :Function(name, _b)
         {}
         /**
@@ -50,7 +50,6 @@ namespace ares
              * when a structured_term is reused you won't mistakenely
              * use the prev value when its allocated again, it will segfault.
              */
-            name = nullptr;
             if(_body)
                 delete _body;
             _body = nullptr;

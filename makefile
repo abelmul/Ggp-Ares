@@ -21,9 +21,9 @@ STRATEGY_IDIR = $(IDIR)/$(STRATEGY_DIR)
 GAME_IDIR = $(IDIR)/$(GAME)
 
 OBJS_DIR = ../objs
-
+#-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
-FLAGS = -Wall -std=c++17 -I$(IDIR) 
+FLAGS = -Wall -std=c++17 -I$(IDIR)
 LIBS =  -lboost_regex -lboost_thread -lpthread
 ifdef DEBUG_ARES
 FLAGS+= -ggdb

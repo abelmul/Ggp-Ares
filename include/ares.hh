@@ -8,6 +8,7 @@
 #include "utils/game/game.hh"
 #include "utils/utils/cfg.hh"
 #include "utils/memory/memoryPool.hh"
+#include "utils/memory/namer.hh"
 #include <thread>
 #include <chrono> 
 #include <fstream>  

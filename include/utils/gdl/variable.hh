@@ -15,17 +15,17 @@ namespace ares
         /**
          * Only ExpressionPool could create terms, to ensure only one instance exists 
          */
-        Variable(const char* name,cnst_var_sptr* _t):Term(name,VAR),_this(_t)
+        Variable(ushort name,cnst_var_sptr* _t):Term(name,VAR),_this(_t)
         {
         }
-        cnst_var_sptr* _this = nullptr;
     public:
+        cnst_var_sptr* _this = nullptr;
         /**
          * Deleting a variable does nothing.
          * The Memory pool will free the malloc'd memory.
          */
         ~Variable(){}
-        void operator delete(void* p){}
+        void operator delete(void*){}
         /**
          * Apply the Substitution sub on this variable, creating an instance.
          * This is done by traversing the "chain" present within the substitution,
@@ -50,11 +50,11 @@ namespace ares
         }
 
         virtual std::size_t hash() const{
-            return nameHasher(name);
+            return std::hash<ushort>()(name);
         }
 
         virtual std::string to_string() const {
-            return std::string(name);
+            return Namer::vname(name);
         }
     };
     

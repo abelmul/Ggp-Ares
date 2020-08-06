@@ -27,13 +27,13 @@ namespace ares
     class State : public KnowledgeBase
     {
     private:
-        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher,StrEq> state;
+        std::unordered_map<ushort, UniqueClauseVec*> state;
         
     public:
         State(){
 
         }
-        virtual const UniqueClauseVec* operator [](const char* name) const {
+        virtual const UniqueClauseVec* operator [](ushort name) const {
             const UniqueClauseVec* v = nullptr;
             try
             {
@@ -43,16 +43,16 @@ namespace ares
             
             return v;
         }
-        virtual void add(const char* name, Clause* c){
+        virtual void add(ushort name, Clause* c){
             std::lock_guard<SpinLock> lk(slock);
             if( state.find(name) == state.end() )
-                state[strdup(name)] = new UniqueClauseVec();
+                state[name] = new UniqueClauseVec();
             
             state[name]->push_back(c);
         }
-        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher>::const_iterator begin()const
+        std::unordered_map<ushort, UniqueClauseVec*>::const_iterator begin()const
         { return state.cbegin();}
-        std::unordered_map<const char *, UniqueClauseVec*, CharpHasher>::const_iterator end()const
+        std::unordered_map<ushort, UniqueClauseVec*>::const_iterator end()const
         { return state.cend();}
         
         State& operator +=(const State& s){
@@ -62,7 +62,6 @@ namespace ares
         virtual ~State(){
             for (auto &&i : state)
             {
-                delete i.first;
                 for (auto &&c : *i.second)
                     delete c;
                 

@@ -19,7 +19,7 @@ namespace ares
     friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
     private:
-        Literal(const char* n,bool p,const Body* b)
+        Literal(ushort n,bool p,const Body* b)
         :structured_term(n,p,b,LIT)
         {
         }
@@ -31,7 +31,6 @@ namespace ares
         void operator delete(void* p);
         
         virtual ~Literal(){
-            name = nullptr;
             if( _body )
                 delete _body;
             _body = nullptr;

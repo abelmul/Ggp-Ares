@@ -11,7 +11,7 @@
 #include "utils/utils/hashing.hh"
 #include "utils/memory/memoryPool.hh"
 #include "utils/utils/cfg.hh"
-
+#include "utils/memory/namer.hh"
 namespace ares
 {
 
@@ -28,7 +28,7 @@ namespace ares
     friend class ExpressionPool;
     
     protected:
-        const char* name;
+        ushort name;
         /*_this is a reference to the shared_ptr in the expression pool.
           Used to quickly reset/delete it in the expression pool.*/
         // cnst_term_sptr* _this = nullptr;
@@ -38,8 +38,8 @@ namespace ares
         bool ground;    
         Type type;        
 
-        Term(const char* n, Type t):name(n),type(t){}
-        virtual ~Term(){name =nullptr;}
+        Term(ushort n, Type t):name(n),type(t){}
+        virtual ~Term(){}
 
     public:
         static CharpHasher nameHasher;  
@@ -76,7 +76,7 @@ namespace ares
         };
 
 
-        const char* get_name() const {return name;}
+        ushort get_name() const {return name;}
         Type get_type() const {return type;}
             
         virtual std::string to_string() const = 0;
@@ -105,7 +105,7 @@ namespace ares
         const Body& body;
 
     public:
-        structured_term(const char* n, bool p,const Body* b,Type t)
+        structured_term(ushort n, bool p,const Body* b,Type t)
         :Term(n,t),positive(p),_body(b),body(std::ref(*_body))
         {
         }
@@ -134,7 +134,7 @@ namespace ares
         virtual uint getArity() const {return body.size();}
 
         virtual std::size_t hash() const {
-            std::size_t nHash = Term::nameHasher(name);
+            std::size_t nHash = std::hash<ushort>()(name);
             for (const cnst_term_sptr& t : body)
                 hash_combine(nHash,t.get());
             
@@ -149,7 +149,7 @@ namespace ares
         virtual std::string to_string() const {
             std::string s("(");
             if(not positive) s.append("not ( ");
-            s.append(name);
+            s.append(Namer::name(name));
             for (auto &t : body){
                 s.append(" " + t->to_string());
             }

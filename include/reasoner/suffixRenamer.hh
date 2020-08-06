@@ -15,13 +15,13 @@ namespace ares
     {
     private:
         static ExpressionPool* pool;
-        uint suffix = 0;                    //Save it for the current renaming
+        ushort suffix = 1;                    //Save it for the current renaming
 
     public:
         SuffixRenamer(){ }
-        SuffixRenamer(const SuffixRenamer& sr){ suffix=sr.suffix;}
+        SuffixRenamer(const SuffixRenamer& sr):Substitution(){ suffix=sr.suffix;}
         void setSuffix(uint suff ) { suffix = suff;}
-        uint getNxtSuffix() { return suffix+1;}
+        ushort getNxtSuffix() { return suffix+1;}
         static void setPool(ExpressionPool* p) {pool = p;}
         /**
          * Protect against accidental copying, pass by value, ...
@@ -32,18 +32,18 @@ namespace ares
 
         static Substitution emptySub;
 
-        virtual bool bind(cnst_var_sptr&,const cnst_term_sptr& t){return true;}
+        virtual bool bind(const cnst_var_sptr&,const cnst_term_sptr&){return true;}
 
         //To get the immediate mapping, without traversing the chain.
-        virtual const cnst_term_sptr get(cnst_var_sptr&) const ;
+        virtual const cnst_term_sptr get(const cnst_var_sptr&) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        virtual const cnst_term_sptr operator[]  (cnst_var_sptr& x) const{ return get(x);} 
+        virtual const cnst_term_sptr operator[]  (const cnst_var_sptr& x) const{ return get(x);} 
 
         virtual bool isRenaming() const { return true;}
         /**
          * Check if this variable is bound
          */ 
-        virtual bool isBound(cnst_var_sptr&) const {return true;}
+        virtual bool isBound(const cnst_var_sptr&) const {return true;}
         
         virtual ~SuffixRenamer(){}
     };

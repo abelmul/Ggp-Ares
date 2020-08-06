@@ -39,7 +39,7 @@ namespace ares
 
     struct PoolKey
     {
-        const char* name=nullptr;
+        ushort name;
         const Body* body=nullptr;
         bool p = true;
         structured_term* _this;

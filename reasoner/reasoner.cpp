@@ -34,9 +34,9 @@ namespace ares
             const cnst_lit_sptr& l_init = *(cnst_lit_sptr*)&l;                //Instantiate
             if( not l_init) return;
             //build the 'true' relation
-            PoolKey key{"true", new Body(l_init->getBody().begin(),l_init->getBody().end() ), true,nullptr};
+            PoolKey key{Namer::TRUE, new Body(l_init->getBody().begin(),l_init->getBody().end() ), true,nullptr};
             const auto& true_ = expPool.getLiteral(key);
-            init.add("true", new Clause(true_, new ClauseBody(0) ));      //This is thread safe
+            init.add(Namer::TRUE, new Clause(true_, new ClauseBody(0) ));      //This is thread safe
         };
 
         query(INIT_GOAL,nullptr, cb, false);
@@ -52,9 +52,9 @@ namespace ares
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
-            key = PoolKey{"does", body,true,nullptr};
+            key = PoolKey{Namer::DOES, body,true,nullptr};
             auto l = expPool.getLiteral(key);
-            context->add("does", new Clause(l,new ClauseBody(0)));           //This is thread safe
+            context->add(Namer::DOES, new Clause(l,new ClauseBody(0)));           //This is thread safe
         }
         auto* s =new State();
         NxtCallBack cb = NxtCallBack(this,  s);
@@ -90,9 +90,6 @@ namespace ares
             /**
              * Template for (legal some_role ?x) and (goal some_role ?x)
              */
-            const char* legal = "legal";
-            const char* goal = "goal";
-
             auto& template_body_legal = LEGAL_GOAL->front()->getBody();
             auto& template_body_goal = GOAL_GOAL->front()->getBody();
 
@@ -101,8 +98,8 @@ namespace ares
             Body* body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
 
 
-            PoolKey key_legal{legal, body_legal, true,nullptr};
-            PoolKey key_goal{goal, body_goal, true,nullptr};
+            PoolKey key_legal{Namer::LEGAL, body_legal, true,nullptr};
+            PoolKey key_goal{Namer::GOAL, body_goal, true,nullptr};
 
 
             for (auto &&r : roles)
@@ -113,7 +110,6 @@ namespace ares
                 roleLegalMap[r->get_name()] = legal_l;
                 body_legal = new Body(template_body_legal.begin(), template_body_legal.end());
                 key_legal.body = body_legal;
-                key_legal.name = legal;
                 
                 //Init goal query for role
                 (*body_goal)[0] = r;
@@ -121,7 +117,6 @@ namespace ares
                 roleGoalMap[r->get_name()] = goal_l;
                 body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
                 key_goal.body = body_goal;
-                key_goal.name = goal;
             }
             
         }

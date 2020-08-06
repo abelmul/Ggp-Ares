@@ -2,7 +2,7 @@
 namespace ares
 {
     bool Unifier::unifyPredicate(const Literal& l1, const Literal& l2, Substitution& sub){
-        bool dtName = strcasecmp(l1.get_name(),l2.get_name()) != 0;
+        bool dtName = l1.get_name() != l2.get_name();
         bool dtSign = ( (bool) l1 ) ^ (bool) l2;
         bool dtArity = (l1.getArity() != l2.getArity() );
         if( dtName || dtSign || dtArity) 
@@ -16,11 +16,11 @@ namespace ares
         return true;   
     }
 
-    bool Unifier::unifyTerm(cnst_term_sptr s, cnst_term_sptr t,Substitution& sub){
+    bool Unifier::unifyTerm(const cnst_term_sptr& s, const cnst_term_sptr& t,Substitution& sub){
         if(s == t)
             return true;
         if( is_var(s) ){
-            cnst_var_sptr& s_v = *(cnst_var_sptr*)&s;
+            const cnst_var_sptr& s_v = *((Variable*)s.get())->_this;
             if( sub.isBound(s_v) ) 
                 return unifyTerm(sub.get(s_v),t,sub);
             //WARNING! No occurs check!
@@ -34,7 +34,7 @@ namespace ares
          * At this point both s and t are not variables
          * So they are either a constant (0-ary function) or an n-ary function n>0
          */
-        if( strcasecmp(s->get_name() , t->get_name()) !=0 ) return false;//Symbol clash
+        if( s->get_name() != t->get_name() ) return false;//Symbol clash
         if( is_const(s) ) return true; 
         //They both have the same name therefore they both must be functions of the same arity
         Function* sf = ((Function*) s.get());

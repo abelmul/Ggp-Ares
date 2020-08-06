@@ -94,8 +94,7 @@ namespace ares
         bool proveDistinct(Clause& goal);
         template <class T>
         inline bool contextual(const Query<T>& q, const cnst_lit_sptr& g) const{
-            bool c = ( ( strcasecmp( g->get_name(), "does") == 0 ) or (strcasecmp( g->get_name(), "true") == 0) ) ;
-            return ( c and q.context );
+            return q.context and (  g->get_name() == Namer::DOES  or  g->get_name() == Namer::TRUE) ;
         }
         static Prover* _prover;
         static SpinLock slock;
@@ -141,7 +140,7 @@ namespace ares
         }
 
         const cnst_lit_sptr& g = (*query.goal).front();
-        if( strcasecmp( g->get_name(), "distinct") == 0 ){
+        if(  g->get_name() == Namer::DISTINCT ){
             bool ok = proveDistinct(*query.goal);    
             if( !ok ) return;          
             //Has Modified query by doing query.goal.pop_front()

@@ -17,7 +17,7 @@ namespace ares
         Unifier(/* args */){};
     public:
         static bool unifyPredicate(const Literal& l1,const Literal& l2,Substitution& sub);
-        static bool unifyTerm(cnst_term_sptr t1,cnst_term_sptr t2,Substitution& sub);
+        static bool unifyTerm(const cnst_term_sptr& t1,const cnst_term_sptr& t2,Substitution& sub);
         ~Unifier(){}
     };
 } // namespace ares

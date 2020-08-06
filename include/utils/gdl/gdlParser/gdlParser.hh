@@ -2,6 +2,7 @@
 #define GDL_PARSER_HH
 #include "utils/memory/expressionPool.hh"
 #include "utils/gdl/gdlParser/transformer.hh"
+#include  "utils/memory/namer.hh"
 #include <iostream>
 #include <fstream>
 #include <boost/regex.hpp>
