@@ -86,9 +86,9 @@ int main(int argc, char const *argv[])
     auto end = c.now();
     auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
     std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
-    // std::cout << "Total time in Expression Pool : " << ares.exprpool->time_spent <<" microseconds\n";
-    // std::cout << "Ratio of Expression Pool / total time : " << ares.exprpool->time_spent/dur.count() <<"\n";
-    // ares.mempool->printStat();
+    std::cout << "Total time in Expression Pool : " << ares.exprpool->time_spent <<" microseconds\n";
+    std::cout << "Ratio of Expression Pool / total time : " << ares.exprpool->time_spent/dur.count() <<"\n";
+    ares.mempool->printStat();
     delete kb;
     sleep(3);
     // std::cout <<cfg.proverThreads <<" threads." <<"\n";

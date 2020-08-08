@@ -65,6 +65,8 @@ namespace ares
     class MemoryPool
     {
     private:
+        std::unordered_map<uint, std::pair<ulong,ulong>> statistics;
+        std::unordered_map<uint, std::pair<ulong,ulong>> statisticsCont;
         inline void* allocate(std::vector<void *>& pool){
             void * el = pool.back();
             pool.pop_back();
@@ -72,6 +74,11 @@ namespace ares
         }
 
     public:
+        void printStat();
+        /**
+         * TODO: CHECK USAGE STATISICS OF THE OBJECTS IN THE POOL TO ACTUALLY DETERMINE
+         * THE OPTIMAL POOL SIZE FOR EACH OF THEM.
+         */
         MemoryPool(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
         void init_pools(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
 
@@ -176,6 +183,7 @@ namespace ares
         template<class T>
         void deallocate(_Body<T>* _body){
             std::lock_guard<SpinLock> lk(slock[body_pool_t]);
+            statistics[body_pool_t].first--;
             body_pool.push_back(_body);
         }
 
