@@ -8,6 +8,7 @@
 #include <iostream>
 #include <mutex>
 #include "utils/threading/locks.hh"
+
 namespace ares
 {
     template<class T>
@@ -21,6 +22,10 @@ namespace ares
     class Literal;
     class Clause;
 
+
+    /**
+     * Typedef shared_ptr for the different managed objects.
+     */ 
     typedef _Body<const Term> Body;
     typedef _Body<const Literal> ClauseBody;
 
@@ -41,6 +46,7 @@ namespace ares
     typedef std::weak_ptr<Function>         fn_wkptr;
     typedef std::weak_ptr<Literal>          lit_wkptr;
 
+    /**************************************************/
 
     /**
      * Containers of shared_ptrs of terms and literals 
@@ -54,6 +60,8 @@ namespace ares
     typedef u_char arity_t;
     typedef std::unordered_map<arity_t, std::pair<uint,std::vector<void*>>> arity_pool_map;
 
+    /**************************************************/
+
     enum  pool_type 
     {
         sterm_pool_t=0, 
@@ -62,6 +70,9 @@ namespace ares
         container_pool_t
     };
     
+    /**
+     * A pool of structured_terms and clasuses.
+     */
     class MemoryPool
     {
     private:
@@ -108,24 +119,7 @@ namespace ares
                 }
             }
         }
-        /**
-         * Register names, and assign unique nums to them.
-         */
-        static inline ushort registerVar(std::string s){
-            static ushort id=0;
-            varNameNum[s] = id;
-            varNumName[id] = s;
-            return id++;
-        }
-
-        static inline ushort registerName(std::string s){
-            static ushort id=0;
-            nameNum[s] = id;
-            numName[id] = s;
-            return id++;
-        }
-        static inline std::string vname(ushort id){ return varNumName.at(id); }
-        static inline std::string name(ushort id){ return numName.at(id); }
+        
         /**
          * @param type could be sterm_pool_t,clause_pool_t and 
          * @returns a structured_term from the free function pool.
@@ -246,12 +240,19 @@ namespace ares
         arity_pool_map container_pool;  //for body of Literals, Fns and Clauses
 
         std::vector<std::vector<void*>*> POOLS;
+    };
 
-        static std::unordered_map<ushort, std::string> varNumName;
-        static std::unordered_map<std::string, ushort> varNameNum;
-
-        static std::unordered_map<ushort, std::string> numName;
-        static std::unordered_map<std::string, ushort> nameNum;
+    /**
+     * TODO: write an allocator for the pool. This can be used with stl-containers and
+     * shared_ptr.
+     */ 
+    class Allocator
+    {
+    private:
+        /* data */
+    public:
+        Allocator(/* args */) {}
+        ~Allocator() {}
     };
 } // namespace ares
 

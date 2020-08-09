@@ -5,13 +5,12 @@
 #include "utils/gdl/clause.hh"
 #include <condition_variable>
 #include "utils/game/match.hh"
-#include "utils/threading/threadPool.hh"
 #include "utils/utils/exceptions.hh"
 #include "utils/gdl/gdlParser/gdlParser.hh"
 #include "utils/memory/memCache.hh"
 #include "reasoner/unifier.hh"
 #include "utils/utils/cfg.hh"
-#include "utils/threading/loadBalancer.hh"
+#include "utils/threading/threading.hh"
 
 namespace ares
 { 

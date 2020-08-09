@@ -7,10 +7,11 @@ namespace ares
 {
 
     const lit_container* MemoryPool::EMPTY_CONTAINER  = new lit_container();
-    MemCache* MemoryPool::memCache = new MemCache();
+    MemCache* MemoryPool::memCache = nullptr;
 
     MemoryPool::MemoryPool(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arites){
         //Just for ease of access.
+        memCache  = new MemCache();
         pool_element_size[sterm_pool_t]  = sizeof(structured_term);
         pool_element_size[clause_pool_t] = sizeof(Clause);
         pool_element_size[body_pool_t]   = sizeof(Body);
@@ -30,7 +31,7 @@ namespace ares
                     
         for (auto&& it: container_pool)
             for (void* vp : it.second.second)
-                free(vp);
+                delete ((term_container*)vp);
         // delete EMPTY_CONTAINER;
     }
     void MemoryPool::init_pools(

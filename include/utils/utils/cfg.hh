@@ -26,7 +26,8 @@ namespace ares
             random             = pt.get<bool>("random");
             simulaions        = pt.get<uint>("simulaions");
             steps        = pt.get<uint>("steps");
-            deletionPeriod    = pt.get<uint>("deletionPeriod");
+            deletionPeriodFn    = pt.get<uint>("deletionPeriodFn");
+            deletionPeriodLit    = pt.get<uint>("deletionPeriodLit");
             deletionQueueSize = pt.get<uint>("deletionQueueSize");
             // jobQueue          = pt.get<uint>("jobQueue");
             if( not pt.get<bool>("file") ) return;
@@ -41,19 +42,21 @@ namespace ares
             // std::string s = boost::format().str();
             auto pbf = boost::format("%|=20| : %|-5|\n") % "proverThreads" % proverThreads;
             auto dqf = boost::format("%|=20| : %|-5|\n") % "deletionQueueSize" % deletionQueueSize;
-            auto dpf = boost::format("%|=20| : %|-5|\n") % "deletionPeriod" % deletionPeriod;
+            auto dpf = boost::format("%|=20| : %|-5|\n") % "deletionPeriodFn" % deletionPeriodFn;
+            auto dpl = boost::format("%|=20| : %|-5|\n") % "deletionPeriodLit" % deletionPeriodLit;
             auto gf = boost::format("%|=20| : %|-5|\n") % "gdl" % gdlFile;
             auto sf = boost::format("%|=20| : %|-5|\n") % "simulaions" % simulaions;
             auto stf = boost::format("%|=20| : %|-5|\n") % "steps" % steps;
             auto df = boost::format("%|=20| : %|-5|\n") % "debug" % debug;
             auto rf = boost::format("%|=20| : %|-5|\n") % "random   " % random ;
-            return  pbf.str() + dqf.str() + dpf.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str();
+            return  pbf.str() + dqf.str() + dpf.str() + dpl.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str();
         }
         std::string gdl;
         std::string gdlFile;
         uint parserThreads;
         uint proverThreads;
-        uint deletionPeriod;
+        uint deletionPeriodFn;
+        uint deletionPeriodLit;
         uint deletionQueueSize;
         uint stTerms;
         uint clauses;

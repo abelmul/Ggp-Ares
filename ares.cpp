@@ -9,8 +9,8 @@ int main(int argc, char const *argv[])
     cfg = Cfg("./ares.cfg.json");
 
     //Create the memory pool
-    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,8192),make_pair(2,8192),make_pair(3,8192),make_pair(4,8192),make_pair(5,16384),make_pair(6,8192),make_pair(7,8192),make_pair(8,8192),make_pair(9,512),make_pair(10,8192),make_pair(11,512),make_pair(12,256)};
-    Ares ares(new MemoryPool(16384,65536,arities));
+    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)};
+    Ares ares(new MemoryPool(131072,262144,arities));
 
     //Create the parser
     GdlParser* p = GdlParser::getParser(cfg.parserThreads,ares.memCache);
@@ -30,13 +30,13 @@ int main(int argc, char const *argv[])
     //Get the singleton prover
     Prover* prover(Prover::getProver(kb));
     
-    std::cout << "------Knoweledge base-------\n\n";
-    for(auto &&i : *kb){
-        std::cout << " Key : " << i.first << std::endl;
-        for(auto &&j : *i.second)
-            std::cout << j->to_string() << std::endl;
-    }
-    std::cout << "------Knoweledge base-------\n\n";
+    // std::cout << "------Knoweledge base-------\n\n";
+    // for(auto &&i : *kb){
+    //     std::cout << " Key : " << i.first << std::endl;
+    //     for(auto &&j : *i.second)
+    //         std::cout << j->to_string() << std::endl;
+    // }
+    // std::cout << "------Knoweledge base-------\n\n";
 
     //Create a reasoner over the game
     Reasoner* _reasoner(new Reasoner(*kb, *p, *prover,*ares.memCache));

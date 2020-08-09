@@ -5,9 +5,10 @@
     "debug":false,
     "file":true,
     "random":true,
-    "deletionPeriod":30,
-    "deletionQueueSize":16384,
+    "deletionPeriodFn":20,
+    "deletionPeriodLit":30,
+    "deletionQueueSize":65536,
     "jobQueue":24,
     "simulaions":1,
-    "steps":10
+    "steps":300
 }

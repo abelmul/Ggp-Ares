@@ -79,16 +79,16 @@ namespace ares
                 {
                     {
                         std::lock_guard<std::mutex> lk(mOutstdWork);
-                        if( noJob() ){
-                            if( executed == 0) 
-                                return 0;
-    
-                            outstanding_work -=executed;
+                        if( executed ){
                             end->next = _front;
-                            end = _back;
+                            end = _back;   
+                        }
+                        if( noJob() ){
+                            outstanding_work -=executed;
                             return executed;
                         }
-                        grow(_front,  _back, _index);
+
+                        detach(_front,  _back, _index);
                     }
                     //traverse buckets starting from front
                     Node* n = _front;
@@ -138,7 +138,7 @@ namespace ares
              * shift back one node growing as needed but save front, back, and index in 
              * @param _front, @param _back, and @param _index;
              */
-            inline void grow(Node*& _front, Node*&_back, byte& _index){
+            inline void detach(Node*& _front, Node*&_back, byte& _index){
                 _front = front;
                 _back  = back;
                 _index = index;

@@ -24,7 +24,7 @@ OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
 FLAGS = -Wall -std=c++17 -I$(IDIR)
-LIBS =  -lboost_regex -lboost_thread -lpthread -ltbb
+LIBS =  -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else

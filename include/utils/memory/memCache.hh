@@ -8,7 +8,10 @@
 #include "utils/memory/queue.hh"
 #include "utils/memory/namer.hh"
 #include <tbb/concurrent_hash_map.h>
+#include <condition_variable>
 #include <thread>
+#include <boost/thread/thread.hpp>
+
 
 namespace ares
 {
@@ -29,7 +32,10 @@ namespace ares
         typedef tbb::concurrent_hash_map<ushort, FnPool> NameFnMap;
         typedef tbb::concurrent_hash_map<ushort, LitPool> NameLitMap;
 
+        typedef std::chrono::seconds seconds;
+
         friend class MemoryPool;
+
     public:
 
         /**
@@ -55,8 +61,9 @@ namespace ares
         cnst_lit_sptr getLiteral(PoolKey& key);
 
         ~MemCache();
+
     private:
-        std::chrono::high_resolution_clock crono;
+
         template <class T>
         struct Deleter;
         /**
@@ -64,8 +71,9 @@ namespace ares
          * and its created by the singleton gdlParser.
          */
         MemCache(){            
-            auto poll_fn=[&]{ remove(fnQueue,nameFnPool,FN); };
-            auto poll_lit=[&]{ remove(litQueue, nameLitPool,  LIT);};
+            auto poll_fn=[&]{  remove(fnQueue,nameFnPool,FN,seconds(cfg.deletionPeriodFn)); };
+            auto poll_lit=[&]{ remove(litQueue, nameLitPool,  LIT, seconds(cfg.deletionPeriodLit));};
+            pollDone =false;
             litQueueTh = new std::thread(poll_lit);
             fnQueueTh = new std::thread(poll_fn);
         }
@@ -83,32 +91,36 @@ namespace ares
         * if the only reference that exists is within the pool.
         */
        template<class T,class TP>
-       void remove(DeletionQueue<T>& queue,TP& nameStMap,Type type){
+       void remove(DeletionQueue<T>& queue,TP& nameStMap,Type type,seconds period){
+           /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
+            auto _reset = [&](T st){
+                /* use_count could be > 1 b/c st could be reused between the time
+                * its queued for deletion and its actuall deletion. 
+                */
+                if( not st->body ) return;
+                if( type != st->get_type() ){
+                    if( type == FN ) litQueue.enqueue((const ares::Literal*)st);
+                    else if( type == LIT ) fnQueue.enqueue((const ares::Function*)st);
+                    return;
+                }
+                typename TP::accessor ac;
+                if ( not nameStMap.find(ac, st->name) )  throw BadAllocation("Tried to delete an st whose name doesnt exist in pool.");
+                typename TP::mapped_type& pool = ac->second;
+                typename TP::mapped_type::accessor pAc;
+                PoolKey key{st->name, st->body, st->positive, nullptr};
+                
+                if( not pool.find(pAc,key)) throw BadAllocation("Tried to delete an st that doesn't exist in pool");
+                if( pAc->second.use_count() > 0 ) return;
+                pool.erase(pAc);
+                delete st;
+            };
+
            while (!pollDone)
             {
-                sleep(cfg.deletionPeriod);
-                /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
-                auto _reset = [&](T st){
-                    /* use_count could be > 1 b/c st could be reused between the time
-                    * its queued for deletion and its actuall deletion. 
-                    */
-                    if( not st->body ) return;
-                    if( type != st->get_type() ){
-                        if( type == FN ) litQueue.enqueue((const ares::Literal*)st);
-                        else if( type == LIT ) fnQueue.enqueue((const ares::Function*)st);
-                        return;
-                    }
-                    typename TP::accessor ac;
-                    if ( not nameStMap.find(ac, st->name) )  throw BadAllocation("Tried to delete an st whose name doesnt exist in pool.");
-                    typename TP::mapped_type& pool = ac->second;
-                    typename TP::mapped_type::accessor pAc;
-                    PoolKey key{st->name, st->body, st->positive, nullptr};
-                    
-                    if( not pool.find(pAc,key)) throw BadAllocation("Tried to delete an st that doesn't exist in pool");
-                    if( pAc->second.use_count() > 0 ) return;
-                    pool.erase(pAc);
-                    delete st;
-                };
+                {
+                    std::unique_lock<std::mutex> lk(mRemove);
+                    cvRemove.wait_for(lk, period,[&](){ return pollDone;} );
+                }
                 queue.apply(_reset);
             }
        }
@@ -125,6 +137,9 @@ namespace ares
         DeletionQueue<const Literal*> litQueue;
 
         std::thread *litQueueTh,*fnQueueTh;
+
+        std::condition_variable cvRemove;
+        std::mutex mRemove;
         bool pollDone;
     };
 } // namespace ares

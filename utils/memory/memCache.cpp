@@ -4,27 +4,37 @@
 namespace ares
 {
     MemCache::~MemCache(){
-        pollDone = true;
+        {
+            std::unique_lock<std::mutex> lk(mRemove);
+            pollDone = true;
+        }
+        cvRemove.notify_all();
+
         litQueueTh->join();
         fnQueueTh->join();
+
         delete litQueueTh;
         delete fnQueueTh;
-
-        varPool.clear();
-        constPool.clear();
-        nameFnPool.clear();
-        nameLitPool.clear();
         
-        for( auto&& [name, varptr] : varPool)
-            free((void*)varptr.get());
-        for( auto&& [name, cnstptr] : constPool)
-            free((void*)cnstptr.get());
+        nameLitPool.clear();
+        nameFnPool.clear();
+        
+        for( auto&& [name, varptr] : varPool){
+            auto* v = varptr.get();
+            varptr.reset();
+            free((void*)v);
+        }
+        for( auto&& [name, cnstptr] : constPool){
+            auto* c = cnstptr.get();
+            cnstptr.reset();
+            free((void*)c);
+        }
     }
     cnst_var_sptr MemCache::getVar(ushort n){
         cnst_var_sptr vsptr;
         VarPool::accessor ac;
         if( varPool.insert(ac,n) ) //This thread inserted the key
-            ac->second.reset(new Variable(n));
+            ac->second.reset(new Variable(n))/* reset(new Variable(n)); */;
         
         vsptr = ac->second;
         ac.release();
