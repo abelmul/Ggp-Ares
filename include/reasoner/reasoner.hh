@@ -131,64 +131,64 @@ namespace ares
         
     };
 
-    /**
-     * Just a bunch of callbacks to store computed answer.
-     */
-    struct NxtCallBack
-    {
-        NxtCallBack(Reasoner* _t, State* s):_this(_t),newState(s){}
+    // /**
+    //  * Just a bunch of callbacks to store computed answer.
+    //  */
+    // struct NxtCallBack : public CallBack
+    // {
+    //     NxtCallBack(Reasoner* _t, State* s):_this(_t),newState(s){}
 
-        void operator()(const Substitution& ans){
-            // isCurrent()
-            VarSet vset;
-            const cnst_term_sptr& true_ = (*_this->TRUE_LITERAL)(ans,vset);      //Instantiate
-            if(true_)
-                newState->add(Namer::TRUE, new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
-        }
-        ~NxtCallBack(){
-            _this = (Reasoner*)0xbeef;
-            newState = (State*)0xbeef;
-        }
-        Reasoner* _this;
-        State* newState;
-    };
-    struct LegalCallBack
-    {
-        LegalCallBack(Reasoner* _t):_this(_t),moves(new Moves()){}
-        void operator()(const Substitution& ans){
-            // isCurrent()
-            VarSet vset;
-            const move_sptr& move = (*_this->x)(ans,vset);
-            if( move ){
-                std::lock_guard<SpinLock> lk(slk);
-                moves->push_back(move);
-            }
-        }
-        Reasoner* _this;
-        Moves* moves;
-        SpinLock slk;
-    };
-    struct TerminalCallBack
-    {
-        void operator()(const Substitution&){
-            // isCurrent()
-            terminal = true;
-        }
-        bool terminal = false;
-    };
-    struct RewardCallBack
-    {
-        RewardCallBack(Reasoner* t):_this(t){}
-        void operator()(const Substitution& ans){
-            // isCurrent()
-            VarSet vset;
-            const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
-            reward = atof(Namer::name(rewardTerm->get_name()).c_str());
-            std::cout << "Reward is : " << reward << "\n";
-        }
-        float reward;
-        Reasoner* _this;
-    };
+    //     virtual void operator()(const Substitution& ans){
+    //         // isCurrent()
+    //         VarSet vset;
+    //         const cnst_term_sptr& true_ = (*_this->TRUE_LITERAL)(ans,vset);      //Instantiate
+    //         if(true_)
+    //             newState->add(Namer::TRUE, new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
+    //     }
+    //     ~NxtCallBack(){
+    //         _this = (Reasoner*)0xbeef;
+    //         newState = (State*)0xbeef;
+    //     }
+    //     Reasoner* _this;
+    //     State* newState;
+    // };
+    // struct LegalCallBack : public CallBack
+    // {
+    //     LegalCallBack(Reasoner* _t):_this(_t),moves(new Moves()){}
+    //     virtual void operator()(const Substitution& ans){
+    //         // isCurrent()
+    //         VarSet vset;
+    //         const move_sptr& move = (*_this->x)(ans,vset);
+    //         if( move ){
+    //             std::lock_guard<SpinLock> lk(slk);
+    //             moves->push_back(move);
+    //         }
+    //     }
+    //     Reasoner* _this;
+    //     Moves* moves;
+    //     SpinLock slk;
+    // };
+    // struct TerminalCallBack : public CallBack
+    // {
+    //     virtual void operator()(const Substitution& ans){
+    //         // isCurrent()
+    //         terminal = true;
+    //     }
+    //     bool terminal = false;
+    // };
+    // struct RewardCallBack : public CallBack
+    // {
+    //     RewardCallBack(Reasoner* t):_this(t){}
+    //     virtual void operator()(const Substitution& ans){
+    //         // isCurrent()
+    //         VarSet vset;
+    //         const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
+    //         reward = atof(Namer::name(rewardTerm->get_name()).c_str());
+    //         std::cout << "Reward is : " << reward << "\n";
+    //     }
+    //     float reward;
+    //     Reasoner* _this;
+    // };
 
 } // namespace Ares
 

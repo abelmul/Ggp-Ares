@@ -17,8 +17,6 @@ namespace ares
     /**
      * TODO: Look into caching
      */
-    typedef std::function<void(std::reference_wrapper<const Substitution>)> CallBack;
-
     struct Query{
         typedef std::unique_ptr<Clause> unique_clause;
         Query(std::unique_ptr<Clause> _g,const  State* _c ,const CallBack& _cb, const bool _one,bool& d)
