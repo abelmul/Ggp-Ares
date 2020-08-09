@@ -9,6 +9,13 @@ namespace ares
     const char* Reasoner::TRUE_QUERY        = "(true ?x)";
     const char* Reasoner::TERMINAL_QUERY    = "terminal";
     
+    void Reasoner::query(const Clause* goal,const State* context,const CallBack& cb, bool one){
+        bool done = false;
+        auto* g = goal->clone();
+        g->setSubstitution(new Substitution());
+        Query query(std::unique_ptr<Clause>(g),context, std::ref(cb), one, std::ref(done));
+        prover.prove(query);
+    }
     void Reasoner::initRoles(){
         //the roles dont change once computed
         if( roles.size() > 0 ) return;
@@ -24,7 +31,7 @@ namespace ares
             }
         };
 
-        query(ROLE_GOAL, nullptr,cb , false);
+        query(ROLE_GOAL, nullptr,std::ref(cb) , false);
     }
     void Reasoner::_init(){
         //the initial state doesn't change once computed
@@ -35,11 +42,11 @@ namespace ares
             if( not l_init) return;
             //build the 'true' relation
             PoolKey key{Namer::TRUE, new Body(l_init->getBody().begin(),l_init->getBody().end() ), true,nullptr};
-            const auto& true_ = expPool.getLiteral(key);
+            const auto& true_ = memCache.getLiteral(key);
             init.add(Namer::TRUE, new Clause(true_, new ClauseBody(0) ));      //This is thread safe
         };
 
-        query(INIT_GOAL,nullptr, cb, false);
+        query(INIT_GOAL,nullptr, std::ref(cb), false);
     }
     
     State* Reasoner::getNext(const State& state,Moves& moves){
@@ -47,39 +54,43 @@ namespace ares
             throw std::runtime_error("Reasoner : Error : Reasoner::getNext called before Reasoner::getRoles!");
         
         State* context = new State();
+        std::vector<Clause*> does;
         (*context) += state;
         PoolKey key;
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
             key = PoolKey{Namer::DOES, body,true,nullptr};
-            auto l = expPool.getLiteral(key);
-            context->add(Namer::DOES, new Clause(l,new ClauseBody(0)));           //This is thread safe
+            auto l = memCache.getLiteral(key);
+            does.push_back(new Clause(l,new ClauseBody(0)));
+            context->add(Namer::DOES, does.back());           //This is thread safe
         }
-        auto* s =new State();
-        NxtCallBack cb = NxtCallBack(this,  s);
+        NxtCallBack cb = NxtCallBack(this, new State());
+        query(NEXT_GOAL, context, std::ref(cb), false);
 
-        query<NxtCallBack>(NEXT_GOAL, context, cb, false);
+        for (auto &&d : does)
+            delete d;
+        
         return cb.newState;
     }
 
     Moves* Reasoner::legalMoves(const State& state,Role& role){
         const cnst_lit_sptr& legal = roleLegalMap[role.get_name()];        //Get the legal query specific to this role 
         LegalCallBack cb(this);
-        query<LegalCallBack>(new Clause(nullptr, new ClauseBody{legal}), &state, cb, false);
+        query(new Clause(nullptr, new ClauseBody{legal}), &state, std::ref(cb), false);
         return cb.moves;
     }
     
     bool Reasoner::isTerminal(const State& state){
         TerminalCallBack cb;
-        query<TerminalCallBack>(TERMINAL_GOAL, &state, cb, true);
+        query(TERMINAL_GOAL, &state, std::ref(cb), true);
         return cb.terminal;
     }
     
     float Reasoner::getReward(Role& role, const State* state){
         cnst_lit_sptr& goal = roleGoalMap[role.get_name()];        //Get the query specific to this role
         RewardCallBack cb(this);
-        query<RewardCallBack>(new Clause(nullptr, new ClauseBody{goal}), state, cb, true);
+        query(new Clause(nullptr, new ClauseBody{goal}), state, std::ref(cb), true);
         return cb.reward;
     }
 
@@ -93,30 +104,23 @@ namespace ares
             auto& template_body_legal = LEGAL_GOAL->front()->getBody();
             auto& template_body_goal = GOAL_GOAL->front()->getBody();
 
-
-            Body* body_legal = new Body(template_body_legal.begin(), template_body_legal.end());
-            Body* body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
-
-
-            PoolKey key_legal{Namer::LEGAL, body_legal, true,nullptr};
-            PoolKey key_goal{Namer::GOAL, body_goal, true,nullptr};
+            PoolKey key_legal{Namer::LEGAL, nullptr, true,nullptr};
+            PoolKey key_goal{Namer::GOAL, nullptr, true,nullptr};
 
 
             for (auto &&r : roles)
             {
                 //Init legal query for role
-                (*body_legal)[0] = r;
-                const cnst_lit_sptr& legal_l = expPool.getLiteral(key_legal);
+                key_legal.body = new Body(template_body_legal.begin(), template_body_legal.end());
+                (*(Body*)key_legal.body)[0] = r;
+                const cnst_lit_sptr& legal_l = memCache.getLiteral(key_legal);
                 roleLegalMap[r->get_name()] = legal_l;
-                body_legal = new Body(template_body_legal.begin(), template_body_legal.end());
-                key_legal.body = body_legal;
                 
                 //Init goal query for role
-                (*body_goal)[0] = r;
-                const cnst_lit_sptr& goal_l = expPool.getLiteral(key_goal);
+                key_goal.body = new Body(template_body_goal.begin(), template_body_goal.end());;
+                (*(Body*)key_goal.body)[0] = r;
+                const cnst_lit_sptr& goal_l = memCache.getLiteral(key_goal);
                 roleGoalMap[r->get_name()] = goal_l;
-                body_goal = new Body(template_body_goal.begin(), template_body_goal.end());
-                key_goal.body = body_goal;
             }
             
         }

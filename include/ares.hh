@@ -22,10 +22,17 @@ namespace ares
     private:
         /* data */
     public:
-        Ares(/* args */){}
-        ~Ares(){}
+        Ares(MemoryPool* mem)
+        {
+            mempool = mem; 
+            memCache = mem->getCache();
+        }
+        
+        ~Ares(){
+            delete mempool;
+        }
 
-        static ExpressionPool* exprpool;
+        static MemCache* memCache;
         static MemoryPool* mempool;
     };
 } // namespace ares

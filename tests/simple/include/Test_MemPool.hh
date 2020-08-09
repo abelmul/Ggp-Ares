@@ -15,14 +15,14 @@
 namespace ares
 {
     /**
-     * Mock The ExpressionPool Class for unit testing the Memory pool.
+     * Mock The MemCache Class for unit testing the Memory pool.
      */
-    class ExpressionPool
+    class MemCache
     {
     private:
         /* data */
     public:
-        ExpressionPool(/* args */) {}
+        MemCache(/* args */) {}
         
         cnst_var_sptr getVar(const char* name ){
             return cnst_var_sptr(new Variable(name));
@@ -47,7 +47,7 @@ namespace ares
             return true;
         }
         std::vector<cnst_lit_sptr> pool;
-        ~ExpressionPool() {}
+        ~MemCache() {}
     };
 
     class Ares
@@ -57,10 +57,10 @@ namespace ares
     public:
         Ares(/* args */) {}
         ~Ares() {}
-        static ExpressionPool* exprpool;
+        static MemCache* memCache;
         static MemoryPool* mempool;
     };
-    ExpressionPool* Ares::exprpool = nullptr;
+    MemCache* Ares::memCache = nullptr;
     MemoryPool* Ares::mempool = nullptr;
         
     //Initialize static members of term
@@ -118,8 +118,8 @@ rand_pool_info createPool(){
     Body::mempool = mempool;
     ClauseBody::mempool = mempool;
     Ares::mempool = mempool;
-    ExpressionPool* exppool = new ExpressionPool();
-    Ares::exprpool = exppool;
+    MemCache* exppool = new MemCache();
+    Ares::memCache = exppool;
     return rpi;
 }
 

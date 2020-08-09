@@ -147,12 +147,12 @@ namespace ares
                  * then add to body.
                  */
                 auto& body = bodies.top().second;
-                cnst_const_sptr cnst = exprPool->getConst(Namer::registerName(token));
+                cnst_const_sptr cnst = memCache->getConst(Namer::registerName(token));
                 body->push_back(cnst);
             }
             else if( token[0] == '?' and token.size() > 1 ){
                 auto& body = bodies.top().second;
-                cnst_var_sptr var = exprPool->getVar(Namer::registerVname(token));
+                cnst_var_sptr var = memCache->getVar(Namer::registerVname(token));
                 body->push_back(var);
             }
             else if( token == "("){
@@ -184,10 +184,10 @@ namespace ares
         if( bodies.empty() ){       //Balanced parentheses
             //Its the literals body thats been popped
             key.p = p;
-            return exprPool->getLiteral(key);
+            return memCache->getLiteral(key);
         }
         //You can do further check to ensure Function and literal names are distinct! if necessary.
-        cnst_fn_sptr fn = exprPool->getFn(key);
+        cnst_fn_sptr fn = memCache->getFn(key);
         bodies.top().second->push_back(fn);
         return nullptr;
     }

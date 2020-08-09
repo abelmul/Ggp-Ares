@@ -12,7 +12,7 @@ namespace ares
 {
     template<class T>
     struct _Body;
-    class ExpressionPool;
+    class MemCache;
     class Term;
     class structured_term;
     class Constant;
@@ -65,8 +65,7 @@ namespace ares
     class MemoryPool
     {
     private:
-        std::unordered_map<uint, std::pair<ulong,ulong>> statistics;
-        std::unordered_map<uint, std::pair<ulong,ulong>> statisticsCont;
+
         inline void* allocate(std::vector<void *>& pool){
             void * el = pool.back();
             pool.pop_back();
@@ -74,14 +73,13 @@ namespace ares
         }
 
     public:
-        void printStat();
         /**
          * TODO: CHECK USAGE STATISICS OF THE OBJECTS IN THE POOL TO ACTUALLY DETERMINE
          * THE OPTIMAL POOL SIZE FOR EACH OF THEM.
          */
         MemoryPool(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
+        MemCache* getCache(){ return memCache;}
         void init_pools(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
-
         /**
          * Initializes the structured_term, Clause, Body pools.
          */
@@ -183,7 +181,6 @@ namespace ares
         template<class T>
         void deallocate(_Body<T>* _body){
             std::lock_guard<SpinLock> lk(slock[body_pool_t]);
-            statistics[body_pool_t].first--;
             body_pool.push_back(_body);
         }
 
@@ -210,20 +207,11 @@ namespace ares
             }
             return -1;
         }
-        ~MemoryPool() {
-            for (std::vector<void*>* v: POOLS)
-                for (void* vp : *v)
-                    free(vp);
-                        
-            for (auto&& it: container_pool)
-                for (void* vp : it.second.second)
-                    free(vp);
-            // delete EMPTY_CONTAINER;
-        }
+        ~MemoryPool();
         const static lit_container* EMPTY_CONTAINER;
-        static ExpressionPool* exprPool;
 
     private:
+        static MemCache* memCache;
         uint pool_element_size[3];
         uint gfactor[3] = {1,1,1};
 
@@ -240,7 +228,7 @@ namespace ares
 
         /**
          * These are basically collections of "shells" that can hold a name and a body*.
-         * The separation b/n term and body is b/c only ExpressionPool is allowed to 
+         * The separation b/n term and body is b/c only MemCache is allowed to 
          * create terms/literals but other user code can still create a PoolKey{name,body}
          * to index the expression pool. That way only one instance of a term exists.
          */

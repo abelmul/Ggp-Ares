@@ -8,14 +8,14 @@ namespace ares
 {
     /**
      * TODO: Create A pool of FunctionBodies and create a user level cache of bodies
-     * managed by ExpressionPool, maybe rename it to MemoryPool.
+     * managed by MemCache, maybe rename it to MemoryPool.
      */
 
     //This represents gdl functions
     class Function:public structured_term
     {
     
-    friend class ExpressionPool;
+    friend class MemCache;
     friend class ExpressionPoolTest;
 
     template<class T>
@@ -37,7 +37,7 @@ namespace ares
         :Function(name, _b)
         {}
         /**
-         * Only ExpressionPool could create terms, to ensure only one instance exists 
+         * Only MemCache could create terms, to ensure only one instance exists 
          */
         void* operator new(std::size_t s);
     public:
@@ -50,9 +50,9 @@ namespace ares
              * when a structured_term is reused you won't mistakenely
              * use the prev value when its allocated again, it will segfault.
              */
-            if(_body)
-                delete _body;
-            _body = nullptr;
+            if(body)
+                delete body;
+            body = nullptr;
         }
         
         /**

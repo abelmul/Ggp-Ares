@@ -20,7 +20,7 @@ namespace ares
         if(s == t)
             return true;
         if( is_var(s) ){
-            const cnst_var_sptr& s_v = *((Variable*)s.get())->_this;
+            const Variable* s_v = (Variable*)s.get();
             if( sub.isBound(s_v) ) 
                 return unifyTerm(sub.get(s_v),t,sub);
             //WARNING! No occurs check!

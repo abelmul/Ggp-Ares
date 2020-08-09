@@ -60,12 +60,12 @@ namespace ares
             return *this;
         }
         virtual ~State(){
-            for (auto &&i : state)
+            for (auto &&[name, vector] : state)
             {
-                for (auto &&c : *i.second)
+                for (auto &&c : *vector)
                     delete c;
                 
-                delete i.second;
+                delete vector;
             }
             
         }

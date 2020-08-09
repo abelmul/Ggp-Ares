@@ -21,14 +21,14 @@ namespace ares
     //Used in Substitutions to index using a variable
   
     
-    struct SpVarHasher
+    struct VarHasher
     {
-        std::size_t operator() (const cnst_var_sptr&) const;
+        std::size_t operator() (const Variable*) const;
     };
 
-    struct SpVarEqual
+    struct VarEqual
     {
-        bool operator()(const cnst_var_sptr&,const  cnst_var_sptr&) const;
+        bool operator()(const Variable*,const  Variable*) const;
     };
 
     struct ClauseHasher
@@ -47,7 +47,8 @@ namespace ares
 
     struct PoolKeyHasher
     {
-        std::size_t operator() (const PoolKey& k) const;
+        std::size_t hash (const PoolKey& k) const;
+        bool equal(const PoolKey& v1, const PoolKey& v2) const;
     };
     
     struct PoolKeyEqual

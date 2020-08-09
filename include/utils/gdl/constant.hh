@@ -8,10 +8,9 @@ namespace ares
 {
     class Constant: public Term
     {
-    friend class ExpressionPool;
+    friend class MemCache;
     friend class ExpressionPoolTest;
-    Constant(ushort name,cnst_const_sptr* _t):Term(name,CONST),_this(_t){}
-    cnst_const_sptr* _this = nullptr;
+    Constant(ushort name):Term(name,CONST){}
     public:
         /**
          * Deleting a constant does nothing.
@@ -20,7 +19,7 @@ namespace ares
         ~Constant(){ }
         void operator delete(void*){}
         virtual const cnst_term_sptr operator ()(const Substitution &,VarSet&) const {
-            return *_this;
+            return cnst_term_sptr(this,[](const Term*){});
         }
         virtual bool is_ground() const {
             return true;

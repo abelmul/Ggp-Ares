@@ -55,6 +55,9 @@ namespace ares
         uint proverThreads;
         uint deletionPeriod;
         uint deletionQueueSize;
+        uint stTerms;
+        uint clauses;
+        std::vector<std::pair<uint,uint>> arities;
         // uint jobQueue;
         uint simulaions;
         uint steps;

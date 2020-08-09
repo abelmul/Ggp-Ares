@@ -7,43 +7,44 @@
 
 namespace ares
 {
-    class ExpressionPool;
+    class MemCache;
     /**
      * Renames variables by adding a unique suffix to them.
      */
     class SuffixRenamer : public Substitution
     {
     private:
-        static ExpressionPool* pool;
+        static MemCache* pool;
         ushort suffix = 1;                    //Save it for the current renaming
 
     public:
         SuffixRenamer(){ }
         SuffixRenamer(const SuffixRenamer& sr):Substitution(){ suffix=sr.suffix;}
+        SuffixRenamer(const SuffixRenamer&& s) { suffix = s.suffix;}
+
         void setSuffix(uint suff ) { suffix = suff;}
-        ushort getNxtSuffix() { return suffix+1;}
-        static void setPool(ExpressionPool* p) {pool = p;}
+        ushort getNxtSuffix() const{ return suffix+1;}
+        static void setPool(MemCache* p) {pool = p;}
         /**
-         * Protect against accidental copying, pass by value, ...
+         * delete assignments.
          */
-        SuffixRenamer(const SuffixRenamer&& s) = delete;
         SuffixRenamer& operator = (const SuffixRenamer& other) = delete;
         SuffixRenamer& operator = (const SuffixRenamer&& other) = delete;
 
         static Substitution emptySub;
 
-        virtual bool bind(const cnst_var_sptr&,const cnst_term_sptr&){return true;}
+        virtual bool bind(const Variable*,const cnst_term_sptr&){return true;}
 
         //To get the immediate mapping, without traversing the chain.
-        virtual const cnst_term_sptr get(const cnst_var_sptr&) const ;
+        virtual const cnst_term_sptr get(const Variable*) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        virtual const cnst_term_sptr operator[]  (const cnst_var_sptr& x) const{ return get(x);} 
+        virtual const cnst_term_sptr operator[]  (const Variable* x) const{ return get(x);} 
 
         virtual bool isRenaming() const { return true;}
         /**
          * Check if this variable is bound
          */ 
-        virtual bool isBound(const cnst_var_sptr&) const {return true;}
+        virtual bool isBound(const Variable*) const {return true;}
         
         virtual ~SuffixRenamer(){}
     };

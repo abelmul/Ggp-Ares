@@ -67,7 +67,7 @@ void Test_Function_Allocation(){
         for (size_t j = 1; j <= rpi.term_num; j++)
         {
             PoolKey key{"test_fn", new Body(0)};
-            cnst_fn_sptr fn = Ares::exprpool->getFn(key);
+            cnst_fn_sptr fn = Ares::memCache->getFn(key);
             assert_true( strcmp("test_fn", fn->get_name()) == 0);
             assert_true( fn->getArity() == 0);
             assert_true( fn->get_type() == FN);
@@ -93,7 +93,7 @@ void Test_Function_Allocation(){
         for (size_t j = 1; j <= rpi.term_num; j++)
         {
             PoolKey key{"test_fn", new Body(0)};
-            cnst_fn_sptr fn = Ares::exprpool->getFn(key);
+            cnst_fn_sptr fn = Ares::memCache->getFn(key);
             assert_true( strcmp("test_fn", fn->get_name()) == 0);
             assert_true( fn->getArity() == 0);
             assert_true( fn->get_type() == FN);
@@ -143,7 +143,7 @@ void Test_Literal_Allocation(){
             for (size_t j = 1; j <= rpi.term_num; j++)
             {
                 PoolKey key{"test_lit", new Body(0)};
-                cnst_lit_sptr lit = Ares::exprpool->getLiteral(key);
+                cnst_lit_sptr lit = Ares::memCache->getLiteral(key);
                 assert_true( strcmp("test_lit", lit->get_name()) == 0);
                 assert_true( lit->getArity() == 0);
                 assert_true( lit->get_type() == LIT);
@@ -171,7 +171,7 @@ void Test_Literal_Allocation(){
             for (size_t j = 1; j <= rpi.term_num; j++)
             {
                 PoolKey key{"test_lit", new Body(0)};
-                cnst_lit_sptr lit = Ares::exprpool->getLiteral(key);                
+                cnst_lit_sptr lit = Ares::memCache->getLiteral(key);                
                 assert_true( strcmp("test_lit", lit->get_name()) == 0);
                 assert_true( lit->getArity() == 0);
                 assert_true( lit->get_type() == LIT);
@@ -315,7 +315,7 @@ void exhaust_body_pool::operator()(MemoryPool* mempool, rand_pool_info& rpi,std:
             assert_true( mempool->capacity(container_pool_t, arity.first) == (arity.second - j) );
             for (size_t k = 0; k < arity.first; k++){
                 assert_true( (*body)[k].use_count() == 0);
-                (*body)[k] = Ares::exprpool->getVar("?place_holder");
+                (*body)[k] = Ares::memCache->getVar("?place_holder");
             }
             uint amount = (rand() % arity.first);
             for (size_t k = 0; k <= amount; k++)
@@ -348,7 +348,7 @@ void allocate_more::operator()(MemoryPool* mempool){
             for (size_t j = 0; j < ar; j++)
             {
                 assert_true( (*b)[j].use_count() == 0);
-                (*b)[j] = Ares::exprpool->getVar("?place_holder");
+                (*b)[j] = Ares::memCache->getVar("?place_holder");
             }
             uint amount = (rand() % ar);
             for (size_t k = 0; k <= amount; k++)
@@ -385,7 +385,7 @@ void Test_ClauseBody_Allocation(){
             for (size_t k = 0; k < ar.first; k++){
                 assert_true( (*body)[k].use_count() == 0);
                 PoolKey key {"test_lit",new Body(0), true};
-                cnst_lit_sptr l = Ares::exprpool->getLiteral(key,true);
+                cnst_lit_sptr l = Ares::memCache->getLiteral(key,true);
                 sps.push_back(l);
                 (*body)[k] = l;
             }

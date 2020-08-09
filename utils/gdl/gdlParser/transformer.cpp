@@ -73,7 +73,7 @@ namespace ares
                 for (size_t j = 0; j < streams.size(); j++){
                     auto* s = streams[j];
                     s->setNext(next_exp+1);
-                    auto* clone = new Clause(c->head, new ClauseBody(c->body.begin(), c->body.end(),true));
+                    auto* clone = new Clause(c->head, new ClauseBody(c->body->begin(), c->body->end(),true));
                     boost::asio::post(*parser->pool, [this,clone,s](){
                          this->applyTransformations(clone, unique_ptr<TokenStream>(s));
                     });
@@ -137,12 +137,9 @@ namespace ares
             size_t n = distance(it , stream.getNext() ) + distance(stream.getNext() , stream.end()+7);
             vector<string>* data = new vector<string>();
             data->reserve(n);
-            data->push_back("(");
-            data->push_back("not");
+            data->insert(data->end(), {"(","not"});
             data->insert(data->end(), it, a_end+1);
-            data->push_back(")");
-            data->push_back("(");
-            data->push_back("not");
+            data->insert(data->end(), {")","(","not"});
             data->insert(data->end(), b, b_end+1);
             data->push_back(")");
             data->insert(data->end(), stream.getNext(),stream.end()+1);

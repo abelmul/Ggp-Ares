@@ -109,7 +109,6 @@ namespace ares
             thread->join(); 
             delete thread; 
         }
-        
         private:
             cb_t cb;        //Is called evertime this worker executes a job.
             bool finished;

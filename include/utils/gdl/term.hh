@@ -19,13 +19,13 @@ namespace ares
      * TODO: Pre-Compute Ground.
      */
     enum Type {VAR,CONST,FN,LIT};
-    class ExpressionPool;
-    typedef std::unordered_set<cnst_var_sptr,SpVarHasher,SpVarEqual> VarSet;
+    class MemCache;
+    typedef std::unordered_set<const Variable*,VarHasher,VarEqual> VarSet;
 
     //Variables, functions, constants all inherit from this abstract class.
     class Term
     {
-    friend class ExpressionPool;
+    friend class MemCache;
     
     protected:
         ushort name;
@@ -96,17 +96,16 @@ namespace ares
     
     class structured_term : public Term
     {
-    friend class ExpressionPool;
+    friend class MemCache;
     friend class visualizer;
     protected:
         mutable SpinLock slk;
         mutable bool positive;
-        const Body* _body = nullptr;
-        const Body& body;
-
+        const Body* body = nullptr;
+        
     public:
         structured_term(ushort n, bool p,const Body* b,Type t)
-        :Term(n,t),positive(p),_body(b),body(std::ref(*_body))
+        :Term(n,t),positive(p),body(b)
         {
         }
 
@@ -125,23 +124,23 @@ namespace ares
             return positive;
         }
         virtual cnst_term_sptr& getArg(uint i) const {
-            if( i >= body.size() ) throw IndexOutOfRange("Structured Term GetArg. Size is " +std::to_string(body.size()) + ", index is " + std::to_string(i)) ;
+            if( i >= body->size() ) throw IndexOutOfRange("Structured Term GetArg. Size is " +std::to_string(body->size()) + ", index is " + std::to_string(i)) ;
             
-            return body[i];
+            return (*body)[i];
         }
-        virtual const Body& getBody() const { return body;}
+        virtual const Body& getBody() const { return (*body);}
         
-        virtual uint getArity() const {return body.size();}
+        virtual uint getArity() const {return body->size();}
 
         virtual std::size_t hash() const {
             std::size_t nHash = std::hash<ushort>()(name);
-            for (const cnst_term_sptr& t : body)
+            for (const cnst_term_sptr& t : *body)
                 hash_combine(nHash,t.get());
             
             return nHash;
         }
         virtual bool is_ground() const {
-            for (const cnst_term_sptr& arg : body)
+            for (const cnst_term_sptr& arg : *body)
                 if (!arg->is_ground()) return false;
 
             return true;
@@ -150,7 +149,7 @@ namespace ares
             std::string s("(");
             if(not positive) s.append("not ( ");
             s.append(Namer::name(name));
-            for (auto &t : body){
+            for (auto &t : *body){
                 s.append(" " + t->to_string());
             }
             if(not positive) s.append(" )");

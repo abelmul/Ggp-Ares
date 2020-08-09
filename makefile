@@ -24,7 +24,7 @@ OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
 FLAGS = -Wall -std=c++17 -I$(IDIR)
-LIBS =  -lboost_regex -lboost_thread -lpthread
+LIBS =  -lboost_regex -lboost_thread -lpthread -ltbb
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else
@@ -71,7 +71,7 @@ $(OBJS_DIR)/$(UTILS_DIR)/hashing.o : $(UTILS_DIR)/hashing.cpp $(COMMON_INCS)
 	$(CC) -c $(FLAGS) -o $@ $< 
 $(OBJS_DIR)/$(GAME)/visualizer.o : $(GAME)/visualizer.cpp $(GAME_INCS) $(COMMON_INCS)
 	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(MEMORY_DIR)/expressionPool.o : $(MEMORY_DIR)/expressionPool.cpp  $(COMMON_INCS)
+$(OBJS_DIR)/$(MEMORY_DIR)/memCache.o : $(MEMORY_DIR)/memCache.cpp  $(COMMON_INCS)
 	$(CC) -c $(FLAGS) -o $@ $<
 $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o : $(MEMORY_DIR)/memoryPool.cpp  $(COMMON_INCS) $(THREADING_IDIR)/locks.hh
 	$(CC) -c $(FLAGS) -o $@ $<

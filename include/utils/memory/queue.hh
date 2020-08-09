@@ -116,6 +116,9 @@ namespace ares
                 while((n = n->next)) i++;
                 return i;
             }
+            ~JobQueue(){
+                delete front;
+            }
             std::mutex mOutstdWork;
         private:
             /**
@@ -157,6 +160,9 @@ namespace ares
                 Node(){next = nullptr;}
                 std::array<Job_t,BUCKET_SIZE> bucket;
                 Node* next;
+                ~Node(){
+                    if ( next ) delete next;
+                }
             };
     };
 } // namespace ares

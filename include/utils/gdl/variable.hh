@@ -8,18 +8,17 @@ namespace ares
     class Variable : public Term
     {
     
-    friend class ExpressionPool;
+    friend class MemCache;
     friend class ExpressionPoolTest;
 
     private:
         /**
-         * Only ExpressionPool could create terms, to ensure only one instance exists 
+         * Only MemCache could create terms, to ensure only one instance exists 
          */
-        Variable(ushort name,cnst_var_sptr* _t):Term(name,VAR),_this(_t)
+        Variable(ushort name):Term(name,VAR)
         {
         }
     public:
-        cnst_var_sptr* _this = nullptr;
         /**
          * Deleting a variable does nothing.
          * The Memory pool will free the malloc'd memory.
@@ -33,16 +32,16 @@ namespace ares
          * while traversing a chain then there is a loop.
          */
         virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const {
-            if( not sub.isBound(*_this) ) return *_this;
-            else if(sub.isRenaming() ) return sub.get(*_this);        //No need to traverse the chain
+            if( not sub.isBound(this) ) return cnst_var_sptr(this,[](const Term*){});
+            else if(sub.isRenaming() ) return sub.get(this);        //No need to traverse the chain
 
-            if( vSet.find(*_this) != vSet.end() ) return null_term_sptr;     //There is a circular dependency
+            if( vSet.find(this) != vSet.end() ) return null_term_sptr;     //There is a circular dependency
             // //Remember this var in this particular path
-            vSet.insert(*_this);
-            const cnst_term_sptr& t = sub.get(*_this);
+            vSet.insert(this);
+            const cnst_term_sptr& t = sub.get(this);
             const cnst_term_sptr& tInst = (*t)(sub,vSet);
             // //Done
-            vSet.erase(*_this);   
+            vSet.erase(this);   
             return tInst;
         }
         virtual bool is_ground() const{

@@ -8,14 +8,15 @@ namespace ares
         board.clear();
         for (auto &&trues : *s)
         {
-            auto* propos = trues->head->body[0].get();
+            auto* propos = (*trues->head->body)[0].get();
             if( propos->get_name() != Namer::id("cell") )  continue;
             const Function* cell =  ((const Function*)propos);
-            auto col = Namer::name(cell->body[0]->get_name());
-            int row = std::atoi(Namer::name(cell->body[1]->get_name()).c_str());
-            std::string player ( Namer::name(cell->body[2]->get_name()).c_str());
+            const auto& body = *cell->body;
+            auto col = Namer::name(body[0]->get_name());
+            int row = std::atoi(Namer::name(body[1]->get_name()).c_str());
+            std::string player ( Namer::name(body[2]->get_name()).c_str());
             player.append(" ");
-            if( cell->body.size() == 4 )player.append(Namer::name(cell->body[3]->get_name()).c_str());
+            if( body.size() == 4 )player.append(Namer::name(body[3]->get_name()).c_str());
             board[col][row] = player;
         }
         std::cout << "\n  |";

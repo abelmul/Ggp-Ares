@@ -1,6 +1,6 @@
 #ifndef GDL_PARSER_HH
 #define GDL_PARSER_HH
-#include "utils/memory/expressionPool.hh"
+#include "utils/memory/memCache.hh"
 #include "utils/gdl/gdlParser/transformer.hh"
 #include  "utils/memory/namer.hh"
 #include <iostream>
@@ -23,7 +23,7 @@ namespace ares
     
     private:
 
-        GdlParser(uint nThreads): pool(new thread_pool(nThreads)), exprPool(new ExpressionPool()){}
+        GdlParser(uint nThreads, MemCache* mem): pool(new thread_pool(nThreads)), memCache(mem){}
 
         void parse(string& expr);
         string preprocess(string& expr);
@@ -35,7 +35,7 @@ namespace ares
         vector<string> tokens;
         KnowledgeBase* base;
         thread_pool* pool;
-        ExpressionPool* exprPool;
+        MemCache* memCache;
         
         //Static members
         static GdlParser* _parser;
@@ -45,22 +45,21 @@ namespace ares
 
     public:
         //Singleton parser/transformer
-        static GdlParser* getParser(uint nThreads){
+        static GdlParser* getParser(uint nThreads,MemCache* mem){
             slock.lock();
             if(! _parser){
-                _parser = new GdlParser(nThreads); 
+                _parser = new GdlParser(nThreads,mem); 
                 transformer = new Transformer(_parser);
             }
             slock.unlock();
             return _parser;
         }
-        ExpressionPool* getExpressionPool(){ return exprPool;}
         void parse(KnowledgeBase* base, string& gdl);
         void parseFile(KnowledgeBase* base, string& gdlF);
         cnst_lit_sptr parseQuery(const char * query);
         ~GdlParser(){
             delete pool;
-            delete exprPool;
+            delete transformer;
         }
     };
     

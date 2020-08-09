@@ -5,25 +5,30 @@ void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,ar
 int main(int argc, char const *argv[])
 {
     using namespace ares;
-    Ares ares;
+    //Read in the configuration file
     cfg = Cfg("./ares.cfg.json");
-    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,4096),make_pair(2,2048),make_pair(3,2048),make_pair(4,4096),make_pair(5,16384),make_pair(6,8192),make_pair(7,4096),make_pair(8,4096),make_pair(9,512),make_pair(10,2048),make_pair(11,512),make_pair(12,256)};
-    MemoryPool* mempool = new MemoryPool(16384,65536,arities);
-    GdlParser* p = GdlParser::getParser(cfg.parserThreads);
-    
-    ares.mempool = mempool;
-    ares.exprpool = p->getExpressionPool();
-    MemoryPool::exprPool = ares.exprpool;
 
-    ClauseBody::mempool = mempool;
-    Body::mempool = mempool;
+    //Create the memory pool
+    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,8192),make_pair(2,8192),make_pair(3,8192),make_pair(4,8192),make_pair(5,16384),make_pair(6,8192),make_pair(7,8192),make_pair(8,8192),make_pair(9,512),make_pair(10,8192),make_pair(11,512),make_pair(12,256)};
+    Ares ares(new MemoryPool(16384,65536,arities));
 
-    Game* kb = new Game();
+    //Create the parser
+    GdlParser* p = GdlParser::getParser(cfg.parserThreads,ares.memCache);
+
+    //Setup some static elements
+    Body::mempool = ClauseBody::mempool = ares.mempool;
+
+    //Create the knowledge base
+    Game* kb(new Game());
     auto c = std::chrono::high_resolution_clock();
     auto begin = c.now();
+
+    //Parse the gdl
     p->parse(kb,cfg.gdl);
-    SuffixRenamer::setPool(p->getExpressionPool());
-    Prover* prover = Prover::getProver(kb);
+    SuffixRenamer::setPool(ares.memCache);
+
+    //Get the singleton prover
+    Prover* prover(Prover::getProver(kb));
     
     std::cout << "------Knoweledge base-------\n\n";
     for(auto &&i : *kb){
@@ -33,7 +38,9 @@ int main(int argc, char const *argv[])
     }
     std::cout << "------Knoweledge base-------\n\n";
 
-    Reasoner reasoner(*kb, *p, *prover);
+    //Create a reasoner over the game
+    Reasoner* _reasoner(new Reasoner(*kb, *p, *prover,*ares.memCache));
+    Reasoner& reasoner = *_reasoner;
     
     role_sptr& r0 = reasoner.roles[0];
     role_sptr& r1 = reasoner.roles[1];
@@ -45,8 +52,12 @@ int main(int argc, char const *argv[])
     std::cout << cfg << "\n";
     srand(time(NULL));
     visualizer viz;
+
+    //Get the initial state
     const State& init = reasoner.getInit();
     uint sims = 0;
+
+
     while (sims < cfg.simulaions)
     {
         const State* state = &init;
@@ -86,14 +97,12 @@ int main(int argc, char const *argv[])
     auto end = c.now();
     auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
     std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
-    std::cout << "Total time in Expression Pool : " << ares.exprpool->time_spent <<" microseconds\n";
-    std::cout << "Ratio of Expression Pool / total time : " << ares.exprpool->time_spent/dur.count() <<"\n";
-    ares.mempool->printStat();
+
     delete kb;
-    sleep(3);
-    // std::cout <<cfg.proverThreads <<" threads." <<"\n";
-    // std::cout << cfg.simulaions << " simulations in : " << dur.count()<<"milliseconds\n";
-    // std::cout << "a simulation in : " << dur.count()/cfg.simulaions<<"milliseconds\n";
+    delete p;
+    delete _reasoner;
+    delete prover;
+    
     return 0;
 }
 
@@ -132,7 +141,7 @@ void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,ar
 // voi
 namespace ares
 {
-    ExpressionPool* Ares::exprpool = nullptr;
+    MemCache* Ares::memCache = nullptr;
     MemoryPool* Ares::mempool = nullptr;
     
     //Initialize static members of term

@@ -6,16 +6,14 @@
 
 namespace ares
 {
-    struct CallBack;
-
     class Reasoner
     {
     public:
-        Reasoner(Game& _g, GdlParser& _p, Prover& _prover)
+        Reasoner(Game& _g, GdlParser& _p, Prover& _prover,MemCache& mem)
         :game(_g)
         ,parser(_p)
         ,prover(_prover)
-        ,expPool(*_p.getExpressionPool())
+        ,memCache(mem)
         ,ROLE_GOAL(makeGoal(_p,ROLE_QUERY))
         ,INIT_GOAL(makeGoal(_p,INIT_QUERY))
         ,LEGAL_GOAL(makeGoal(_p,LEGAL_QUERY))
@@ -23,8 +21,8 @@ namespace ares
         ,TERMINAL_GOAL( makeGoal(_p,TERMINAL_QUERY) )
         ,GOAL_GOAL( makeGoal(_p,GOAL_QUERY))
         ,TRUE_LITERAL(_p.parseQuery(TRUE_QUERY))
-        ,x(expPool.getVar(Namer::X))
-        ,r(expPool.getVar(Namer::R))
+        ,x(memCache.getVar(Namer::X))
+        ,r(memCache.getVar(Namer::R))
         {
             goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
             initRoles();        //might as well just get the roles now
@@ -82,16 +80,8 @@ namespace ares
 
         /**
          * Just a wrapper method.
-         * T cb must be callable as cb(const Substitution&)
          */
-        template<class T>
-        void query(const Clause* goal,const State* context,T& cb, bool one){
-            bool done = false;
-            auto* g = goal->clone();
-            g->setSubstitution(new Substitution());
-            Query<T> query(g,context, cb, one, std::ref(done));
-            prover.prove<T>(query);
-        }
+        void query(const Clause* goal,const State* context,const CallBack& cb, bool one);
 
         /**
          * For ease of access to legal and goal queries of the form (legal some_role ?x)/(goal some_role ?x).
@@ -103,7 +93,7 @@ namespace ares
         Game& game;
         GdlParser& parser;
         Prover& prover;
-        ExpressionPool& expPool;
+        MemCache& memCache;
 
         
         //These dont change throughout the game.
@@ -141,24 +131,10 @@ namespace ares
         
     };
 
-    struct CallBack
-    {
-        virtual void operator()(const Substitution& ans) = 0;
-        virtual ~CallBack(){
-            currentSeqNum = std::make_pair(-1,-1);
-        }
-
-        inline bool isCurrent(std::pair<uint,uint>& seq){
-            return (currentSeqNum.first == seq.first )&& (currentSeqNum.second == seq.second);
-        }
-        protected:
-            std::pair<uint,uint> currentSeqNum;
-    };
-
     /**
      * Just a bunch of callbacks to store computed answer.
      */
-    struct NxtCallBack : public CallBack
+    struct NxtCallBack
     {
         NxtCallBack(Reasoner* _t, State* s):_this(_t),newState(s){}
 
@@ -176,7 +152,7 @@ namespace ares
         Reasoner* _this;
         State* newState;
     };
-    struct LegalCallBack : public CallBack
+    struct LegalCallBack
     {
         LegalCallBack(Reasoner* _t):_this(_t),moves(new Moves()){}
         void operator()(const Substitution& ans){
@@ -192,7 +168,7 @@ namespace ares
         Moves* moves;
         SpinLock slk;
     };
-    struct TerminalCallBack : public CallBack
+    struct TerminalCallBack
     {
         void operator()(const Substitution&){
             // isCurrent()
@@ -200,7 +176,7 @@ namespace ares
         }
         bool terminal = false;
     };
-    struct RewardCallBack : public CallBack
+    struct RewardCallBack
     {
         RewardCallBack(Reasoner* t):_this(t){}
         void operator()(const Substitution& ans){

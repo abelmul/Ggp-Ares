@@ -6,12 +6,12 @@
 
 namespace ares
 {
-    class ExpressionPool;
+    class MemCache;
 
     class Literal : public structured_term
     {
     
-    friend class ExpressionPool;
+    friend class MemCache;
     friend class ExpressionPoolTest;
     friend class visualizer;
 
@@ -24,16 +24,16 @@ namespace ares
         {
         }
         /**
-         * Only ExpressionPool could create terms, to ensure only one instance exists 
+         * Only MemCache could create terms, to ensure only one instance exists 
          */
         void* operator new(std::size_t s);
     public:
         void operator delete(void* p);
         
         virtual ~Literal(){
-            if( _body )
-                delete _body;
-            _body = nullptr;
+            if( body )
+                delete body;
+            body = nullptr;
         }
 
         Literal(const Literal&) = delete;
