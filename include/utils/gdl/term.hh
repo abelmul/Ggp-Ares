@@ -21,6 +21,7 @@ namespace ares
     enum Type {VAR,CONST,FN,LIT};
     class MemCache;
     typedef std::unordered_set<const Variable*,VarHasher,VarEqual> VarSet;
+    typedef std::unordered_map<ushort,ushort> VarRenaming;
 
     //Variables, functions, constants all inherit from this abstract class.
     class Term
@@ -63,6 +64,7 @@ namespace ares
 
         virtual bool is_ground() const = 0;
         virtual std::size_t hash() const = 0;
+        virtual std::size_t hash(VarRenaming& renaming,ushort& nxt) const = 0;
 
         virtual bool operator==(const Term& t) const{
             //They are equal iff they have the same address.
@@ -70,11 +72,9 @@ namespace ares
             return this == &t;
         };
         virtual bool operator!=(const Term& t) const{
-            //They are equal iff they have the same address.
-            //Only one instance of a term exists.
             return this != &t;
         };
-
+        virtual bool equals(const Term& t,VarRenaming& renaming) const =0;
 
         ushort get_name() const {return name;}
         Type get_type() const {return type;}
@@ -131,12 +131,35 @@ namespace ares
         virtual const Body& getBody() const { return (*body);}
         
         virtual uint getArity() const {return body->size();}
-
+        /**
+         * Check if this structured term is a variant of term
+         * @param t another term to compare against
+         * @returns true iff t is a variant of this structured term.
+         */
+        virtual bool equals(const Term& t,VarRenaming& renaming) const{
+            if( type != t.get_type() || name != t.get_name() ) return false;
+            auto* st = (structured_term*)&t;
+            for (size_t i = 0; i < body->size(); i++)
+                if ( not (*body)[i]->equals(*(*st->body)[i], renaming ) )
+                    return false;
+            return true;
+        }
         virtual std::size_t hash() const {
             std::size_t nHash = std::hash<ushort>()(name);
             for (const cnst_term_sptr& t : *body)
                 hash_combine(nHash,t.get());
             
+            return nHash;
+        }
+        /**
+         * This hash function cosiders variants the same.
+         */
+        virtual std::size_t hash(VarRenaming& renaming,ushort& nxt) const {
+            std::size_t nHash = std::hash<ushort>()(name);
+
+            for (const cnst_term_sptr& t : *body)
+                nHash ^= t->hash(renaming,nxt) + 0x9e3779b9 + (nHash<<6) + (nHash>>2);
+
             return nHash;
         }
         virtual bool is_ground() const {
@@ -156,6 +179,7 @@ namespace ares
             s.append(")");
             return s;
         }
+
         virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const = 0;
         
         virtual ~structured_term() {}

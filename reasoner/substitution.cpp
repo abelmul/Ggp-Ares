@@ -30,7 +30,7 @@ namespace ares
         return mapping.find(x) != mapping.end();
     }
     
-    Substitution* Substitution::operator +(Substitution& sub){
+    Substitution* Substitution::operator +(const Substitution& sub){
         Substitution* sNew = new Substitution();
         sNew->mapping.insert(mapping.begin(),mapping.end());
         sNew->mapping.insert(sub.mapping.begin(),sub.mapping.end());

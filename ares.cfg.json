@@ -10,5 +10,6 @@
     "deletionQueueSize":65536,
     "jobQueue":24,
     "simulaions":1,
+    "bucket":600,
     "steps":300
 }

@@ -4,14 +4,9 @@
 #include "utils/gdl/gdl.hh"
 #include "utils/utils/hashing.hh"
 #include "utils/memory/memoryPool.hh"
-#include <boost/thread/pthread/shared_mutex.hpp>
+#include "utils/threading/threading.hh"
 #include "utils/memory/queue.hh"
 #include "utils/memory/namer.hh"
-#include <tbb/concurrent_hash_map.h>
-#include <condition_variable>
-#include <thread>
-#include <boost/thread/thread.hpp>
-
 
 namespace ares
 {

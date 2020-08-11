@@ -52,7 +52,7 @@ namespace ares
          * to get bound value.
          */
         bool isEmpty() const { return mapping.size() == 0;}
-        Substitution* operator +(Substitution& sub);
+        Substitution* operator +(const Substitution& sub);
         Mapping getMapping(){return mapping;}
         std::string to_string() const ;
 

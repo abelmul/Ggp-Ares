@@ -47,11 +47,30 @@ namespace ares
         virtual bool is_ground() const{
             return false;
         }
-
+        /**
+         * Check if two variables are vairiant with an atom.
+         */
+        virtual bool equals(const Term& t,VarRenaming& renaming) const {
+            if( t.get_type() != VAR) { return false;}
+            auto it = renaming.find(name);
+            if( it != renaming.end() ){
+                return t.get_name() == it->second;
+            }
+            renaming[name] = t.get_name();
+            return true;
+        }
         virtual std::size_t hash() const{
             return std::hash<ushort>()(name);
         }
-
+        virtual std::size_t hash(VarRenaming& renaming,ushort& nxt) const {
+            auto it = renaming.find(name); 
+            if( it != renaming.end()){
+                //this variable has been renamed 
+                return std::hash<ushort>()(it->second);
+            }
+            renaming[name] = nxt;
+            return std::hash<ushort>()(nxt++);
+        }
         virtual std::string to_string() const {
             return Namer::vname(name);
         }

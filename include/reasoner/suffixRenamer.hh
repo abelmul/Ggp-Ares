@@ -15,19 +15,18 @@ namespace ares
     {
     private:
         static MemCache* pool;
-        ushort suffix = 1;                    //Save it for the current renaming
+        static std::atomic<ushort> _suffix;                    
+        ushort suffix;                    
 
     public:
-        SuffixRenamer(){ }
-        SuffixRenamer(const SuffixRenamer& sr):Substitution(){ suffix=sr.suffix;}
-        SuffixRenamer(const SuffixRenamer&& s) { suffix = s.suffix;}
-
-        void setSuffix(uint suff ) { suffix = suff;}
-        ushort getNxtSuffix() const{ return suffix+1;}
+        SuffixRenamer(){ suffix = suffix++;}
+        
         static void setPool(MemCache* p) {pool = p;}
         /**
-         * delete assignments.
+         * delete copy/move constructor/assignment.
          */
+        SuffixRenamer(const SuffixRenamer& ) = delete;
+        SuffixRenamer(const SuffixRenamer&&) = delete;
         SuffixRenamer& operator = (const SuffixRenamer& other) = delete;
         SuffixRenamer& operator = (const SuffixRenamer&& other) = delete;
 

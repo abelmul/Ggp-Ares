@@ -22,7 +22,7 @@ namespace ares
         }
 
         static inline ushort registerName(const std::string& s){
-            static ushort id=0;
+            static ushort id=60536;
             if( nameId.find(s) != nameId.end() ) return nameId[s];
             nameId[s] = id;
             idName[id] = s;

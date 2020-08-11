@@ -30,6 +30,13 @@ namespace ares
         virtual std::size_t hash() const {
             return std::hash<ushort>()(name);
         }
+        virtual std::size_t hash(VarRenaming&,ushort&) const {
+            return hash();
+        }
+        
+        virtual bool equals(const Term& t,VarRenaming&) const  {
+            return (t.get_type() == CONST) and t.get_name() == name;
+        }
     };
     
 } // namespace ares

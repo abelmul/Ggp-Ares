@@ -29,7 +29,7 @@ int main(int argc, char const *argv[])
 
     //Get the singleton prover
     Prover* prover(Prover::getProver(kb));
-    
+    ClauseCB::prover = prover;
     // std::cout << "------Knoweledge base-------\n\n";
     // for(auto &&i : *kb){
     //     std::cout << " Key : " << i.first << std::endl;
@@ -141,6 +141,7 @@ void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,ar
 // voi
 namespace ares
 {
+    Prover* ClauseCB::prover;
     MemCache* Ares::memCache = nullptr;
     MemoryPool* Ares::mempool = nullptr;
     
@@ -172,6 +173,7 @@ namespace ares
     
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;
+
     std::ostream& operator<<(std::ostream& os, const Cfg& cfg){
         os << cfg.str();
         return os;

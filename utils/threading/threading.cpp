@@ -1,5 +1,7 @@
-#include "utils/threading/loadBalancer.hh" 
-#include "utils/threading/threadPool.hh"
+#include "utils/threading/threading.hh"
+#include "reasoner/cache.hh"
+#include "reasoner/prover.hh"
+
 namespace ares
 {
     LoadBalancer::LoadBalancer(ushort nWrks):nWorkers(nWrks),outstanding_work(0){
@@ -40,5 +42,17 @@ namespace ares
         }
         WorkerThread* wth = workerThreads[curr];
         wth->submit(job);
+    }
+
+    void LiteralCB::operator()(const Substitution& ans){
+        if( not contextual )//don't want to cache true and does.
+            cache->addAns(lit, ans);
+        (*cb)(ans);
+    }
+    void ClauseCB::operator()(const Substitution& ans){
+        auto c = std::unique_ptr<Clause>(nxt->clone());
+        c->setSubstitution(nxt->getSubstitution()  + ans);
+        Query q(c , nxt.cb, nxt.context);
+        prover->proverPool->post(  [=]{prover->compute(q,cache);} );
     }
 }

@@ -4,7 +4,7 @@
 #include "utils/gdl/term.hh"
 #include <string.h>
 #include "utils/gdl/clause.hh"
-
+#include "reasoner/cache.hh"
 namespace ares
 {   
     std::size_t CharpHasher::operator()(const char* name) const{
@@ -41,7 +41,23 @@ namespace ares
     bool StrEq::operator()(const char* s1, const char* s2) const{
         return strcasecmp(s1,s2) == 0;
     }
+
     
+    std::size_t LiteralHasher::operator()(const cnst_lit_sptr& l) const{
+        VarRenaming renaming;
+        ushort nxt=0;
+        return l->hash(renaming, nxt);
+    }
+    bool LiteralHasher::operator()(const cnst_lit_sptr& l1, const cnst_lit_sptr& l2) const{
+        VarRenaming renaming;
+        return l1->equals(*l2, renaming);
+    }
+    std::size_t QueryHasher::operator()(const Query& v1) const{
+        return std::hash<uint>()(v1.id);
+    }
+    bool QueryHasher::operator()(const Query& v1, const Query& v2) const{
+        return v1.id == v2.id;
+    }
     std::size_t PoolKeyHasher::hash (const PoolKey& k) const{
         std::size_t nHash = std::hash<bool>()(k.p);
         for (const cnst_term_sptr& t: *k.body)
