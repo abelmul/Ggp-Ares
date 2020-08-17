@@ -44,8 +44,12 @@ namespace ares
         wth->submit(job);
     }
 
+    ClauseCB::ClauseCB(Query&& query,Cache* cache)
+    : CallBack(query.cb->done,cache), nxt(query)
+    {
+    }
     void LiteralCB::operator()(const Substitution& ans){
-        if( not contextual )//don't want to cache true and does.
+        if( cache )//don't want to cache true and does, and negation queries.
             cache->addAns(lit, ans);
         (*cb)(ans);
     }

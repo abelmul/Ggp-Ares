@@ -18,19 +18,15 @@ namespace ares
         proverPool->post(f);
         proverPool->wait();
 
-
-        auto fans =[this,cache](AnswerList* ansl){
-            auto next = [this,cache](Query& q){
-                auto f = [=](){ compute(q,cache); };
-                proverPool->post(f);
-            };
-            ansl->apply(next);
+        auto nextstage = [this,cache](Query& q){
+            auto f = [=](){ compute(q,cache); };
+            proverPool->post(f);
         };
         while (cache->hasChanged())
         {
             proverPool->restart();
             //New answers have been obtained, resume suspended queries
-            cache->next(fans);
+            cache->next(nextstage);
             proverPool->wait();
         }
         
@@ -63,14 +59,17 @@ namespace ares
         }
 
         //Register query as solution or lookup query
-        bool isCntxt = contextual(query.context, lit); 
-        auto it = isCntxt ? Cache::NOT_CACHED : (*cache)[query];    //don't want to cache true and does
+        bool shldCache = !contextual(query.context, lit) and cache; 
+        auto it = shldCache ? (*cache)[query] : Cache::NOT_CACHED ;    //don't want to cache true and does
 
         if( it == Cache::NOT_CACHED ){
             //Solution Node, do an sld-resolution step
             query->pop_front();
             ClauseCB* cb = new ClauseCB(std::move(query),cache);
-            proverPool->post( [=]{ compute(lit, query.context, cache, cb);} );
+            if( cache ) //We are not trying to prove a negation
+                proverPool->post( [=]{ compute(lit, query.context, cache, cb);} );
+            else        //We are in the middle of proving a negation
+                compute(lit, query.context,cache, cb);
         }
         else
             //Lookup node, check if there are answers already computed
@@ -90,16 +89,19 @@ namespace ares
                 auto resolvent = std::unique_ptr<Clause>(nxt->clone());
                 resolvent->setSubstitution( nxt->getSubstitution() + mgu);
                 Query nxtQ(resolvent, query.cb,query.context);
-                proverPool->post([=] { compute(nxtQ,cache);});
+                if( cache ) //We are not trying to prove a negation
+                    proverPool->post([=] { compute(nxtQ,cache);});
+                else    //We are in the middle of proving a negation
+                    compute(nxtQ,cache);
             }
         }
     }
     
     void Prover::compute(cnst_lit_sptr lit,const State* context, Cache* cache, CallBack* cb){
-
+        if( cb->done ) return;
         bool isContxt = contextual(context, lit);
-        auto cblit = new LiteralCB(lit, isContxt, std::unique_ptr<CallBack>(cb), cache);
-        std::shared_ptr<LiteralCB> cbsptr(cblit);
+        auto cblit = new LiteralCB(lit, std::unique_ptr<CallBack>(cb), (isContxt ? nullptr : cache) );
+        std::shared_ptr<CallBack> cbsptr(cblit);
         //Resolve against all program clauses whose heads unify with lit.
         //Need to know weather lit is contextual or not, so as to determine the correct knowldge base to check
         const KnowledgeBase& kb_t = isContxt ? *context : *this->kb;
@@ -109,7 +111,10 @@ namespace ares
             std::unique_ptr<Clause> gn( resolve( lit, *c, renamer));
             if( !gn ) continue;
             Query q(gn, cbsptr, context);
-            proverPool->post([=]{ compute(q, cache);});
+            if( cache ) //We are not trying to prove a negation
+                proverPool->post([=]{ compute(q, cache);});
+            else //We are in the middle of proving a negation
+                compute(q, cache);
         }
         
     }
@@ -141,10 +146,23 @@ namespace ares
         cnst_lit_sptr pstvLit = Ares::memCache->getLiteral(key);
 
         //Prove <-A1
-        std::unique_ptr<Clause> newC(new Clause(nullptr, new ClauseBody{pstvLit}));
-        // ClauseCBOne cbOne()
+        //Callback which stops all computations when one answer is computed
+        std::atomic_bool done = false;
+        
+        compute(pstvLit, query.context, nullptr, new ClauseCBOne(done,nullptr));
     }
     void Prover::computeDistinct(Query& query,Cache* cache){
+        cnst_lit_sptr& front = query->front();
+        if( not front->is_ground() ){
+            query->delayFront();
+            compute(query, cache);
+            return;
+        }
+
+        if( *front->getArg(0) == (*front->getArg(1)) )
+            return;
         
+        query->pop_front();
+        compute(query, cache);
     }
 } // namespace ares

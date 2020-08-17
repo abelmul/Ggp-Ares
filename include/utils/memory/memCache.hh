@@ -1,5 +1,5 @@
-#ifndef EXPRESSIONPOOL_HH
-#define EXPRESSIONPOOL_HH
+#ifndef MEMCACHE_HH
+#define MEMCACHE_HH
 
 #include "utils/gdl/gdl.hh"
 #include "utils/utils/hashing.hh"

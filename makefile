@@ -8,6 +8,7 @@ THREADING = $(UTILS_DIR)/threading
 GAME = $(UTILS_DIR)/game
 TESTS = tests
 TESTS_SIMP = $(TESTS)/simple
+TESTS_SIMP_INC = $(TESTS_SIMP)/include
 
 IDIR = ./include
 UTILS_IDIR =$(IDIR)/$(UTILS_DIR)
@@ -23,7 +24,7 @@ GAME_IDIR = $(IDIR)/$(GAME)
 OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
-FLAGS = -Wall -std=c++17 -I$(IDIR)
+FLAGS = -Wall -std=c++17 -I$(IDIR) -fno-strict-aliasing
 LIBS =  -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
@@ -64,7 +65,7 @@ ares:  $(OBJS)
 $(OBJS_DIR)/ares.o: ares.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -o $@ $< 
 
-$(OBJS_DIR)/$(THREADING)/loadBalancer.o: $(THREADING)/loadBalancer.cpp $(THREADING_INCS) $(COMMON_INCS)
+$(OBJS_DIR)/$(THREADING)/threading.o: $(THREADING)/threading.cpp $(THREADING_INCS) $(COMMON_INCS)
 	$(CC) -c $(FLAGS) -o $@ $< 
 
 $(OBJS_DIR)/$(UTILS_DIR)/hashing.o : $(UTILS_DIR)/hashing.cpp $(COMMON_INCS)
@@ -100,16 +101,33 @@ $(OBJS_DIR)/$(UTILS_DIR)/httpHandler.o:$(UTILS_DIR)/httpHandler.cpp
 # $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 # 	$(CC) -c $(FLAGS) -o $@ $< 
 
+TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
 $(TESTS_SIMP)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
 	$(CC) $(FLAGS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
 
-$(TESTS_SIMP)/Test_MemPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_MemPool.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o
+$(TESTS_SIMP)/Test_MemPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_MemPool.o $(TEST_OBJS)
 	$(CC) $(FLAGS)  -o $@ -Wl,--start-group $^ -Wl,--end-group 
+
+$(TESTS_SIMP)/AnswerList_Test: $(OBJS_DIR)/$(TESTS_SIMP)/AnswerList_Test.o $(TEST_OBJS)
+	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_SIMP_INC) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+
+$(OBJS_DIR)/$(TESTS_SIMP)/AnswerList_Test.o: $(TESTS_SIMP)/AnswerList_Test.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_SIMP_INC) -o $@ $<
+
+$(TESTS_SIMP)/Cache_Test: $(OBJS_DIR)/$(TESTS_SIMP)/Cache_Test.o $(TEST_OBJS)
+	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_SIMP_INC) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+
+$(OBJS_DIR)/$(TESTS_SIMP)/Cache_Test.o: $(TESTS_SIMP)/Cache_Test.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_SIMP_INC) -o $@ $<
 
 Test_ThreadPool:
 	$(TESTS_SIMP)/Test_ThreadPool
 Test_MemPool:
 	$(TESTS_SIMP)/Test_MemPool
+Test_AnswerList:
+	$(TESTS_SIMP)/AnswerList_Test
 
+Cache_Test:
+	$(TESTS_SIMP)/Cache_Test
 .clean:	
 	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares

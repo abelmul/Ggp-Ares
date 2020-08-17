@@ -43,7 +43,6 @@ namespace ares
         virtual ~Term(){}
 
     public:
-        static CharpHasher nameHasher;  
         static cnst_term_sptr null_term_sptr;
         static cnst_lit_sptr null_literal_sptr;
         /**

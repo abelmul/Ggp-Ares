@@ -54,11 +54,6 @@ namespace ares
         NameFnMap::accessor ac;
         nameFnPool.insert(ac,key.name);     //insert it if it doesn't exist
         FnPool& fnPool= ac->second;
-        if( fnPool.bucket_count() > cfg.bucket ){
-            int i;
-            std::cout << "Bucket > cfg.bucket \n";
-            std::cin >> i;
-        }
         FnPool::accessor fnAc;
         fn_sptr fn;
         if( fnPool.insert(fnAc, key) ){
@@ -85,11 +80,6 @@ namespace ares
         NameLitMap::accessor ac;
         nameLitPool.insert(ac,key.name);     //insert it if it doesn't exist
         LitPool& litPool= ac->second;
-        if( litPool.bucket_count() > cfg.bucket ){
-            int i;
-            std::cout << "Bucket > cfg.bucket \n";
-            std::cin >> i;
-        }
         LitPool::accessor litAc;
         lit_sptr lit;
         if( litPool.insert(litAc, key) ){

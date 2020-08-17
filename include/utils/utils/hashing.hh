@@ -50,16 +50,22 @@ namespace ares
      * Used to hash and compare variant literals.
      */
     struct LiteralHasher{
-        std::size_t operator()(const cnst_lit_sptr&) const;
-        bool operator()(const cnst_lit_sptr&, const cnst_lit_sptr&) const;
+        std::size_t hash(const cnst_lit_sptr&) const;
+        bool equal(const cnst_lit_sptr&, const cnst_lit_sptr&) const;
+        inline std::size_t operator()(const cnst_lit_sptr& l) const{
+            return hash(l);
+        }
+        inline bool operator()(const cnst_lit_sptr& l, const cnst_lit_sptr& l1) const{
+            return equal(l,l1);
+        }
     };
     /**
      * Hash and compare the id's of queries.
      */
-    struct QueryHasher{
-        std::size_t operator()(const Query&) const;
-        bool operator()(const Query&, const Query&) const;
-    };
+    // struct QueryHasher{
+    //     std::size_t operator()(const Query&) const;
+    //     bool operator()(const Query&, const Query&) const;
+    // };
     /**
      * Hash and compare pool keys of memCache.
      */

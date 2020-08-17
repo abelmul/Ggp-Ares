@@ -2,7 +2,7 @@
 #define PROVER_HH
 
 #include "reasoner/substitution.hh"
-#include "utils/gdl/clause.hh"
+#include "utils/gdl/gdl.hh"
 #include "utils/game/match.hh"
 #include "utils/utils/exceptions.hh"
 #include "utils/gdl/gdlParser/gdlParser.hh"

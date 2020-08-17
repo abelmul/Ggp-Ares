@@ -1,5 +1,5 @@
-#ifndef FACTORY_HH
-#define FACTORY_HH
+#ifndef NAMER_HH
+#define NAMER_HH
 #include "utils/utils/hashing.hh"
 namespace ares
 {

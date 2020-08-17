@@ -16,31 +16,6 @@
 
 namespace ares 
 {
-    struct Query{
-        typedef std::unique_ptr<Clause> unique_clause;
-        typedef std::shared_ptr<CallBack> shared_callback;
-
-        Query(unique_clause& g,shared_callback& cb,const State* s)
-        :context(s), cb(cb),goal( std::move( g)), ptr(0)
-        {
-        }
-
-        Query(const Query& q)
-        :context(q.context), cb(q.cb), goal( std::move( *(unique_clause*)&q.goal)), ptr(q.ptr)
-        {
-        }
-        Clause* operator->()const{ return goal.get();}
-        Clause& operator* ()const{ return *goal;}
-        const State* context;
-        std::shared_ptr<CallBack> cb;
-        unique_clause goal;
-
-        private:
-            uint ptr;
-            static std::atomic<int> nextId;
-
-        friend class AnswerList;
-    };
     /**
      * Inorder to restart a query we need to know how much of 
      * the answer we have consumed so far.
@@ -51,7 +26,7 @@ namespace ares
         typedef UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> container;
 
         AnsIterator(const container* c,const uint curr,Clause* nxt )
-        :ans(c), current(curr),nxt(nxt)
+        :nxt(nxt),ans(c), current(curr)
         {}
 
         inline iterator begin()const{ 
@@ -114,6 +89,12 @@ namespace ares
             solns.copy_elements(newSolns);
             newSolns.clear();
         }
+        inline std::pair<std::size_t,std::size_t> sizeob(){
+            return make_pair(observers[qi].size(),observers[1-qi].size());
+        }
+        inline std::pair<std::size_t,std::size_t> size(){
+            return make_pair(solns.size(),newSolns.size());
+        }
         ~AnswerList(){}
         private:    
             typedef std::vector<Query> Observers;
@@ -145,7 +126,7 @@ namespace ares
                 ansL->next();
 
             for (auto &&ansL : next[j])
-                op(*ansL);
+                ansL->apply(op);
 
             next[j].clear();
         }
@@ -167,7 +148,7 @@ namespace ares
         tbb::concurrent_hash_map<cnst_lit_sptr, AnswerList*, LiteralHasher> ansCache;
         // std::unordered_set<cnst_lit_sptr> failCache;
     public:
-        Cache(){}
+        Cache() = default;
         /**
          * Get the indexed solutions list if this query has been cached before.
          * else create an empty solutions list
@@ -192,7 +173,7 @@ namespace ares
         inline void addAns(const cnst_lit_sptr& l, const Substitution& ans){
             AnsCache::accessor ac;
             if( !ansCache.find( ac , l) ) throw "Tried to insert solution to a non existent key!";
-            if( auto ansl = ac->second->addAnswer(ac->first, ans) )
+            if( auto ansl = ac->second->addAnswer(l, ans) )
                 //Found a new answer, register answerlist so that we can restart suspended queries            
                 next_.push_back(ansl);
         }

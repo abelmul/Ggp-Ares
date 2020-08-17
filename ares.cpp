@@ -146,7 +146,6 @@ namespace ares
     MemoryPool* Ares::mempool = nullptr;
     
     //Initialize static members of term
-    CharpHasher Term::nameHasher;
     cnst_term_sptr     Term::null_term_sptr(nullptr);
     cnst_lit_sptr     Term::null_literal_sptr(nullptr);
     

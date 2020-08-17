@@ -24,9 +24,9 @@ namespace ares
         cnst_lit_sptr head = nullptr;
         ClauseBody* body = nullptr;
         Substitution* theta = nullptr;
-        ClauseBody& getBody(){return *body;}
 
     public:
+        ClauseBody& getBody(){return *body;}
         // clausebody_mem_pool
         /**
          * Protect against accidental copy assignment, pass by value,...
@@ -74,8 +74,10 @@ namespace ares
             return c;
         }
         inline Clause* next() const{
-            auto* c = new Clause(head, new ClauseBody(body->begin()+1, body->end()));
-            c->setSubstitution(*theta + Substitution());
+            ushort n = body->size() == 0 ? 0 : 1;
+            auto* c = new Clause(head, new ClauseBody(body->begin()+n, body->end()));
+            if( theta )
+                c->setSubstitution(*theta + Substitution());
             return c;
         }
         /**

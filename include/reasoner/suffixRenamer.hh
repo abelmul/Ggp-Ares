@@ -4,7 +4,7 @@
 #include "reasoner/substitution.hh"
 #include <mutex>
 #include <string.h>
-
+#include <atomic>
 namespace ares
 {
     class MemCache;
@@ -15,11 +15,11 @@ namespace ares
     {
     private:
         static MemCache* pool;
-        static std::atomic<ushort> _suffix;                    
+        static std::atomic<ushort> suffix_glbl;                    
         ushort suffix;                    
 
     public:
-        SuffixRenamer(){ suffix = suffix++;}
+        SuffixRenamer():suffix(suffix_glbl++){}
         
         static void setPool(MemCache* p) {pool = p;}
         /**

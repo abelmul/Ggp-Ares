@@ -1,8 +1,7 @@
 #ifndef CALLBACKS_HH
 #define CALLBACKS_HH
-#include "reasoner/cache.hh"
 #include "threadPool.hh"
-#include "utils/gdl/clause.hh"
+#include "utils/gdl/gdl.hh"
 #include <atomic>
 
 namespace ares
@@ -10,12 +9,12 @@ namespace ares
     class Cache;
     class CallBack
     {
+        typedef std::function<void(const Substitution&)> CB_t;
     public:
         CallBack(std::atomic<bool>& d,Cache* c)
-        :done(d), cache(c)
+        :done(d),cache(c)
         {
         } 
-
         CallBack(const CallBack&) = delete;
         CallBack(const CallBack&&) = delete;
         CallBack& operator=(const CallBack&) = delete;
@@ -28,7 +27,7 @@ namespace ares
      */
     public:
         std::atomic<bool>& done;
-    
+        
     protected:
         Cache* cache;
     };
@@ -40,12 +39,12 @@ namespace ares
      * Methods
      */
     public:
-        LiteralCB(const cnst_lit_sptr& lit, bool c,unique_cb&& cb,Cache* cache)
-        : CallBack(cb->done,cache), lit(lit), cb(std::move(cb)), contextual(c)
+        LiteralCB(const cnst_lit_sptr& lit, unique_cb&& cb,Cache* cache)
+        : CallBack(cb->done,cache), lit(lit), cb(std::move(cb))
         {
         }
         virtual void operator()(const Substitution& ans);
-        virtual ~LiteralCB();
+        virtual ~LiteralCB(){}
     
     /**
      * Data
@@ -53,14 +52,8 @@ namespace ares
     private:
         const cnst_lit_sptr lit;
         unique_cb cb;
-        bool contextual;
+        
     };
-
-    //  Query(const Query& q)
-    //     :goal( std::move(*(unique_clause*)&q.goal)),context(q.context),cb(q.cb),pool(q.pool),renamer(q.renamer),oneAns(q.oneAns),done(q.done)
-    //     {
-
-    //     }
     class Prover;
     class ClauseCB : public CallBack
     {
@@ -70,15 +63,7 @@ namespace ares
      */
         typedef std::unique_ptr<Clause> unique_clause;
     public:
-        ClauseCB(Query&& query,Cache* cache)
-        : CallBack(query.cb->done,cache), nxt(query)
-        {
-        }
-
-        ClauseCB(Query&& query,std::atomic_bool& done,Cache* cache)
-        : CallBack(done,cache), nxt(query)
-        {
-        }
+        ClauseCB(Query&& query,Cache* cache);
         virtual void operator()(const Substitution& ans);
         virtual ~ClauseCB() {}
 
@@ -96,22 +81,16 @@ namespace ares
     /**
      * A callback that stops further computation as soon as 1 answer is found.
      */
-    class ClauseCBOne : public ClauseCB
+    class ClauseCBOne : public CallBack
     {
     public:
-        ClauseCBOne(Query&& query,Cache* c)
-        : ClauseCB(std::move(query),_done,c),_done(false)
+        ClauseCBOne(std::atomic_bool& done,Cache* c)
+        : CallBack(done,c)
         {
         }
         virtual void operator()(const Substitution&){
             done = true;
-            ClauseCB::operator()(Substitution());
         }
-    /**
-     * Data
-     */
-    private:
-        std::atomic_bool _done;
     };   
 } // namespace ares
 
