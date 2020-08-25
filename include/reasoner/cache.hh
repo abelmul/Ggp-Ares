@@ -108,7 +108,7 @@ namespace ares
     };
 
     struct Next{
-        Next() = default;
+        Next():i(0){};
         inline void push_back(AnswerList* ansl){
             std::lock_guard<SpinLock> lk(slck);
             next[i].push_back(ansl);
