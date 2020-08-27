@@ -36,37 +36,35 @@ namespace ares
          * @param query.cb is called with an answer each time a successful refutation is derived.
          */
         void compute(Query& query);  
-        ~Prover(){
-            if(proverPool) delete proverPool;
-        }
+        ~Prover(){ delete proverPool; }
     private:
         /**
          * Extension of compute(Query& query), needed for recursion.
          */ 
-        void compute(Query query,Cache* cache);
+        void compute(Query query,const bool isLookup);
         /**
          *
          */
-        void compute(cnst_lit_sptr lit,const State* context, Cache* cache, CallBack* cb);
+        void compute(cnst_lit_sptr lit,Query q,CallBack* cb,const bool lookup=false);
         /**
          * Iterate over all of the new solutions in `it` and resolve against lit
          * @param it a list of new solutions for lit
          */
-        void lookup(AnsIterator& it, Query& query,cnst_lit_sptr& lit,Cache* cache);
+        void lookup(AnsIterator& it, Query& query,cnst_lit_sptr& lit);
         /**
          * Carry out a single (normal) SLD-Resolution Step
          * Where the selected literal in goal is positive.
          */
-        Clause* resolve(const cnst_lit_sptr& lit, const Clause& c,SuffixRenamer& vr);
+        Clause* resolve(const cnst_lit_sptr& lit, const Clause& c,SuffixRenamer&);
         /**
          * Carry out a single SLDNF-Resolution Step
          * Where the selected literal in goal is negative.
          */
-        void computeNegation(Query& query,Cache* cache);
+        void computeNegation(Query& query);
         /**
          * The distinct relation.
          */
-        void computeDistinct(Query& query,Cache* cache);
+        void computeDistinct(Query& query);
         inline bool contextual(const State* context, const cnst_lit_sptr& g) const{
             return context and (  g->get_name() == Namer::DOES  or  g->get_name() == Namer::TRUE) ;
         }

@@ -72,7 +72,16 @@ namespace ares
             return std::hash<ushort>()(nxt++);
         }
         virtual std::string to_string() const {
-            return Namer::vname(name);
+            std::string s;
+            try
+            {
+                s = Namer::vname(name);
+            }
+            catch(const std::exception& e)
+            {
+                s = "?NX" + std::to_string(name);
+            }
+            return s;
         }
     };
     

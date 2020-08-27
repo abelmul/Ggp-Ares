@@ -11,6 +11,7 @@ void Hashing_Variants();
 void CacheTest();
 ares::Cfg ares::cfg("./ares.cfg.json");
 namespace ares{
+    std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
 }
 int main(int argc, char const *argv[])
@@ -164,6 +165,15 @@ void Hashing_Variants(){
 }
 
 void CacheTest(){
+
+    std::vector<uint> queries;
+    std::vector<Query> newQueries;
+    Query::resetid();
+    uint qcount=0;
+    auto assertQadded =[&](const Query& q){
+        qcount++;
+        assert( std::find(queries.begin(),queries.end(),q.id ) != queries.end() );
+    };
     Cache cache;
     //Create a solution node
     auto [lit, vars] = getRandLiteral(3,15);
@@ -172,6 +182,9 @@ void CacheTest(){
         lit = l; vars =v;
     }
     auto clause = getRandClause();
+    while( clause->size() == 0)
+        clause = getRandClause();
+        
     std::atomic_bool done;
     std::shared_ptr<CallBack> cb(new ClauseCBOne(done,nullptr));
     Query q(clause,cb,nullptr);
@@ -185,26 +198,87 @@ void CacheTest(){
     OrdrdVarSet dummy;
     ushort d;
 
-    for (size_t i = 0; i < nSoln; i++)
-    {
-        //just bind the first variable to 
-        auto c = getRandConst(dummy,d);
-        while ( seenConst.find(c->get_name()) != seenConst.end() )
-             c = getRandConst(dummy,d);
-        Substitution theta;
-        theta.bind( *vars.begin(), c);
-        cache.addAns(lit,theta);
-    }
-    auto clause2 = getRandClause();
-    Query q2(clause2,cb,nullptr);
-    q2->front() = lit;
-    auto it = cache[q2];
-    assert_true( (it.end() - it.begin()) == nSoln );
+    auto addAns = [&,lit(lit),vars(vars)](){
+        for (size_t i = 0; i < nSoln; i++)
+        {
+            //just bind the first variable to 
+            bool added =false;
+            do
+            {
+                auto c = getRandConst(dummy,d);
+                while ( seenConst.find(c->get_name()) != seenConst.end() )
+                    c = getRandConst(dummy,d);
+                Substitution theta;
+                theta.bind( *vars.begin(), c);
+                added = cache.addAns(lit, theta);
+            } while (!added);   
+            assert_true( cache.hasChanged() );
+        }
+    };
+    auto addQueries = [&,lit(lit)](const uint&& soln){
+        uint nQ = (rand() % 10)+3;
+        for (size_t i = 0; i < nQ; i++)
+        {
+            auto clause2 = getRandClause();
+            while( clause2->size() == 0)
+                clause2 = getRandClause();
 
-    q2.goal = getRandClause();
+            Query q2(clause2,cb,nullptr);
+            queries.push_back(q2.id);
+            q2->front() = lit;
+            auto it = cache[q2];
+            newQueries.push_back(q2);
+            assert_true( it != Cache::NOT_CACHED );
+            assert_true( (it.end() - it.begin()) == soln );
+        }  
+    };
+    //there are no solutions.
+    addQueries(0);
+    addAns();
+    //there are no prev solutions, new solutions should not have taken affect now.
+    addQueries(0);
 
-    auto it2 = cache[q2];
-    assert_true( it.end() == it.begin() );
+    cache.next(assertQadded);
+    assert_true( qcount == queries.size() );
+    qcount = 0;
+    
+    //newQueries
+    uint nQ = (rand() % newQueries.size());
+    auto restart = [&,lit(lit)](const uint& solnExpected){
+        queries.clear();
+        for (size_t i = 0; i < nQ; i++)
+        {
+            newQueries[i].goal = getRandClause();
+            while(newQueries[i]->size() == 0)
+                newQueries[i].goal = getRandClause();
+            
+            newQueries[i]->front() = lit;
+            auto it = cache[newQueries[i]];
+            queries.push_back(newQueries[i].id);
+
+            assert_true( it != Cache::NOT_CACHED );
+            //Should be able to consume the previous solutions.
+            assert_true( (it.end() - it.begin()) == solnExpected );
+        }
+    };
+
+    //Consume all the answers
+    restart(nSoln);
+    //Assert no answerlist is queued
+    auto assertNoSoln = [](const Query&){assert_true(false);};
+    cache.next(assertNoSoln);
+    assert_false(cache.hasChanged());
+    //No answer should be consumed
+    restart(0);
+    assert_false(cache.hasChanged());
+    //Add new answers
+    nSoln = (rand() % 10) + 1;
+    addAns();
+    // for  (size_t i = 0; i < nQ; i++) {}
+    cache.next(assertQadded);
+
+    restart(nSoln);
+   
     // assert_true( )
     //Create a lookup node
     //use the solutions

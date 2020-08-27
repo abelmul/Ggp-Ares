@@ -8,6 +8,9 @@ void AnswerIterator();
 void AnsList();
 ares::Cfg ares::cfg("./ares.cfg.json");
 
+namespace ares{
+    std::atomic<int> Query::nextId = 0;
+}
 int main(int argc, char const *argv[])
 {
     setup();
@@ -54,22 +57,22 @@ void AnswerIterator(){
         uint i=0;
         for (auto &&l : elements)
         {
-            if( i < curr){
+            if( i < curr){//Nothing below curr should be visted
                 assert_true( (visited.find(l.get()) == visited.end() ));
             }
-            else
+            else//Everything above and including curr should be visted
                 assert_true( visited.find(l.get()) != visited.end());
             i++;
         }
     };
     AnsIterator ansitBegin(&elements,0,nullptr);
-    AnsIterator ansitEnd(&elements,elements.size()-1,nullptr);
+    AnsIterator ansitBEnd(&elements,elements.size()-1,nullptr);
     AnsIterator ansitAEnd(&elements,elements.size(),nullptr);
     uint curr = rand() % elements.size();
     AnsIterator ansitRand(&elements,curr,nullptr);
 
     asserter(ansitBegin, 0);
-    asserter(ansitEnd, elements.size()-1);
+    asserter(ansitBEnd, elements.size()-1);
     asserter(ansitAEnd, elements.size());
     asserter(ansitRand, curr);
 }
@@ -82,8 +85,7 @@ void AnsList(){
     std::vector<Query> queries;
     uint nqueries = (rand() % 10) + 5;
     
-    auto counter =[&](Query& q){
-        queries.clear();
+    auto accummulate =[&](Query& q){
         queries.push_back(std::move(q));
     };
     auto asserter = [&](AnsIterator& it, Clause* cl){
@@ -107,14 +109,25 @@ void AnsList(){
     insertQueries(0);
     auto [sizeq, size2] = ansList.sizeob();
     assert_true( (sizeq == nqueries and size2 == 0 ));
-    ansList.apply(counter);
+    ansList.next();
+    ansList.apply([](Query&){});
     auto [size, size1] = ansList.sizeob();
     assert_true( (size == 0 and size1 == 0 ));
 
     //insert new solutions
     uint size_soln = (rand() % 20);
     UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> inserted;
-    auto insertSoln = [&](){
+    typedef UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> list;
+    auto insertSoln = [&](list* answers=nullptr){
+        if( answers ){
+            for (auto &&i : *answers)
+            {
+                Substitution* variant = getRandVariant(i.get());
+                assert_false(ansList.addAnswer(i, *variant));
+                delete variant;
+            }
+            return;
+        }
         for (size_t i = 0; i < size_soln; i++)
         {
             ushort depth = (rand() % 2) +1;
@@ -126,26 +139,38 @@ void AnsList(){
         }
     };
     insertSoln();
-
     auto [ssize, newsize] = ansList.size();
     assert_true( (ssize == 0 and newsize == inserted.size() ));
-    insertQueries(0);
-    ansList.apply(counter);
 
+    //assert variant solutions aren't inserted
+    insertSoln(&inserted);
+    auto [samesize, sameNewsize] = ansList.size();
+    assert_true( (samesize == 0 and sameNewsize == inserted.size() ));
+
+    insertQueries(0);
     //Include the new solutions
     ansList.next();
+    ansList.apply([](Query&){});
+
+
     auto isize = ansList.size();
     assert_true( (isize.first == inserted.size() and isize.second == 0 ));
+
+    //Make sure each query comsumes inserted.size() amounts solutions.
     insertQueries(inserted.size());
-    ansList.apply(counter);
+    ansList.next(); //Just to collect queries that have consumed all the previous solns
+    ansList.apply(accummulate);
 
-
-    //Add new Solutions
+    //clear previous solns
     inserted.clear();
+
+    //add new solutions
     size_soln = (rand() % 20);
     insertSoln();
+
     auto size2nd = ansList.size();
     assert_true( (size2nd.first == isize.first and size2nd.second == inserted.size() ));
+    
     //Include the new solutions
     ansList.next();
     auto size2ndNxt = ansList.size();
@@ -153,10 +178,15 @@ void AnsList(){
 
 
     //Assert that only the new solutions are consumed
+    assert_true(queries.size() >= 5);
     for (auto &&q : queries)
     {
         auto it = ansList.addObserver(std::move(q));
         assert_true( (it.end() - it.begin() )== inserted.size() );
+        //Assert that every new soln is actually iterated over
+        for (auto &&soln : it)
+            assert_true( std::find( inserted.begin(), inserted.end(), soln) != inserted.end() );
+        
     }
     
 }

@@ -14,18 +14,17 @@ namespace ares
     class SuffixRenamer : public Substitution
     {
     private:
-        static MemCache* pool;
-        static std::atomic<ushort> suffix_glbl;                    
-        ushort suffix;                    
+        static MemCache* pool;               
+        const ushort suffix;                    
 
     public:
-        SuffixRenamer():suffix(suffix_glbl++){}
+        SuffixRenamer(ushort s):suffix(s+1){}
         
         static void setPool(MemCache* p) {pool = p;}
         /**
          * delete copy/move constructor/assignment.
          */
-        SuffixRenamer(const SuffixRenamer& ) = delete;
+        SuffixRenamer(const SuffixRenamer&)= delete;
         SuffixRenamer(const SuffixRenamer&&) = delete;
         SuffixRenamer& operator = (const SuffixRenamer& other) = delete;
         SuffixRenamer& operator = (const SuffixRenamer&& other) = delete;
@@ -33,7 +32,8 @@ namespace ares
         static Substitution emptySub;
 
         virtual bool bind(const Variable*,const cnst_term_sptr&){return true;}
-
+        
+        ushort gets() { return suffix;}
         //To get the immediate mapping, without traversing the chain.
         virtual const cnst_term_sptr get(const Variable*) const ;
         //Overload the indexing operator, to get the underlying exact mapping        

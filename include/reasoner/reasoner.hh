@@ -137,9 +137,9 @@ namespace ares
      */
     struct NxtCallBack : public CallBack
     {
-        NxtCallBack(Reasoner* _t, State* s):CallBack(_done, nullptr),_this(_t),newState(s){}
+        NxtCallBack(Reasoner* _t, State* s):CallBack(_done, nullptr),_this(_t),newState(s),_done(false){}
 
-        virtual void operator()(const Substitution& ans){
+        virtual void operator()(const Substitution& ans,ushort,bool){
             // isCurrent()
             VarSet vset;
             const cnst_term_sptr& true_ = (*_this->TRUE_LITERAL)(ans,vset);      //Instantiate
@@ -156,8 +156,8 @@ namespace ares
     };
     struct LegalCallBack : public CallBack
     {
-        LegalCallBack(Reasoner* _t):CallBack(_done, nullptr),_this(_t),moves(new Moves()){}
-        virtual void operator()(const Substitution& ans){
+        LegalCallBack(Reasoner* _t):CallBack(_done, nullptr),_this(_t),moves(new Moves()),_done(false){}
+        virtual void operator()(const Substitution& ans,ushort,bool){
             // isCurrent()
             VarSet vset;
             const move_sptr& move = (*_this->x)(ans,vset);
@@ -173,8 +173,8 @@ namespace ares
     };
     struct TerminalCallBack : public CallBack
     {
-        TerminalCallBack():CallBack(_done, nullptr){}
-        virtual void operator()(const Substitution& ans){
+        TerminalCallBack():CallBack(_done, nullptr),_done(false){}
+        virtual void operator()(const Substitution& ans,ushort,bool){
             done = true;
             terminal = true;
         }
@@ -183,8 +183,8 @@ namespace ares
     };
     struct RewardCallBack : public CallBack
     {
-        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),_this(t){}
-        virtual void operator()(const Substitution& ans){
+        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),_this(t),_done(false){}
+        virtual void operator()(const Substitution& ans,ushort,bool){
             done = true;
             VarSet vset;
             const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);

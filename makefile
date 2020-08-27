@@ -7,8 +7,12 @@ MEMORY_DIR = $(UTILS_DIR)/memory
 THREADING = $(UTILS_DIR)/threading
 GAME = $(UTILS_DIR)/game
 TESTS = tests
-TESTS_SIMP = $(TESTS)/simple
-TESTS_SIMP_INC = $(TESTS_SIMP)/include
+TESTS_UNIT = $(TESTS)/unit
+TESTS_UNIT_INC = $(TESTS_UNIT)/include
+UNIT_BIN = $(TESTS_UNIT)/bin
+
+#create unit tests binary directory
+UNIT_BIN_DIR := $(shell mkdir -p $(UNIT_BIN))
 
 IDIR = ./include
 UTILS_IDIR =$(IDIR)/$(UTILS_DIR)
@@ -33,16 +37,16 @@ FLAGS+= -O3
 endif
 
 ifdef testing
-FLAGS+=  -I$(TESTS_SIMP)/include
+FLAGS+=  -I$(TESTS_UNIT)/include
 endif
 
 #Get the source files with their path
 SOURCES := $(shell find . -not -path "*test*" -name '*.cpp' | sed 's/\.\///')
-# TESTS := $(shell find .  -path "*test*" -name '*.cpp' | sed 's/\.\///')
+TEST_FILES := $(shell find .  -path "*test*" -name '*.cpp' | sed 's/\.\///')
 
 #Create their respective object files
 OBJS := $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(SOURCES))
-# OBJS_TESTS := $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(TESTS))
+OBJS_UNIT := $(patsubst %.cpp, $(OBJS_DIR)/%.o, $(TEST_FILES))
 #Create their respective include files
 INCLS := $(shell find . -name "*.hh")
 REASONER_INCS :=$(shell find $(REASONER_IDIR) -name "*.hh")
@@ -57,44 +61,49 @@ COMMON_INCS := $(GDL_INCS) $(UTILS_UTILS_INCS) $(MEMORY_INCS)
 
 #create the directories
 OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
-# OBJ_TESTS_DIRS := $(shell mkdir -p `dirname $(OBJS_TESTS)`)
+OBJ_UNIT_DIRS := $(shell mkdir -p `dirname $(OBJS_UNIT)`)
 
-ares:  $(OBJS) 
+ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
-
-$(OBJS_DIR)/ares.o: ares.cpp $(INCLS)
+$(OBJS_DIR)/%.o : %.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -o $@ $< 
 
-$(OBJS_DIR)/$(THREADING)/threading.o: $(THREADING)/threading.cpp $(THREADING_INCS) $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $< 
+# ares:  $(OBJS) 
+# 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
 
-$(OBJS_DIR)/$(UTILS_DIR)/hashing.o : $(UTILS_DIR)/hashing.cpp $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $< 
-$(OBJS_DIR)/$(GAME)/visualizer.o : $(GAME)/visualizer.cpp $(GAME_INCS) $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(MEMORY_DIR)/memCache.o : $(MEMORY_DIR)/memCache.cpp  $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o : $(MEMORY_DIR)/memoryPool.cpp  $(COMMON_INCS) $(THREADING_IDIR)/locks.hh
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o : $(GDL_DIR)/structuredTerm.cpp $(INCLS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(GDLP_DIR)/transformer.o : $(GDLP_DIR)/transformer.cpp $(GDLP_INCS)  $(GAME_INCS) $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(GDLP_DIR)/gdlParser.o : $(GDLP_DIR)/gdlParser.cpp $(GDLP_INCS)  $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(RESNR_DIR)/prover.o :$(RESNR_DIR)/prover.cpp $(INCLS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(RESNR_DIR)/reasoner.o: $(RESNR_DIR)/reasoner.cpp $(INCLS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(RESNR_DIR)/substitution.o: $(RESNR_DIR)/substitution.cpp  $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(RESNR_DIR)/suffixRenamer.o:$(RESNR_DIR)/suffixRenamer.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/ares.o: ares.cpp $(INCLS)
+# 	$(CC) -c $(FLAGS) -o $@ $< 
 
-$(OBJS_DIR)/$(RESNR_DIR)/unifier.o:$(RESNR_DIR)/unifier.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-	$(CC) -c $(FLAGS) -o $@ $<
-$(OBJS_DIR)/$(UTILS_DIR)/httpHandler.o:$(UTILS_DIR)/httpHandler.cpp 
-	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(THREADING)/threading.o: $(THREADING)/threading.cpp $(THREADING_INCS) $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $< 
+
+# $(OBJS_DIR)/$(UTILS_DIR)/hashing.o : $(UTILS_DIR)/hashing.cpp $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $< 
+# $(OBJS_DIR)/$(GAME)/visualizer.o : $(GAME)/visualizer.cpp $(GAME_INCS) $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o : $(MEMORY_DIR)/memCache.cpp  $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o : $(MEMORY_DIR)/memoryPool.cpp  $(COMMON_INCS) $(THREADING_IDIR)/locks.hh
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o : $(GDL_DIR)/structuredTerm.cpp $(INCLS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(GDLP_DIR)/transformer.o : $(GDLP_DIR)/transformer.cpp $(GDLP_INCS)  $(GAME_INCS) $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(GDLP_DIR)/gdlParser.o : $(GDLP_DIR)/gdlParser.cpp $(GDLP_INCS)  $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(RESNR_DIR)/prover.o :$(RESNR_DIR)/prover.cpp $(INCLS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(RESNR_DIR)/reasoner.o: $(RESNR_DIR)/reasoner.cpp $(INCLS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(RESNR_DIR)/substitution.o: $(RESNR_DIR)/substitution.cpp  $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(RESNR_DIR)/suffixRenamer.o:$(RESNR_DIR)/suffixRenamer.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+
+# $(OBJS_DIR)/$(RESNR_DIR)/unifier.o:$(RESNR_DIR)/unifier.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
+# 	$(CC) -c $(FLAGS) -o $@ $<
+# $(OBJS_DIR)/$(UTILS_DIR)/httpHandler.o:$(UTILS_DIR)/httpHandler.cpp 
+# 	$(CC) -c $(FLAGS) -o $@ $<
 
 #Compile any object file like objs/reasoner/reasoner.o from 
 #reasoner/reasoner.cpp
@@ -102,32 +111,32 @@ $(OBJS_DIR)/$(UTILS_DIR)/httpHandler.o:$(UTILS_DIR)/httpHandler.cpp
 # 	$(CC) -c $(FLAGS) -o $@ $< 
 
 TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
-$(TESTS_SIMP)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
-	$(CC) $(FLAGS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+$(TESTS_UNIT)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
+	$(CC) $(FLAGS) -o $(UNIT_BIN)/Test_ThreadPool -Wl,--start-group $^ -Wl,--end-group 
 
-$(TESTS_SIMP)/Test_MemPool: $(OBJS_DIR)/$(TESTS_SIMP)/Test_MemPool.o $(TEST_OBJS)
-	$(CC) $(FLAGS)  -o $@ -Wl,--start-group $^ -Wl,--end-group 
+$(TESTS_UNIT)/Test_MemPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_MemPool.o $(TEST_OBJS)
+	$(CC) $(FLAGS)  -o $(UNIT_BIN)/Test_MemPool -Wl,--start-group $^ -Wl,--end-group 
 
-$(TESTS_SIMP)/AnswerList_Test: $(OBJS_DIR)/$(TESTS_SIMP)/AnswerList_Test.o $(TEST_OBJS)
-	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_SIMP_INC) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+$(TESTS_UNIT)/AnswerList_Test: $(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o $(TEST_OBJS)
+	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/AnswerList_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(OBJS_DIR)/$(TESTS_SIMP)/AnswerList_Test.o: $(TESTS_SIMP)/AnswerList_Test.cpp
-	$(CC) -c $(FLAGS) -I $(TESTS_SIMP_INC) -o $@ $<
+$(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o: $(TESTS_UNIT)/AnswerList_Test.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
-$(TESTS_SIMP)/Cache_Test: $(OBJS_DIR)/$(TESTS_SIMP)/Cache_Test.o $(TEST_OBJS)
-	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_SIMP_INC) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+$(TESTS_UNIT)/Cache_Test: $(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o $(TEST_OBJS)
+	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/Cache_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(OBJS_DIR)/$(TESTS_SIMP)/Cache_Test.o: $(TESTS_SIMP)/Cache_Test.cpp
-	$(CC) -c $(FLAGS) -I $(TESTS_SIMP_INC) -o $@ $<
+$(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o: $(TESTS_UNIT)/Cache_Test.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
 Test_ThreadPool:
-	$(TESTS_SIMP)/Test_ThreadPool
+	$(UNIT_BIN)/Test_ThreadPool
 Test_MemPool:
-	$(TESTS_SIMP)/Test_MemPool
+	$(UNIT_BIN)/Test_MemPool
 Test_AnswerList:
-	$(TESTS_SIMP)/AnswerList_Test
+	$(UNIT_BIN)/AnswerList_Test
 
 Cache_Test:
-	$(TESTS_SIMP)/Cache_Test
+	$(UNIT_BIN)/Cache_Test
 .clean:	
-	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares
+	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares && rm $(UNIT_BIN)/*

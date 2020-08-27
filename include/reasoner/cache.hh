@@ -40,6 +40,9 @@ namespace ares
         inline bool operator==(const AnsIterator& other)const{
             return (ans == other.ans) and ( current == other.current) and ( nxt == other.nxt);
         }
+        inline bool operator!=(const AnsIterator& other)const{
+            return !((*this) == other);
+        }
 
         ~AnsIterator(){ if( nxt ) delete nxt;}
         Clause* nxt;
@@ -75,8 +78,8 @@ namespace ares
          */
         template <class T>
         inline void apply(T op){
-            ushort j =qi;
-            qi = 1-qi;
+            ushort j =1-qi;     //Iterate the previous one
+            
             for (auto &&query : observers[j])
                 op(query);
             
@@ -88,10 +91,17 @@ namespace ares
         inline void next() {
             solns.copy_elements(newSolns);
             newSolns.clear();
+            qi = 1-qi;
         }
+        /**
+         * This method is implemented just to make testing convinient
+         */
         inline std::pair<std::size_t,std::size_t> sizeob(){
             return make_pair(observers[qi].size(),observers[1-qi].size());
         }
+        /**
+         * This method is implemented just to make testing convinient
+         */
         inline std::pair<std::size_t,std::size_t> size(){
             return make_pair(solns.size(),newSolns.size());
         }
@@ -125,6 +135,7 @@ namespace ares
             for (auto &&ansL : next[j])
                 ansL->next();
 
+            //Restart susspended queries, if any
             for (auto &&ansL : next[j])
                 ansL->apply(op);
 
@@ -143,9 +154,9 @@ namespace ares
      */
     class Cache
     {
-        typedef tbb::concurrent_hash_map<cnst_lit_sptr,AnswerList*,LiteralHasher> AnsCache;
+        typedef tbb::concurrent_hash_map<cnst_lit_sptr,std::unique_ptr<AnswerList>,LiteralHasher> AnsCache;
     private:
-        tbb::concurrent_hash_map<cnst_lit_sptr, AnswerList*, LiteralHasher> ansCache;
+        tbb::concurrent_hash_map<cnst_lit_sptr, std::unique_ptr<AnswerList>, LiteralHasher> ansCache;
         // std::unordered_set<cnst_lit_sptr> failCache;
     public:
         Cache() = default;
@@ -160,7 +171,7 @@ namespace ares
             AnsCache::accessor ac;
             if (ansCache.insert(ac, q->front())){
                 //Solution node. Has been successfully inserted.
-                ac->second = new AnswerList();
+                ac->second.reset(new AnswerList());
                 return NOT_CACHED;
             }
             else
@@ -170,12 +181,15 @@ namespace ares
         /**
          * insert a new answer to the answer list of l.
          */
-        inline void addAns(const cnst_lit_sptr& l, const Substitution& ans){
+        inline bool addAns(const cnst_lit_sptr& l, const Substitution& ans){
             AnsCache::accessor ac;
             if( !ansCache.find( ac , l) ) throw "Tried to insert solution to a non existent key!";
-            if( auto ansl = ac->second->addAnswer(l, ans) )
+            if( auto ansl = ac->second->addAnswer(l, ans) ){
                 //Found a new answer, register answerlist so that we can restart suspended queries            
                 next_.push_back(ansl);
+                return true;
+            }
+            return false;
         }
         /**
          * Has any new solutions been found after the previous stage.

@@ -14,7 +14,7 @@ namespace ares
     void Reasoner::query(const Clause* goal,const State* context,SharedCB cb){
         auto g = std::unique_ptr<Clause>(goal->clone());
         g->setSubstitution(new Substitution());
-        Query query(g, cb,context);
+        Query query(g, cb,context,nullptr,0);
         prover.compute(query);
     }
     void Reasoner::initRoles(){
@@ -27,7 +27,7 @@ namespace ares
         struct CB: public CallBack
         {
             CB(Reasoner* r,std::atomic_bool& done_):CallBack(done_, nullptr),rsnr(r){}
-            virtual void operator()(const Substitution& ans){
+            virtual void operator()(const Substitution& ans,ushort,bool){
                 VarSet vset;
                 const role_sptr& role = (*rsnr->r)(ans,vset);             //Instantiate
                 if(role){
@@ -46,7 +46,7 @@ namespace ares
         struct CB: public CallBack
         {
             CB(Reasoner* r,std::atomic_bool& done_):CallBack(done_, nullptr),rsnr(r){}
-            virtual void operator()(const Substitution& ans){
+            virtual void operator()(const Substitution& ans,ushort,bool){
                VarSet vset;
                 auto& l = (*rsnr->INIT_GOAL->front())(ans,vset);
                 const cnst_lit_sptr& l_init = *(cnst_lit_sptr*)&l;                //Instantiate
@@ -95,7 +95,7 @@ namespace ares
     }
     
     bool Reasoner::isTerminal(const State& state){
-        auto cb = std::shared_ptr<TerminalCallBack>();
+        auto cb = std::shared_ptr<TerminalCallBack>(new TerminalCallBack());
         query(TERMINAL_GOAL, &state,cb);
         return cb->terminal;
     }

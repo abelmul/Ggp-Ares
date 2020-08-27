@@ -44,19 +44,20 @@ namespace ares
         wth->submit(job);
     }
 
-    ClauseCB::ClauseCB(Query&& query,Cache* cache)
-    : CallBack(query.cb->done,cache), nxt(query)
+    ClauseCB::ClauseCB(Query&& query)
+    : CallBack(query.cb->done,query.cache), nxt(query)
     {
     }
-    void LiteralCB::operator()(const Substitution& ans){
-        if( cache )//don't want to cache true and does, and negation queries.
-            cache->addAns(lit, ans);
-        (*cb)(ans);
-    }
-    void ClauseCB::operator()(const Substitution& ans){
+    void ClauseCB::operator()(const Substitution& ans, ushort suffix, bool isLookup){
         auto c = std::unique_ptr<Clause>(nxt->clone());
         c->setSubstitution(nxt->getSubstitution()  + ans);
-        Query q(c , nxt.cb, nxt.context);
-        prover->proverPool->post(  [=]{prover->compute(q,cache);} );
+        Query q(c , nxt.cb, nxt.context,nxt.cache,suffix+1);
+        // prover->proverPool->post(  [q,isLookup,cache(cache)]{prover->compute(q,cache,isLookup);} );
+        prover->compute(q,isLookup);
+    }
+    void LiteralCB::operator()(const Substitution& ans, ushort suffix, bool isLookup){
+        if( cache )//don't want to cache true and does, and negation queries.
+            cache->addAns(lit, ans);
+        (*cb)(ans,suffix,isLookup);
     }
 }

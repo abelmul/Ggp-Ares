@@ -156,6 +156,9 @@ namespace ares
     std::unordered_map<ushort, std::string> Namer::idName;
     std::unordered_map<std::string, ushort> Namer::nameId;
 
+    /**
+     * Reserve ids for known keywords.
+     */
     const ushort Namer::ROLE = Namer::registerName(std::string("role"));
     const ushort Namer::INIT = Namer::registerName(std::string("init"));
     const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));

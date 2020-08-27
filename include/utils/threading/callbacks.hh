@@ -9,7 +9,6 @@ namespace ares
     class Cache;
     class CallBack
     {
-        typedef std::function<void(const Substitution&)> CB_t;
     public:
         CallBack(std::atomic<bool>& d,Cache* c)
         :done(d),cache(c)
@@ -20,7 +19,7 @@ namespace ares
         CallBack& operator=(const CallBack&) = delete;
         CallBack& operator=(const CallBack&&) = delete;
 
-        virtual void operator()(const Substitution&)=0;
+        virtual void operator()(const Substitution&, ushort, bool isLookup=false) = 0;
         virtual ~CallBack() {}
     /**
      * Data
@@ -39,11 +38,11 @@ namespace ares
      * Methods
      */
     public:
-        LiteralCB(const cnst_lit_sptr& lit, unique_cb&& cb,Cache* cache)
-        : CallBack(cb->done,cache), lit(lit), cb(std::move(cb))
+        LiteralCB(const cnst_lit_sptr& lit, unique_cb&& cb_,Cache* c)
+        : CallBack(cb_->done,c), lit(lit), cb(std::move(cb_))
         {
         }
-        virtual void operator()(const Substitution& ans);
+        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup=false);
         virtual ~LiteralCB(){}
     
     /**
@@ -63,8 +62,8 @@ namespace ares
      */
         typedef std::unique_ptr<Clause> unique_clause;
     public:
-        ClauseCB(Query&& query,Cache* cache);
-        virtual void operator()(const Substitution& ans);
+        ClauseCB(Query&& query);
+        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup=false);
         virtual ~ClauseCB() {}
 
     /**
@@ -84,11 +83,11 @@ namespace ares
     class ClauseCBOne : public CallBack
     {
     public:
-        ClauseCBOne(std::atomic_bool& done,Cache* c)
-        : CallBack(done,c)
+        ClauseCBOne(std::atomic_bool& done_,Cache* c)
+        : CallBack(done_,c)
         {
         }
-        virtual void operator()(const Substitution&){
+        virtual void operator()(const Substitution&,ushort, bool isLookup=false){
             done = true;
         }
     };   

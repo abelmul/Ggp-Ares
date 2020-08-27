@@ -44,7 +44,6 @@ struct Assert
     Assert() {count = 0;}
     template< class... Types>
     void  operator()(bool cond, Types... msg) const {
-        assert(0 == 0);
         if(!cond ) {print_fail(true,"Assertion Failed : ", msg...);abort();}
         else 
             count++;
@@ -148,6 +147,7 @@ namespace ares{
     typedef std::pair<cnst_lit_sptr,OrdrdVarSet> lit_var_pair;
     typedef cnst_term_sptr(*RandFactory)(OrdrdVarSet&,ushort&,ushort);
 
+    void extractVar(const structured_term* l,OrdrdVarSet&);
     cnst_term_sptr getRandConst(OrdrdVarSet&,ushort&,ushort max_arity=0);
     cnst_term_sptr getRandVar(OrdrdVarSet&,ushort&,ushort max_arity=0);
     cnst_term_sptr getRandFn(OrdrdVarSet&,ushort&,ushort max_arity=0);
@@ -206,6 +206,23 @@ namespace ares{
         key.body = getRandBody(vars,arity,depth, max_arity_sb);
         return lit_var_pair(Ares::memCache->getLiteral(key), vars);
     }
+    Substitution* getRandVariant(const Literal* l){
+        ushort depth = (rand() % 2) +1;
+        VariantSubstitution* sigma = new VariantSubstitution();
+        OrdrdVarSet vars;
+        extractVar(l,vars);
+        OrdrdVarSet varsnew;
+        std::unordered_set<const Variable*> seen;
+        for (auto &&v : vars){
+            cnst_term_sptr vp = getRandVar(varsnew,depth);
+            while (seen.find((Variable*)vp.get()) != seen.end()){
+                vp = getRandVar(varsnew,depth);
+            }
+            sigma->bind(v, vp);
+            seen.insert((Variable*)vp.get());
+        }
+        return sigma;
+    }
     std::unique_ptr<Clause> getRandClause(ushort max_size=15){
         ushort size = rand() % max_size;
         ClauseBody* body = new ClauseBody(size);
@@ -216,6 +233,13 @@ namespace ares{
             (*body)[i] = getRandLiteral(depth, max_arity).first;
         }
         return std::unique_ptr<Clause>(new Clause(nullptr, body));
+    }
+    void extractVar(const structured_term* l,OrdrdVarSet& v){
+        for (auto &&i : l->getBody())
+        {
+            if( is_var(i) )  v.push_back((Variable*)i.get());
+            else if( is_struct_term(i) ) extractVar((structured_term*)i.get(),v);
+        }
     }
 };
 
