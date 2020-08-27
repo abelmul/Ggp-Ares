@@ -12,7 +12,9 @@ namespace ares
         const char * columns[8]{"a","b","c","d","e","f","g","h"};
     public:
         visualizer(/* args */) = default;
-        void draw(const State& state);
+        void draw(const State& state,bool chess=true);
+        void drawChess();
+        void drawTic();
         ~visualizer() {}
     };
 } // namespace ares

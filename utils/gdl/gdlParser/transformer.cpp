@@ -31,15 +31,15 @@ namespace ares
      *  A <= A0,..,Ai-1,~(W and V),..An    to      A <= A0,..,Ai-1,~W,..An and A <= A <= A0,..,Ai-1,~V,..An
      * Not handling the last case.
      */
-    void Transformer::applyTransformations(Clause* c, unique_ptr<TokenStream> stream){
+    void Transformer::applyTransformations(Clause* c, KnowledgeBase* base,unique_ptr<TokenStream> stream){
         while (stream->current() < stream->end())
-            parseFml(c, *stream);
+            parseFml(c,base, *stream);
 
         if ( (*(*stream))!= ")" ) throw UnbalancedParentheses( "Gdl :: Error :: Clause needs to be enclosed by parentheses.");
-        parser->base->add(c->getHead()->get_name(), c);
+        base->add(c->getHead()->get_name(), c);
     }
 
-    void Transformer::parseFml(Clause* c, TokenStream& stream){
+    void Transformer::parseFml(Clause* c,KnowledgeBase* base, TokenStream& stream){
         auto& it = stream.current();
         if( *it != "("){
             // A literal without a body
@@ -74,8 +74,8 @@ namespace ares
                     auto* s = streams[j];
                     s->setNext(next_exp+1);
                     auto* clone = new Clause(c->head, new ClauseBody(c->body->begin(), c->body->end(),true));
-                    boost::asio::post(*parser->pool, [this,clone,s](){
-                         this->applyTransformations(clone, unique_ptr<TokenStream>(s));
+                    boost::asio::post(*parser->pool, [this,clone,s,base](){
+                         this->applyTransformations(clone, base,unique_ptr<TokenStream>(s));
                     });
                 }
             }

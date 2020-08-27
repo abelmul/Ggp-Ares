@@ -128,7 +128,20 @@ Assert Runner::_assert_true;
 #define assert_true(cond) Runner::_assert_true(cond, #cond);
 #define assert_false(cond) Runner::_assert_true(!(cond), #cond);
 
+namespace ares{
+    Ares aresP;
+    Cfg cfg("./ares.cfg.json");
+};
 
+void setup(){
+    using namespace ares;
+    srand(time(NULL));
+    aresP.mempool = new MemoryPool(100,100,std::vector<std::pair<arity_t,uint>>());
+    aresP.memCache = aresP.mempool->getCache();
+    Body::mempool = ClauseBody::mempool = aresP.mempool;
+    Term::null_term_sptr = nullptr;
+    Term::null_literal_sptr = nullptr;
+}
 /**
  * 
  * Some utilities, useful for most testings.

@@ -9,7 +9,6 @@ void Hashing_Incorrect();
 void AnswerIterator();
 void Hashing_Variants();
 void CacheTest();
-ares::Cfg ares::cfg("./ares.cfg.json");
 namespace ares{
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
@@ -25,15 +24,6 @@ int main(int argc, char const *argv[])
     add_test(runner,CacheTest);
     runner();
     return 0;
-}
-void setup(){
-    srand(time(NULL));
-    Ares ares;
-    ares.mempool = new MemoryPool(100,100,std::vector<std::pair<arity_t,uint>>());
-    ares.memCache = ares.mempool->getCache();
-    Body::mempool = ClauseBody::mempool = ares.mempool;
-    Term::null_term_sptr = nullptr;
-    Term::null_literal_sptr = nullptr;
 }
 
 /**
@@ -187,7 +177,7 @@ void CacheTest(){
         
     std::atomic_bool done;
     std::shared_ptr<CallBack> cb(new ClauseCBOne(done,nullptr));
-    Query q(clause,cb,nullptr);
+    Query q(clause,cb,nullptr,0,0);
     q->front() = lit;
 
     assert_true( cache[q] == Cache::NOT_CACHED );
@@ -223,7 +213,7 @@ void CacheTest(){
             while( clause2->size() == 0)
                 clause2 = getRandClause();
 
-            Query q2(clause2,cb,nullptr);
+            Query q2(clause2,cb,nullptr,0,0);
             queries.push_back(q2.id);
             q2->front() = lit;
             auto it = cache[q2];

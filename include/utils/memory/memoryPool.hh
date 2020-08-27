@@ -30,7 +30,7 @@ namespace ares
     typedef _Body<const Literal> ClauseBody;
 
     typedef std::shared_ptr<const Term>             cnst_term_sptr;
-    typedef std::shared_ptr<const structured_term>  cnst_structured_term_sptr;
+    typedef std::shared_ptr<const structured_term>  cnst_st_term_sptr;
     typedef std::shared_ptr<const Variable>         cnst_var_sptr;
     typedef std::shared_ptr<const Constant>         cnst_const_sptr;
     typedef std::shared_ptr<const Function>         cnst_fn_sptr;

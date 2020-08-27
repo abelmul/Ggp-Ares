@@ -10,7 +10,7 @@ namespace ares
     class Reasoner
     {
     public:
-        Reasoner(Game& _g, GdlParser& _p, Prover& _prover,MemCache& mem)
+        Reasoner( GdlParser& _p, Prover* _prover,MemCache& mem,Game* _g=nullptr)
         :game(_g)
         ,parser(_p)
         ,prover(_prover)
@@ -26,9 +26,8 @@ namespace ares
         ,r(memCache.getVar(Namer::R))
         {
             goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
-            initRoles();        //might as well just get the roles now
-            _init();            //similar with the initial state
-           initMapping();      //Role to legal/goal query mapping
+            if( game )
+                initMapping();      //Role to legal/goal query mapping
         }
 
         static Clause* makeGoal(GdlParser& _p, const char * q){
@@ -37,21 +36,21 @@ namespace ares
         /**
          * @returns all the roles in the game
          */
-        const Roles& getRoles(){return roles;}
+        inline const Roles& getRoles(){return game->getRoles();}
         /**
          * @returns the initial state
          */
-        const State& getInit(){return init;}
+        inline const State& getInit(){return *game->getInit();}
         /**
          * @returns the next state following from @param state if the players
          * made move @param moves, the moves of each role should have the same 
          * order as the roles in roles. moves[i] is the action taken by role[i].
          */
-        State* getNext(const State& state,Moves& moves);
+        State* getNext(const State& state,const Moves& moves);
         /**
          * What are the legal moves in the state @param state
          */
-        Moves* legalMoves(const State& state, Role& role);
+        Moves* legalMoves(const State& state,const Role& role);
 
         /**
          * Is @param state a terminal state?
@@ -63,22 +62,24 @@ namespace ares
          */
         float getReward(Role& role, const State* state);
         
+        inline void setGame(Game* kb){
+            roleLegalMap.clear();
+            roleGoalMap.clear();
+            prover->setKb(kb);
+            if( game ) delete game;
+            game = kb;
+            initMapping();
+        }
+
         ~Reasoner(){
             for (auto &&c : goals)
                 delete c;
+            
+            if( game ) delete game;
+            delete prover;
         }
     
-    // private:
-
-        /**
-         * Infers the roles within the game
-         */
-        void initRoles();
-        /**
-         * Infers the initial state of the game
-         */
-        void _init();
-
+    private:
         /**
          * Just a wrapper method.
          */
@@ -91,15 +92,10 @@ namespace ares
         void initMapping();
 
         
-        Game& game;
+        Game* game;
         GdlParser& parser;
-        Prover& prover;
+        Prover* prover;
         MemCache& memCache;
-
-        
-        //These dont change throughout the game.
-        Roles roles;
-        State init;
 
         //Just to "pre-create" and hold the legal query, (legal some_role ?x)
         std::unordered_map<ushort, cnst_lit_sptr> roleLegalMap;

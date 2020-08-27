@@ -1,6 +1,7 @@
 #ifndef NAMER_HH
 #define NAMER_HH
 #include "utils/utils/hashing.hh"
+#include <boost/algorithm/string/case_conv.hpp>
 namespace ares
 {
    class Namer
@@ -16,16 +17,18 @@ namespace ares
         static inline ushort registerVname(const std::string& s){
             static ushort id=0;
             if( vNameId.find(s) != vNameId.end() ) return vNameId[s];
-            vNameId[s] = id;
-            vIdName[id] = s;
+            const auto& sLower = boost::to_lower_copy(s);
+            vNameId[sLower] = id;
+            vIdName[id] = sLower;
             return id++;
         }
 
         static inline ushort registerName(const std::string& s){
             static ushort id=60536;
             if( nameId.find(s) != nameId.end() ) return nameId[s];
-            nameId[s] = id;
-            idName[id] = s;
+            const auto& sLower = boost::to_lower_copy(s);
+            nameId[sLower] = id;
+            idName[id] = sLower;
             return id++;
         }
         /**

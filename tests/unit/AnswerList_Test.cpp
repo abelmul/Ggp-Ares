@@ -6,7 +6,6 @@ using namespace ares;
 void setup();
 void AnswerIterator();
 void AnsList();
-ares::Cfg ares::cfg("./ares.cfg.json");
 
 namespace ares{
     std::atomic<int> Query::nextId = 0;
@@ -20,16 +19,6 @@ int main(int argc, char const *argv[])
     add_test(runner, AnsList);
     runner();
     return 0;
-}
-
-void setup(){
-    srand(time(NULL));
-    Ares ares;
-    ares.mempool = new MemoryPool(100,100,std::vector<std::pair<arity_t,uint>>());
-    ares.memCache = ares.mempool->getCache();
-    Body::mempool = ClauseBody::mempool = ares.mempool;
-    Term::null_term_sptr = nullptr;
-    Term::null_literal_sptr = nullptr;
 }
 /**
  * The answer iterator should take in a next clause, a container, and a ptr--current position.
@@ -99,7 +88,7 @@ void AnsList(){
         {
             auto c = getRandClause();
             auto* clause = c.get();
-            Query q(c, cb, nullptr);
+            Query q(c, cb, nullptr,nullptr,0);
             auto it = ansList.addObserver(std::move(q));
             assert_true( (it.end() - it.begin()) == n );
             assert_false(q.goal);   // Goal should be moved

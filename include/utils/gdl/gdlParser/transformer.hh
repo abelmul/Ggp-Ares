@@ -28,12 +28,12 @@ namespace ares
          *  A <= A0,..,Ai-1,~(W and V),..An    to      A <= A0,..,Ai-1,~W,..An and A <= A <= A0,..,Ai-1,~V,..An
          *  A <= A0,..,Ai-1,~(W or V),..An     to      A <= A0,..,Ai-1,~W,~V,..An
          */
-        void applyTransformations(Clause* c, unique_ptr<TokenStream> stream);
+        void applyTransformations(Clause* c, KnowledgeBase* base,unique_ptr<TokenStream> stream);
         /**
          * Get and expression with a balanced parentheses.
          */
         void getBalanced(vector<string>::iterator& it,const vector<string>::iterator& end);
-        void parseFml(Clause* c, TokenStream& stream);
+        void parseFml(Clause* c, KnowledgeBase* base,TokenStream& stream);
         void _transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream);
         static Transformer* getTransformer(GdlParser* p){
             slock.lock();

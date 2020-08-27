@@ -1,15 +1,16 @@
 {
     "parser_threads":1,
-    "prover_threads":1,
-    "gdl":"tests/games/chess.kif",
+    "prover_threads":2,
+    "gdl":"tests/ggp.org/games/chess.kif",
     "debug":false,
     "file":true,
-    "random":true,
+    "random":false,
     "deletionPeriodFn":20,
     "deletionPeriodLit":30,
     "deletionQueueSize":65536,
     "jobQueue":24,
     "simulaions":1,
     "bucket":600,
-    "steps":300
+    "steps":2,
+    "port":8080
 }

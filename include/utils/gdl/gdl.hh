@@ -26,7 +26,7 @@ namespace ares{
 
         Query(const Query& q)
         :context(q.context), cb(q.cb), goal( std::move( *(unique_clause*)&q.goal)),
-        pool(nullptr),cache(q.cache),suffix(q.suffix),id(q.id), ptr(q.ptr)
+        pool(q.pool),cache(q.cache),suffix(q.suffix),id(q.id), ptr(q.ptr)
         {
         }
         inline static void resetid(){nextId = 0;}

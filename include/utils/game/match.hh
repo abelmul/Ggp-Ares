@@ -8,18 +8,23 @@ namespace ares
 {
     class State;
     
-    class Match
+    struct Match
     {
-    private:
-        Game* game;
-        State* state;
-        uint strtClck;
-        uint plyClck;
-        std::string role;
-
-    public:
         Match(/* args */) {}
         ~Match() {}
+        void reset(){
+            game = nullptr;
+            matchId = "";
+            role.reset();
+            strtClck=0;
+            plyClck=0;
+        }
+        Game* game;
+        std::string matchId;
+        const State* state;
+        uint strtClck;
+        uint plyClck;
+        cnst_term_sptr role;
     };
     /**
      * Represents the match's state.
@@ -58,6 +63,25 @@ namespace ares
         State& operator +=(const State& s){
             state.insert(s.state.begin(), s.state.end());
             return *this;
+        }
+        std::string toString(){
+            std::string s;
+            for (auto &&[name,vec] : state)
+            {
+                s.append( "----" + std::to_string(name) + "-----\n");
+                for (auto &&i : *vec)
+                    s.append( i->to_string() + "\n") ;
+            }   
+            return s;
+        }
+        bool operator ==(const State& other){
+            if( state.size() != other.state.size() ) return false;
+            for (auto &&[name,vec] : state)
+            {
+                auto it =  other.state.find(name);
+                if( it == other.state.end() or ( (*vec) != (*it->second) ) ) return false;
+            }
+            return true;
         }
         virtual ~State(){
             for (auto &&[name, vector] : state)

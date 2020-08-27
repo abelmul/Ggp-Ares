@@ -168,14 +168,15 @@ namespace ares
             return true;
         }
         virtual std::string to_string() const {
-            std::string s("(");
+            std::string s;
+            if( body->size() ) s.append("(");
             if(not positive) s.append("not ( ");
             s.append(Namer::name(name));
             for (auto &t : *body){
                 s.append(" " + t->to_string());
             }
             if(not positive) s.append(" )");
-            s.append(")");
+            if( body->size() ) s.append(")");
             return s;
         }
 

@@ -14,6 +14,7 @@ UNIT_BIN = $(TESTS_UNIT)/bin
 #create unit tests binary directory
 UNIT_BIN_DIR := $(shell mkdir -p $(UNIT_BIN))
 
+CPPREST_INC = ./lib/cpprestsdk/Release/include
 IDIR = ./include
 UTILS_IDIR =$(IDIR)/$(UTILS_DIR)
 UTILS_UTILS_IDIR = $(UTILS_IDIR)/utils
@@ -28,8 +29,8 @@ GAME_IDIR = $(IDIR)/$(GAME)
 OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
-FLAGS = -Wall -std=c++17 -I$(IDIR) -fno-strict-aliasing
-LIBS =  -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb
+FLAGS = -Wall -std=c++17 -I$(IDIR) -I$(CPPREST_INC) -fno-strict-aliasing
+LIBS =  -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb  -lboost_system -lcrypto -lssl 
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else
@@ -62,6 +63,14 @@ COMMON_INCS := $(GDL_INCS) $(UTILS_UTILS_INCS) $(MEMORY_INCS)
 #create the directories
 OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
 OBJ_UNIT_DIRS := $(shell mkdir -p `dirname $(OBJS_UNIT)`)
+
+setup:
+	git submodule add https://github.com/microsoft/cpprestsdk lib/cpprestsdk
+	cd lib/cpprestsdk
+	mkdir build.debug
+	cd build.debug
+	cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug
+	ninja
 
 ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
@@ -110,6 +119,9 @@ $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 # $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 # 	$(CC) -c $(FLAGS) -o $@ $< 
 
+
+
+#These are to make and run tests
 TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
 $(TESTS_UNIT)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
 	$(CC) $(FLAGS) -o $(UNIT_BIN)/Test_ThreadPool -Wl,--start-group $^ -Wl,--end-group 
@@ -129,6 +141,25 @@ $(TESTS_UNIT)/Cache_Test: $(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o $(TEST_OBJS)
 $(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o: $(TESTS_UNIT)/Cache_Test.cpp
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
+$(OBJS_DIR)/$(TESTS)/verifier.o : $(TESTS)/verifier.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
+
+$(OBJS_DIR)/$(TESTS)/simulator.o : $(TESTS)/simulator.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
+
+#Tests involving Random simulation and verification of the reasoner
+VERIFIER_DEP =  ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o ../objs/reasoner/prover.o ../objs/reasoner/reasoner.o ../objs/reasoner/substitution.o ../objs/reasoner/suffixRenamer.o ../objs/reasoner/unifier.o
+verifier: $(OBJS_DIR)/$(TESTS)/verifier.o $(VERIFIER_DEP)
+	$(CC) $(FLAGS) $(LIBS) -o $(TESTS)/verifier $^
+simulator: $(OBJS_DIR)/$(TESTS)/simulator.o $(VERIFIER_DEP)
+	$(CC) $(FLAGS) $(LIBS) -o $(TESTS)/simulator $^
+
+## Run the tests
+run_verifier:
+	$(TESTS)/verifier $(game)
+run_simulator:
+	$(TESTS)/simulator $(game)
+
 Test_ThreadPool:
 	$(UNIT_BIN)/Test_ThreadPool
 Test_MemPool:
@@ -138,5 +169,6 @@ Test_AnswerList:
 
 Cache_Test:
 	$(UNIT_BIN)/Cache_Test
+
 .clean:	
 	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares && rm $(UNIT_BIN)/*

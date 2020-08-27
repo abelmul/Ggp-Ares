@@ -5,9 +5,12 @@
 #include <iostream>
 #include "utils/threading/locks.hh"
 #include "utils/utils/hashing.hh"
+#include "utils/memory/namer.hh"
+#include "utils/gdl/clause.hh"
 
 namespace ares
 {
+    class State;
     typedef const Term Move;
     typedef const Term Role;
     typedef cnst_term_sptr move_sptr;
@@ -30,9 +33,11 @@ namespace ares
     private:
         /*A mapping from head names --> [clauses with the same head name]*/
         std::unordered_map<ushort, UniqueClauseVec*> rules;
+        Roles roles;
+        State* init;
 
     public:
-        Game(/* args */){}
+        Game(/* args */):init(nullptr){}
 
         virtual const UniqueClauseVec* operator [](ushort name) const {
             const UniqueClauseVec* v = nullptr;
@@ -62,15 +67,24 @@ namespace ares
         std::unordered_map<ushort, UniqueClauseVec*> getRules(){
             return rules;
         }
-        
-        virtual ~Game(){
-            for (auto& it : rules)
+        /**
+         * The roles are static wihin a game no need to compute them.
+         */
+        const Roles& getRoles();
+        /**
+         * THe initial state is static within the game no need to compute it.
+         */
+        const State* getInit();
+        std::string toString(){
+            std::string s;
+            for (auto &&[name,vec] : rules)
             {
-                for (const Clause *c : *it.second)
-                        delete c;
-                delete it.second;
+                for (auto &&i : *vec)
+                    s.append( i->to_string() + " ") ;
             }   
+            return s;
         }
+        virtual ~Game();
     };
 } // namespace ares
 

@@ -1,146 +1,52 @@
 #include "ares.hh"
+#include "utils/utils/httpHandler.hh"
 
 ares::Cfg ares::cfg;
-void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,ares::role_sptr& r0,ares::role_sptr& r1, int& m0,int& m1);
+
 int main(int argc, char const *argv[])
 {
+    std::cout.setf(std::ios::unitbuf);
     using namespace ares;
     //Read in the configuration file
     cfg = Cfg("./ares.cfg.json");
 
     //Create the memory pool
     std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)};
-    Ares ares(new MemoryPool(131072,262144,arities));
-
-    //Create the parser
-    GdlParser* p = GdlParser::getParser(cfg.parserThreads,ares.memCache);
-
-    //Setup some static elements
-    Body::mempool = ClauseBody::mempool = ares.mempool;
-
-    //Create the knowledge base
-    Game* kb(new Game());
-    auto c = std::chrono::high_resolution_clock();
-    auto begin = c.now();
-
-    //Parse the gdl
-    p->parse(kb,cfg.gdl);
-    SuffixRenamer::setPool(ares.memCache);
+    MemoryPool* mempool = new MemoryPool(131072,262144,arities);
+    Ares::setMem(mempool);
 
     //Get the singleton prover
-    Prover* prover(Prover::getProver(kb));
+    Prover* prover(Prover::getProver());
     ClauseCB::prover = prover;
-    // std::cout << "------Knoweledge base-------\n\n";
-    // for(auto &&i : *kb){
-    //     std::cout << " Key : " << i.first << std::endl;
-    //     for(auto &&j : *i.second)
-    //         std::cout << j->to_string() << std::endl;
-    // }
-    // std::cout << "------Knoweledge base-------\n\n";
 
-    //Create a reasoner over the game
-    Reasoner* _reasoner(new Reasoner(*kb, *p, *prover,*ares.memCache));
-    Reasoner& reasoner = *_reasoner;
+    //Setup some static elements
+    Body::mempool = ClauseBody::mempool = mempool;
+    SuffixRenamer::setPool(mempool->getCache());
+
+    //Create the parser
+    GdlParser* p = GdlParser::getParser(cfg.parserThreads,mempool->getCache());
+
+    //Create a reasoner over a game
+    Reasoner* reasoner(new Reasoner(*p, prover,*mempool->getCache()));
+
+    //Create Ares
+    std::unique_ptr<Ares> ares( Ares::getAres(reasoner, p));
+
+    //Start the server!
+    HttpHandler handler(*ares,std::string("http://localhost:8080"));
     
-    role_sptr& r0 = reasoner.roles[0];
-    role_sptr& r1 = reasoner.roles[1];
-
-    std::cout << "-----Roles------\n\n";
-    std::cout << *r0 << std::endl;
-    std::cout << *r1 << std::endl;
-    std::cout << "-----Roles------\n\n";
-    std::cout << cfg << "\n";
-    srand(time(NULL));
-    visualizer viz;
-
-    //Get the initial state
-    const State& init = reasoner.getInit();
-    uint sims = 0;
-
-
-    while (sims < cfg.simulaions)
-    {
-        const State* state = &init;
-        ushort steps=0;
-        while (steps < cfg.steps)
-        {
-            if( reasoner.isTerminal(*state) ){
-                auto reward_0 = reasoner.getReward(*r0, state);
-                auto reward_1 = reasoner.getReward(*r1, state);
-                viz.draw(*state);
-                std::cout << "Rewards for " << *r0<< " , " << reward_0 << "\n";
-                std::cout << "Rewards for " << *r1<< " , " << reward_1 << "\n";
-                break;
-            }
-            Moves* moves = reasoner.legalMoves(*state, *r0);
-            Moves* moves1 = reasoner.legalMoves(*state, *r1);
-            int m0=0,m1=0;
-            if( cfg.random ){
-                m0= rand() % moves->size();
-                m1= rand() % moves1->size();
-            }
-            else takeIn(state,moves,moves1,r0,r1,m0,m1);
-            Moves nmoves{(*moves)[m0], (*moves1)[m1]};
-
-            State* nxt = reasoner.getNext(*state, nmoves);
-            delete moves;
-            delete moves1;
-            
-            if( state != &init ) delete state;
-            state = nxt;
-            // return 0;
-            steps++;
-        }
-        std::cout << "Steps : " << steps << "\n";
-        sims++;
-    }
-    auto end = c.now();
-    auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
-    std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
-
-    delete kb;
-    delete p;
-    delete _reasoner;
-    delete prover;
-    
+    //Just wait
+    std::mutex mWait;
+    std::condition_variable cvWait;
+    std::unique_lock<std::mutex> lk(mWait);
+    cvWait.wait(lk);
     return 0;
-}
-
-void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,ares::role_sptr& r0,ares::role_sptr& r1, int& m0,int& m1){
-    static auto viz = ares::visualizer();
-    viz.draw(*state);
-    std::cout << "Legal Moves for : " << *r0 << "\n";
-    uint j=1;
-    for (uint i=0;i<moves->size();i++){
-        std::cout << (boost::format("[%|-2|]%|=25|") % i % (*moves)[i]->to_string());
-        if( j%5 == 0) std::cout << "\n";
-        j++;
-    }
-    std::cout <<"\n-------------------------------------------------------\n\n";
-    
-    j=1;
-    std::cout << "\nLegal Moves for : " << *r1 << "\n";
-    for (uint i=0;i<moves1->size();i++){
-        std::cout << (boost::format("[%|=2|]%|=25|") % i % (*moves1)[i]->to_string());
-        if( j%5 == 0) std::cout << "\n";
-        j++;
-    }
-    
-    std::cout <<"\n-------------------------------------------------------\n\n";
-
-    if(moves->size() > 1){
-        std::cout << "Move "<< *r0 <<": ";
-        std::cin >> m0;   
-    }
-    if(moves1->size() > 1){
-        std::cout << "Move "<< *r1 <<": ";
-            std::cin >> m1;
-    }
-}
-
+}   
 // voi
 namespace ares
 {
+    SpinLock Ares::sl;
+    Ares* Ares::ares = nullptr;
     Prover* ClauseCB::prover;
     MemCache* Ares::memCache = nullptr;
     MemoryPool* Ares::mempool = nullptr;

@@ -17,18 +17,19 @@ namespace ares
     class Prover
     {
     private:
-        Prover(const KnowledgeBase* _kb)
+        Prover(const KnowledgeBase* _kb=nullptr)
         :kb(_kb)
         {
             if( cfg.proverThreads > 0 ) proverPool = new ThreadPool(new LoadBalancerRR(cfg.proverThreads));
         };
     public:
-        static Prover* getProver(const KnowledgeBase* _kb){
+        static Prover* getProver(const KnowledgeBase* _kb=nullptr){
             slock.lock();
             if(not  _prover) _prover = new Prover(_kb);
             slock.unlock();
             return _prover;     //singleton
         }
+        inline void setKb(const KnowledgeBase* kb_){ kb=kb_; }
         /**
          * Carry out backward chaining. Search the sld-tree for a successful refutation.
          * Using kb + context as a combined knowledgebase.
@@ -36,7 +37,7 @@ namespace ares
          * @param query.cb is called with an answer each time a successful refutation is derived.
          */
         void compute(Query& query);  
-        ~Prover(){ delete proverPool; }
+        ~Prover(){ _prover = nullptr; delete proverPool; }
     private:
         /**
          * Extension of compute(Query& query), needed for recursion.
@@ -73,7 +74,6 @@ namespace ares
         static Prover* _prover;
         static SpinLock slock;
         const KnowledgeBase* kb;
-        Substitution* renamer;
         ThreadPool* proverPool = nullptr;     //Used for the initial query, and subequent searches.   
 
         friend class ClauseCB;

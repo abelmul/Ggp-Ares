@@ -42,7 +42,7 @@ namespace ares
         : CallBack(cb_->done,c), lit(lit), cb(std::move(cb_))
         {
         }
-        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup=false);
+        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup);
         virtual ~LiteralCB(){}
     
     /**
@@ -63,7 +63,7 @@ namespace ares
         typedef std::unique_ptr<Clause> unique_clause;
     public:
         ClauseCB(Query&& query);
-        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup=false);
+        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup);
         virtual ~ClauseCB() {}
 
     /**
@@ -87,7 +87,7 @@ namespace ares
         : CallBack(done_,c)
         {
         }
-        virtual void operator()(const Substitution&,ushort, bool isLookup=false){
+        virtual void operator()(const Substitution&,ushort, bool isLookup){
             done = true;
         }
     };   

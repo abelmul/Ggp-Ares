@@ -114,8 +114,8 @@ namespace ares
             void copy_elements(UniqueVector& vec){
                 elements.insert(elements.end(), vec.begin(), vec.end());
             }
-            inline bool exists(const T& el){
-                set* lookup_ = &lookup;
+            inline bool exists(const T& el)const{
+                const set* lookup_ = &lookup;
                 if( lookupPtr ) lookup_ = lookupPtr;
                 if( lookup_->find(el) == lookup_->end()) return false;
 
@@ -125,6 +125,16 @@ namespace ares
                 elements.resize(0);
                 lookup.clear();
             }
+
+            bool operator==(const UniqueVector& other){
+                if( elements.size() != other.elements.size()) return false;
+                for (auto &&el : elements)
+                    if( !other.exists(el) ) return false;
+                
+                return true;
+            }
+            bool operator!=(const UniqueVector& other){ return not ((*this) == other);}
+
             inline std::size_t size()const { return elements.size();}
             iterator begin()const { return elements.cbegin();}
             iterator end()const { return elements.cend();}

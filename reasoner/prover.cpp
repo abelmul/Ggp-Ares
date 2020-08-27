@@ -11,6 +11,7 @@ namespace ares
 
     void Prover::compute(Query& query){
         proverPool->restart();
+        query.pool = proverPool;
         Cache* cache = query.cache;
         //First stage
         proverPool->post( [&](){compute(query,false);} );
@@ -65,10 +66,7 @@ namespace ares
             //Solution Node, do an sld-resolution step
             query->pop_front();
             ClauseCB* cb = new ClauseCB(std::move(query));
-            if( query.pool and cache ) //We are not trying to prove a negation
-                proverPool->post( [=]{ compute(lit, query, cb);} );
-            else        //We are in the middle of proving a negation
-                compute(lit, query, cb);
+            compute(lit, query, cb,isLookup);
         }
         else
             //Lookup node, check if there are answers already computed
@@ -90,7 +88,8 @@ namespace ares
                 auto resolvent = std::unique_ptr<Clause>(nxt->clone());
                 resolvent->setSubstitution( nxt->getSubstitution() + mgu);
                 Query nxtQ(resolvent, query.cb,query.context,query.cache,query.suffix);
-                if( query.pool and  query.cache ) //We are not trying to prove a negation
+                nxtQ.pool = query.pool;
+                if( query.pool ) //We are not trying to prove a negation
                     proverPool->post([=] { compute(nxtQ,true);});
                 else    //We are in the middle of proving a negation
                     compute(nxtQ,true);
@@ -113,7 +112,8 @@ namespace ares
             std::unique_ptr<Clause> gn( resolve( lit, *c, renamer));
             if( !gn ) continue;
             Query qn(gn, cbsptr, q.context,q.cache,renamer.gets());
-            if( 0 ) //We are not trying to prove a negation
+            qn.pool = q.pool;
+            if( q.pool ) //We are not trying to prove a negation
                 proverPool->post([=]{ compute(qn, false);});
             else //We are in the middle of proving a negation
                 compute(qn, false);
@@ -152,6 +152,7 @@ namespace ares
         std::atomic_bool done = false;
         std::unique_ptr<Clause> g(nullptr);
         Query q(g,query.cb,query.context,nullptr,0);//pstvLit is ground so we could restart the suffix
+        q.pool  = nullptr;
         compute(pstvLit, q, new ClauseCBOne(done,nullptr));
         if( done ) //Atleast one answer has been found, so <-A1 succedeed 
             return;
