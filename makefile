@@ -65,12 +65,8 @@ OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
 OBJ_UNIT_DIRS := $(shell mkdir -p `dirname $(OBJS_UNIT)`)
 
 setup:
-	git submodule add https://github.com/microsoft/cpprestsdk lib/cpprestsdk
-	cd lib/cpprestsdk
-	mkdir build.debug
-	cd build.debug
-	cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug
-	ninja
+	mkdir lib/cpprestsdk/build.debug
+	cd lib/cpprestsdk/build.debug && cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug && ninja
 
 ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
