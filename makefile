@@ -11,10 +11,13 @@ TESTS_UNIT = $(TESTS)/unit
 TESTS_UNIT_INC = $(TESTS_UNIT)/include
 UNIT_BIN = $(TESTS_UNIT)/bin
 
+#EXTERNAL LIBRARIES
+CPPREST_INC = ./lib/cpprestsdk/Release/include
+CPPREST_SO = ./lib/cpprestsdk/build.debug/Release/Binaries
+
 #create unit tests binary directory
 UNIT_BIN_DIR := $(shell mkdir -p $(UNIT_BIN))
 
-CPPREST_INC = ./lib/cpprestsdk/Release/include
 IDIR = ./include
 UTILS_IDIR =$(IDIR)/$(UTILS_DIR)
 UTILS_UTILS_IDIR = $(UTILS_IDIR)/utils
@@ -29,20 +32,24 @@ GAME_IDIR = $(IDIR)/$(GAME)
 OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
-FLAGS = -Wall -std=c++17 -I$(IDIR) -I$(CPPREST_INC) -fno-strict-aliasing
-LIBS =  -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb  -lboost_system -lcrypto -lssl 
+FLAGS =  
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else
 FLAGS+= -O3
 endif
 
+
+FLAGS += -fno-strict-aliasing -Wall -std=c++17 -I$(IDIR) -I$(CPPREST_INC)
+LIBS =  -L$(CPPREST_SO) -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb  -lboost_system -lcrypto -lssl -lcpprest
+
+
 ifdef testing
 FLAGS+=  -I$(TESTS_UNIT)/include
 endif
 
 #Get the source files with their path
-SOURCES := $(shell find . -not -path "*test*" -name '*.cpp' | sed 's/\.\///')
+SOURCES := $(shell find . -not -path "*test*" -not -path "*lib*" -name '*.cpp' | sed 's/\.\///')
 TEST_FILES := $(shell find .  -path "*test*" -name '*.cpp' | sed 's/\.\///')
 
 #Create their respective object files
@@ -65,6 +72,7 @@ OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
 OBJ_UNIT_DIRS := $(shell mkdir -p `dirname $(OBJS_UNIT)`)
 
 setup:
+	git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git lib/cpprestsdk 
 	mkdir lib/cpprestsdk/build.debug
 	cd lib/cpprestsdk/build.debug && cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug && ninja
 
@@ -72,7 +80,8 @@ ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
 $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -o $@ $< 
-
+run:
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && ./ares
 # ares:  $(OBJS) 
 # 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
 
@@ -152,9 +161,9 @@ simulator: $(OBJS_DIR)/$(TESTS)/simulator.o $(VERIFIER_DEP)
 
 ## Run the tests
 run_verifier:
-	$(TESTS)/verifier $(game)
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/verifier $(game)
 run_simulator:
-	$(TESTS)/simulator $(game)
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/simulator $(game)
 
 Test_ThreadPool:
 	$(UNIT_BIN)/Test_ThreadPool
