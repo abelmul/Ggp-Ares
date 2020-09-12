@@ -3,10 +3,9 @@
 namespace ares
 {
     /*Define static members*/
-    GdlParser* GdlParser::_parser = nullptr;   
-    SpinLock GdlParser::slock;
     Transformer* GdlParser::transformer = nullptr;
     /*Define static members*/
+    
     cnst_st_term_sptr GdlParser::parseSterm(const char* st,const Creator& crtr){
         std::vector<string> tokens;
         tokenize(st,tokens);
@@ -18,29 +17,30 @@ namespace ares
      * Parse from a gdl file, and populate knowledgebase
      */
     void GdlParser::parse(KnowledgeBase* base, string& gdlF){
+        pool->restart();
         ifstream f(gdlF);
         string gdl((istreambuf_iterator<char>(f)),
                  istreambuf_iterator<char>());
+        gdl = "(" + gdl +")";
         string cmtRemoved = removeComments(gdl);
         std::vector<string> tokens;
         tokenize(cmtRemoved.c_str(),tokens);
-        tokens.push_back(")");
         parse(tokens,base);
-        pool->join();
+        pool->wait();
     }
     /**
      * Parse a gdl string, and populate knowledgebase
      */
     void GdlParser::parse(KnowledgeBase* base, vector<string>& tokens){
-        tokens.push_back(")");
+        pool->restart();
         parse(tokens,base);
-        pool->join();
+        pool->wait();
     }
 
     void GdlParser::parse(vector<string>& tokens,KnowledgeBase* base){
         vector<string>::iterator it, start, end;
         Pstate state = NEW;
-        for (it = tokens.begin(); it < tokens.end();)
+        for (it = tokens.begin()+1; it < tokens.end();)
         {
             switch (state)
             {
@@ -64,7 +64,7 @@ namespace ares
                 end = it;
                 if( *(start + 1) != "<=" ){
                     //Must be a fact
-                    boost::asio::post(*pool, [this,start,end,base](){
+                    pool->post([this,start,end,base](){
                         //Parse on a separate thread
                         vector<string>::iterator s = start;
                         cnst_lit_sptr l =  parseLiteral(s, end+1,true);
@@ -74,9 +74,7 @@ namespace ares
                 }
                 else { 
                     Clause* c = new Clause(nullptr, new ClauseBody());
-                    boost::asio::post(*pool, [this,start,end, c,&tokens,base](){
-                        parseRule(c, base,tokens,start, end);
-                    });
+                    pool->post([this,start,end, c,&tokens,base](){ parseRule(c, base,tokens,start, end);});
                 }
                 it++;
                 state = NEW;

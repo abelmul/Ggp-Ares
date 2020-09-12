@@ -1,9 +1,11 @@
 #include "ares.hh"
+#include "static.hh"
 
 ares::Cfg ares::cfg;
 void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,const ares::role_sptr& r0,const ares::role_sptr& r1, int& m0,int& m1);
 int main(int argc, char const *argv[])
 {
+    srand(time(NULL));
     std::cout.setf(std::ios::unitbuf);
     using namespace ares;
     //Read in the configuration file
@@ -11,40 +13,33 @@ int main(int argc, char const *argv[])
 
     //Create the memory pool
     std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)};
-    MemoryPool* mempool = new MemoryPool(131072,262144,arities);
-    Ares::setMem(mempool);
+    MemoryPool& mempool = MemoryPool::create(131072,262144,arities);
+    Ares::setMem(&mempool);
 
     //Get the singleton prover
-    Prover* prover(Prover::getProver());
-    ClauseCB::prover = prover;
+    Prover& prover(Prover::create());
+    ClauseCB::prover = &prover;
 
     //Setup some static elements
-    Body::mempool = ClauseBody::mempool = mempool;
-    SuffixRenamer::setPool(mempool->getCache());
+    Body::mempool = ClauseBody::mempool = &mempool;
+    SuffixRenamer::setPool(mempool.getCache());
 
     //Create the parser
-    GdlParser* p = GdlParser::getParser(cfg.parserThreads,mempool->getCache());
+    GdlParser& p = GdlParser::create(cfg.parserThreads,mempool.getCache());
 
     //Create a reasoner over a game
-    Reasoner* _reasoner(new Reasoner(*p, prover,*mempool->getCache()));
-    Reasoner& reasoner = *_reasoner;
+    Reasoner& reasoner(Reasoner::create(p, prover,*mempool.getCache()));
 
     //Create Ares
-    std::unique_ptr<Ares> ares( Ares::getAres(_reasoner, p));
+    Ares& ares( Ares::create(reasoner, Registrar::get(cfg.strategy.c_str()), p));
 
     //Start game, this is done after the start message has been recieved
     //Create the knowledge base
     Game* kb(new Game());
    
     //Parse the gdl
-    p->parse(kb,cfg.gdlFile);
+    p.parse(kb,cfg.gdlFile);
     reasoner.setGame(kb);
-
-
-
-
-
-
 
     const role_sptr& r0 = reasoner.getRoles()[0];
     const role_sptr& r1 = reasoner.getRoles()[1];
@@ -61,13 +56,9 @@ int main(int argc, char const *argv[])
     const State& init = reasoner.getInit();
     uint sims = 0;
 
-
-
-
-
-
     auto c = std::chrono::high_resolution_clock();
     auto begin = c.now();
+    uint total_steps = 0;
     while (sims < cfg.simulaions)
     {
         const State* state = &init;
@@ -103,10 +94,12 @@ int main(int argc, char const *argv[])
         }
         std::cout << "Steps : " << steps << "\n";
         sims++;
+        total_steps+=steps;
     }
     auto end = c.now();
     auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
     std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
+    std::cout << "Average time per step: " << (dur.count()/total_steps) <<" microseconds\n";
     return 0;
 }
 
@@ -142,48 +135,3 @@ void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,co
     }
 }
 
-// voi
-namespace ares
-{
-    SpinLock Ares::sl;
-    Ares* Ares::ares = nullptr;
-    Prover* ClauseCB::prover;
-    MemCache* Ares::memCache = nullptr;
-    MemoryPool* Ares::mempool = nullptr;
-    
-    //Initialize static members of term
-    cnst_term_sptr     Term::null_term_sptr(nullptr);
-    cnst_lit_sptr     Term::null_literal_sptr(nullptr);
-    
-    //Namer static
-    std::unordered_map<ushort, std::string> Namer::vIdName;
-    std::unordered_map<std::string, ushort> Namer::vNameId;
-    
-    std::unordered_map<ushort, std::string> Namer::idName;
-    std::unordered_map<std::string, ushort> Namer::nameId;
-
-    /**
-     * Reserve ids for known keywords.
-     */
-    const ushort Namer::ROLE = Namer::registerName(std::string("role"));
-    const ushort Namer::INIT = Namer::registerName(std::string("init"));
-    const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));
-    const ushort Namer::NEXT = Namer::registerName(std::string("next"));
-    const ushort Namer::TRUE = Namer::registerName(std::string("true"));
-    const ushort Namer::DOES = Namer::registerName(std::string("does"));
-    const ushort Namer::DISTINCT = Namer::registerName(std::string("distinct"));
-    const ushort Namer::GOAL = Namer::registerName(std::string("goal"));
-    const ushort Namer::TERMINAL = Namer::registerName(std::string("terminal"));
-    const ushort Namer::INPUT = Namer::registerName(std::string("input"));
-    const ushort Namer::BASE = Namer::registerName(std::string("base"));
-    const ushort Namer::X = Namer::registerVname(std::string("?x"));
-    const ushort Namer::R = Namer::registerVname(std::string("?r"));
-    
-    template<class T>
-    MemoryPool* _Body<T>::mempool =nullptr;
-
-    std::ostream& operator<<(std::ostream& os, const Cfg& cfg){
-        os << cfg.str();
-        return os;
-    }
-} // namespace ares

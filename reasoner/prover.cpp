@@ -2,10 +2,6 @@
 #include "ares.hh"
 namespace ares
 {
-    
-    Prover* Prover::_prover = nullptr;
-    SpinLock Prover::slock;
-
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
 
@@ -27,7 +23,6 @@ namespace ares
             cache->next(nextstage);
             proverPool->wait();
         }
-        if (cache) delete cache;   
     }
 
     void Prover::compute(Query query, const bool isLookup){
@@ -62,7 +57,7 @@ namespace ares
         //don't want to cache true and does, during negations, and lookups
         auto it = shldCache ? (*cache)[query] : Cache::NOT_CACHED ;    
 
-        if( it == Cache::NOT_CACHED ){
+        if( it.null() ){
             //Solution Node, do an sld-resolution step
             query->pop_front();
             ClauseCB* cb = new ClauseCB(std::move(query));
@@ -77,9 +72,10 @@ namespace ares
         /**
          * TODO: CHECK WETHER NOT RENAMING CREATES A PROBLEM
          */
-        Clause* nxt = it.nxt;
-        for (auto &&soln : it)
+        auto& nxt = it.nxt;
+        while (it)
         {
+            auto& soln = *it;
             //do an sld-resolution of lit with each solution
             Substitution mgu;
             //FOR DEBUGGING
@@ -94,6 +90,7 @@ namespace ares
                 else    //We are in the middle of proving a negation
                     compute(nxtQ,true);
             }
+            ++it;
         }
     }
     

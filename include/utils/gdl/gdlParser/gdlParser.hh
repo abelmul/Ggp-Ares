@@ -15,7 +15,6 @@ namespace ares
 {
     
     using namespace std;
-    typedef boost::asio::thread_pool thread_pool;
     enum Pstate {NEW, BALANCE,END};
     struct TokenStream;
     class GdlParser
@@ -23,10 +22,29 @@ namespace ares
         typedef std::function<cnst_st_term_sptr(std::reference_wrapper<PoolKey>)> Creator;
         friend class Transformer;
     
+    /**
+     * Methods.
+     */
     private:
 
-        GdlParser(uint nThreads, MemCache* mem): pool(new thread_pool(nThreads)), memCache(mem){}
-
+        /**
+         * ctor
+         */
+        GdlParser(uint nThreads, MemCache* mem)
+        : pool(new ThreadPool(new LoadBalancerRR(1))), memCache(mem)
+        {
+            transformer = new Transformer(this);
+        }
+        
+        GdlParser(const GdlParser&)=delete;
+        GdlParser& operator=(const GdlParser&)=delete;
+        GdlParser(const GdlParser&&)=delete;
+        GdlParser& operator=(const GdlParser&&)=delete;
+        /**
+         * Populate base with the rules and facts in tokens. 
+         * @param tokens tokenized valid kif/gdl
+         * @param base the knowledgebase to be populated
+         */
         void parse(vector<string>& tokens,KnowledgeBase* base);
         string preprocess(string& expr);
         /**
@@ -54,26 +72,13 @@ namespace ares
         cnst_st_term_sptr _create(stack<pair<string,Body*>>& bodies,const Creator&,bool p=true);
         string removeComments(string gdl);
 
-        
-        thread_pool* pool;
-        MemCache* memCache;
-        
-        //Static members
-        static GdlParser* _parser;
-        static Transformer* transformer;
-        static SpinLock slock;
-        
+      
 
     public:
         //Singleton parser/transformer
-        static GdlParser* getParser(uint nThreads,MemCache* mem){
-            slock.lock();
-            if(! _parser){
-                _parser = new GdlParser(nThreads,mem); 
-                transformer = new Transformer(_parser);
-            }
-            slock.unlock();
-            return _parser;
+        static GdlParser& create(uint nThreads,MemCache* mem){
+            static GdlParser parser(nThreads,mem);
+            return parser;
         }
         /**
          * Parse from a gdl file which is not preprocessed.
@@ -139,6 +144,17 @@ namespace ares
             delete pool;
             delete transformer;
         }
+
+    /**
+     * Data
+     */
+    private:
+        ThreadPool* pool;
+        MemCache* memCache;
+        
+        //Static members
+        static Transformer* transformer;
+            
     };
     
     inline void checkValid(string& s){

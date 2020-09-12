@@ -9,9 +9,12 @@ namespace ares
     typedef std::shared_ptr<CallBack> SharedCB;
     class Reasoner
     {
-    public:
-        Reasoner( GdlParser& _p, Prover* _prover,MemCache& mem,Game* _g=nullptr)
-        :game(_g)
+    private:
+        /**
+         * Ctor
+         */
+        Reasoner( GdlParser& _p, Prover& _prover,MemCache& mem)
+        :game(nullptr)
         ,parser(_p)
         ,prover(_prover)
         ,memCache(mem)
@@ -26,8 +29,24 @@ namespace ares
         ,r(memCache.getVar(Namer::R))
         {
             goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
-            if( game )
-                initMapping();      //Role to legal/goal query mapping
+        }
+
+
+        Reasoner(const Reasoner&)=delete;
+        Reasoner& operator=(const Reasoner&)=delete;
+        Reasoner(const Reasoner&&)=delete;
+        Reasoner& operator=(const Reasoner&&)=delete;
+    
+    /**
+     * Methods
+     */
+    public:
+        /**
+         * The singleton Reasoner;
+         */
+        static Reasoner& create(GdlParser& _p, Prover& _prover,MemCache& mem){
+            static Reasoner reasoner(_p,_prover,mem);
+            return reasoner;
         }
 
         static Clause* makeGoal(GdlParser& _p, const char * q){
@@ -65,18 +84,16 @@ namespace ares
         inline void setGame(Game* kb){
             roleLegalMap.clear();
             roleGoalMap.clear();
-            prover->setKb(kb);
+            prover.setKb(kb);
             if( game ) delete game;
             game = kb;
-            initMapping();
+            if( game ) initMapping();
         }
-
         ~Reasoner(){
             for (auto &&c : goals)
                 delete c;
             
             if( game ) delete game;
-            delete prover;
         }
     
     private:
@@ -91,10 +108,13 @@ namespace ares
          */
         void initMapping();
 
-        
+    /**
+     * Data
+     */
+    private:
         Game* game;
         GdlParser& parser;
-        Prover* prover;
+        Prover& prover;
         MemCache& memCache;
 
         //Just to "pre-create" and hold the legal query, (legal some_role ?x)
@@ -179,13 +199,12 @@ namespace ares
     };
     struct RewardCallBack : public CallBack
     {
-        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),_this(t),_done(false){}
+        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),reward(0.0),_this(t),_done(false){}
         virtual void operator()(const Substitution& ans,ushort,bool){
             done = true;
             VarSet vset;
             const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
             reward = atof(Namer::name(rewardTerm->get_name()).c_str());
-            std::cout << "Reward is : " << reward << "\n";
         }
         float reward;
         Reasoner* _this;

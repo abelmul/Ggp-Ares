@@ -9,6 +9,8 @@ void AnsList();
 
 namespace ares{
     std::atomic<int> Query::nextId = 0;
+    std::random_device RandomAnsIterator::rd;
+    std::mt19937 RandomAnsIterator::gen(RandomAnsIterator::rd());
 }
 int main(int argc, char const *argv[])
 {
@@ -39,8 +41,13 @@ void AnswerIterator(){
 
     auto asserter = [&elements](AnsIterator& ansit,const uint& curr){
         std::unordered_set<const Literal*> visited;
-        for (auto &&l : ansit)
+        while (ansit){
+            const auto& l = *ansit;
+            //Assert every element is visited exactly once.
+            assert_true( visited.find(l.get()) == visited.end());
             visited.insert(l.get());
+            ++ansit;
+        }
         
         assert_true( (visited.size() == (elements.size() - curr) ) );
         uint i=0;
@@ -54,16 +61,33 @@ void AnswerIterator(){
             i++;
         }
     };
+    /**
+     * Sequential Answer Iterator Tests
+     */
     AnsIterator ansitBegin(&elements,0,nullptr);
     AnsIterator ansitBEnd(&elements,elements.size()-1,nullptr);
     AnsIterator ansitAEnd(&elements,elements.size(),nullptr);
     uint curr = rand() % elements.size();
     AnsIterator ansitRand(&elements,curr,nullptr);
 
+    /**
+     * Random Answer Iterator Tests
+     */
+    RandomAnsIterator rAnsitBegin(ansitBegin);
+    RandomAnsIterator rAnsitBEnd(ansitBEnd);
+    RandomAnsIterator rAnsitAEnd(ansitAEnd);
+    RandomAnsIterator rAnsitRand(ansitRand);
+
+
     asserter(ansitBegin, 0);
     asserter(ansitBEnd, elements.size()-1);
     asserter(ansitAEnd, elements.size());
     asserter(ansitRand, curr);
+
+    asserter(rAnsitBegin, 0);
+    asserter(rAnsitBEnd, elements.size()-1);
+    asserter(rAnsitAEnd, elements.size());
+    asserter(rAnsitRand, curr);
 }
 
 void AnsList(){
@@ -90,7 +114,7 @@ void AnsList(){
             auto* clause = c.get();
             Query q(c, cb, nullptr,nullptr,0);
             auto it = ansList.addObserver(std::move(q));
-            assert_true( (it.end() - it.begin()) == n );
+            assert_true( it.remaining() == n );
             assert_false(q.goal);   // Goal should be moved
             asserter(it, clause);
         }
@@ -171,10 +195,12 @@ void AnsList(){
     for (auto &&q : queries)
     {
         auto it = ansList.addObserver(std::move(q));
-        assert_true( (it.end() - it.begin() )== inserted.size() );
+        assert_true( it.remaining() == inserted.size() );
         //Assert that every new soln is actually iterated over
-        for (auto &&soln : it)
-            assert_true( std::find( inserted.begin(), inserted.end(), soln) != inserted.end() );
+        while (it){
+            assert_true( std::find( inserted.begin(), inserted.end(), *it) != inserted.end() );
+            ++it;
+        }
         
     }
     

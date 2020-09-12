@@ -18,7 +18,7 @@ namespace ares
     /**
      * TODO: Pre-Compute Ground.
      */
-    enum Type {VAR,CONST,FN,LIT};
+    
     class MemCache;
     typedef std::unordered_set<const Variable*,VarHasher,VarEqual> VarSet;
     typedef std::unordered_map<ushort,ushort> VarRenaming;
@@ -27,16 +27,9 @@ namespace ares
     class Term
     {
     friend class MemCache;
-    
+    public: enum Type {VAR,CONST,FN,LIT};
     protected:
-        ushort name;
-        /*_this is a reference to the shared_ptr in the expression pool.
-          Used to quickly reset/delete it in the expression pool.*/
-        // cnst_term_sptr* _this = nullptr;
-        /**
-         * TODO: pre-computed ground value 
-         */
-        bool ground;    
+        ushort name; 
         Type type;        
 
         Term(ushort n, Type t):name(n),type(t){}
@@ -101,10 +94,14 @@ namespace ares
         mutable SpinLock slk;
         mutable bool positive;
         const Body* body = nullptr;
+        mutable struct { 
+            std::atomic_bool value; std::atomic_bool valid; 
+            operator bool()const{return value;} 
+        }ground;
         
     public:
         structured_term(ushort n, bool p,const Body* b,Type t)
-        :Term(n,t),positive(p),body(b)
+        :Term(n,t),positive(p),body(b),ground{false,false}
         {
         }
 
@@ -162,10 +159,14 @@ namespace ares
             return nHash;
         }
         virtual bool is_ground() const {
-            for (const cnst_term_sptr& arg : *body)
-                if (!arg->is_ground()) return false;
-
-            return true;
+            if( not ground.valid ){
+                ground.value = true;
+                for (const cnst_term_sptr& arg : *body)
+                    if (!arg->is_ground()) { ground.value = false; break; }
+                
+                ground.valid = true;
+            }
+            return ground;
         }
         virtual std::string to_string() const {
             std::string s;
@@ -186,10 +187,10 @@ namespace ares
     };
     
 
-    #define is_var(t)  (t->get_type() == VAR)
-    #define is_const(t)  (t->get_type() == CONST)
-    #define is_fn(t)  (t->get_type() == FN)
-    #define is_lit(t) (t->get_type() == LIT)
+    #define is_var(t)  (t->get_type() == Term::VAR)
+    #define is_const(t)  (t->get_type() == Term::CONST)
+    #define is_fn(t)  (t->get_type() == Term::FN)
+    #define is_lit(t) (t->get_type() == Term::LIT)
     #define is_struct_term(t) ( is_lit(t) || is_fn(t) )
 } // namespace ares
 

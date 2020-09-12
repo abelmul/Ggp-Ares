@@ -30,7 +30,27 @@ namespace ares
         typedef std::chrono::seconds seconds;
 
         friend class MemoryPool;
+    //ctor
+    private:
+        /**
+         * Only a single Memory cache should exist through out the life time of the application
+         * and its created by the singleton MemoryPool.
+         */
+        MemCache(){            
+            auto poll_fn=[&]{  remove(fnQueue,nameFnPool,Term::FN,seconds(cfg.deletionPeriodFn)); };
+            auto poll_lit=[&]{ remove(litQueue, nameLitPool,  Term::LIT, seconds(cfg.deletionPeriodLit));};
+            pollDone =false;
+            litQueueTh = new std::thread(poll_lit);
+            fnQueueTh = new std::thread(poll_fn);
+        }
 
+        MemCache(const MemCache&)=delete;
+        MemCache& operator=(const MemCache&)=delete;
+        MemCache(const MemCache&&)=delete;
+        MemCache& operator=(const MemCache&&)=delete;
+    /**
+     * Methods
+     */
     public:
 
         /**
@@ -61,23 +81,13 @@ namespace ares
 
         template <class T>
         struct Deleter;
-        /**
-         * Only a single expression pool should exist through out the life time of the application
-         * and its created by the singleton gdlParser.
-         */
-        MemCache(){            
-            auto poll_fn=[&]{  remove(fnQueue,nameFnPool,FN,seconds(cfg.deletionPeriodFn)); };
-            auto poll_lit=[&]{ remove(litQueue, nameLitPool,  LIT, seconds(cfg.deletionPeriodLit));};
-            pollDone =false;
-            litQueueTh = new std::thread(poll_lit);
-            fnQueueTh = new std::thread(poll_fn);
-        }
+        
         template <class T>
         struct Deleter{
             Deleter(MemCache* exp):_this(exp){}
             void operator()(T* st){
-                if (st->get_type() == FN)   _this->fnQueue.enqueue((const Function*)st);
-                else if(st->get_type()==LIT) _this->litQueue.enqueue((const Literal*)st);
+                if (st->get_type() == Term::FN)   _this->fnQueue.enqueue((const Function*)st);
+                else if(st->get_type()==Term::LIT) _this->litQueue.enqueue((const Literal*)st);
             }
             MemCache* _this =nullptr;
         };
@@ -86,7 +96,7 @@ namespace ares
         * if the only reference that exists is within the pool.
         */
        template<class T,class TP>
-       void remove(DeletionQueue<T>& queue,TP& nameStMap,Type type,seconds period){
+       void remove(DeletionQueue<T>& queue,TP& nameStMap,Term::Type type,seconds period){
            /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
             auto _reset = [&](T st){
                 /* use_count could be > 1 b/c st could be reused between the time
@@ -94,8 +104,8 @@ namespace ares
                 */
                 if( not st->body ) return;
                 if( type != st->get_type() ){
-                    if( type == FN ) litQueue.enqueue((const ares::Literal*)st);
-                    else if( type == LIT ) fnQueue.enqueue((const ares::Function*)st);
+                    if( type == Term::FN ) litQueue.enqueue((const ares::Literal*)st);
+                    else if( type == Term::LIT ) fnQueue.enqueue((const ares::Function*)st);
                     return;
                 }
                 typename TP::accessor ac;
@@ -104,7 +114,7 @@ namespace ares
                 typename TP::mapped_type::accessor pAc;
                 PoolKey key{st->name, st->body, st->positive, nullptr};
                 
-                if( not pool.find(pAc,key)) throw BadAllocation("Tried to delete an st that doesn't exist in pool");
+                if( not pool.find(pAc,key)) throw BadAllocation("Tried to delete an st that doesn't exist in pool : " + st->to_string());
                 if( pAc->second.use_count() > 0 ) return;
                 pool.erase(pAc);
                 delete st;
@@ -120,6 +130,10 @@ namespace ares
             }
        }
 
+
+    /**
+     * Data
+     */
     private:
 
         VarPool varPool;

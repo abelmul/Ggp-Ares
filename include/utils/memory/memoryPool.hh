@@ -22,7 +22,7 @@ namespace ares
     class Literal;
     class Clause;
 
-
+    /**************************************************/
     /**
      * Typedef shared_ptr for the different managed objects.
      */ 
@@ -76,19 +76,20 @@ namespace ares
     class MemoryPool
     {
     private:
+        //Ctor
+        MemoryPool(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
 
-        inline void* allocate(std::vector<void *>& pool){
-            void * el = pool.back();
-            pool.pop_back();
-            return el;
-        }
+        MemoryPool(const MemoryPool&)=delete;
+        MemoryPool& operator=(const MemoryPool&)=delete;
+        MemoryPool(const MemoryPool&&)=delete;
+        MemoryPool& operator=(const MemoryPool&&)=delete;
 
     public:
-        /**
-         * TODO: CHECK USAGE STATISICS OF THE OBJECTS IN THE POOL TO ACTUALLY DETERMINE
-         * THE OPTIMAL POOL SIZE FOR EACH OF THEM.
-         */
-        MemoryPool(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
+        inline static MemoryPool& create(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities){
+            static MemoryPool mem(st_terms,clause_s,arities);
+            return mem;
+        }
+        
         MemCache* getCache(){ return memCache;}
         void init_pools(std::size_t st_terms,std::size_t clause_s,std::vector<std::pair<arity_t,uint>> arities);
         /**
@@ -204,6 +205,16 @@ namespace ares
         ~MemoryPool();
         const static lit_container* EMPTY_CONTAINER;
 
+    private:
+        inline void* allocate(std::vector<void *>& pool){
+            void * el = pool.back();
+            pool.pop_back();
+            return el;
+        }
+
+    /**
+     * Data
+     */
     private:
         static MemCache* memCache;
         uint pool_element_size[3];

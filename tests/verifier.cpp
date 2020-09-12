@@ -3,19 +3,35 @@
 #include <boost/property_tree/ptree.hpp>
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
+#include <algorithm>
 #include "ares.hh"
+#include "static.hh"
 
 #define GAME_DIR "tests/ggp.org/games/"
 #define CHESS_MATCHES "tests/ggp.org/chess_matches.json"
+#define SELECTED_MATCHES "tests/ggp.org/matches.json"
+#define SELECTED_DIR "tests/ggp.org/selectedGames/"
 #define CHESS_GAME "tests/ggp.org/games/chess.kif"
+#define MAPPINGS  "tests/ggp.org/selectedGames/mapping.json"
+
+#define N 41775
+#define SAMPLE 10
 
 using namespace boost::property_tree;
-ptree getMatch(const char* name_ish);
+
+/**
+ * Iterates through the states and made moves of a recorded match on ggp.org 
+ * and asserts that the (locally) computed states and moves are equal.
+ */
+void verifyMatches(std::vector<const char*>);
+void simulateMatch(ptree& match,ares::Reasoner& reasoner);
+
 std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt);
 std::vector<std::vector<ares::cnst_term_sptr>> getState(ptree& pt);
-void verifyChessMatch();
+
+void writeOutMatch();
+ptree getMatch(const char* name_ish,std::vector<uint>& selected);
 namespace ares{
-    Ares* aresP;
     Cfg cfg("./ares.cfg.json");
     GdlParser* parser;
 };
@@ -23,35 +39,64 @@ using namespace ares;
 void setup(){
     using namespace ares;
     srand(time(NULL));
-    // aresP = new Ares(new MemoryPool(100,100,std::vector<std::pair<arity_t,uint>>()));
-    Body::mempool = ClauseBody::mempool = aresP->mempool;
+    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)};
+    
+    MemoryPool& mempool = MemoryPool::create(131072,262144,arities);
+    Ares::setMem(&mempool);
+
+    Body::mempool = ClauseBody::mempool = Ares::mempool;
     Term::null_term_sptr = nullptr;
     Term::null_literal_sptr = nullptr;
-    SuffixRenamer::setPool(aresP->memCache);
+    SuffixRenamer::setPool(Ares::memCache);
 }
 
 std::ofstream out;
 int main(int argc, char const *argv[]){
     setup();
-    verifyChessMatch();
+    verifyMatches({CHESS_MATCHES,SELECTED_MATCHES});
 }
 
-void verifyChessMatch(){
-    
-    ptree pt;
-    read_json(CHESS_MATCHES,pt);
-    auto match1 = pt.get_child("chess0");
-    parser = GdlParser::getParser(1,aresP->memCache);
-    Game* g(new Game());
-    string chess(CHESS_GAME);
-    parser->parse(g,chess);
-    cfg.proverThreads =1;
-    Prover* prover = Prover::getProver(g);
-    ClauseCB::prover = prover;
-    Reasoner reasoner(*parser,prover,*aresP->memCache,g);
+void verifyMatches(std::vector<const char*> matchFiles){
+    ptree mappings;
+    read_json(MAPPINGS, mappings);
 
-    auto pmatchStates = match1.get_child("data.states");
-    auto pmatchMoves = match1.get_child("data.moves");
+    cfg.proverThreads =1;
+    Prover& prover = Prover::create();
+    ClauseCB::prover = &prover;
+
+    parser = &GdlParser::create(1,Ares::memCache);
+
+    auto& reasoner(Reasoner::create(*parser,prover,*Ares::memCache));
+    
+    for (auto &&matchF : matchFiles)
+    {
+        ptree pt;
+        read_json(matchF,pt);
+        BOOST_FOREACH(auto& match1,pt){
+            //match.first == chess0
+            auto& match = match1.second;
+            Game* g(new Game());
+            string name;
+            if( match1.first.find("chess") != string::npos )
+                name = string(CHESS_GAME);
+            
+            else
+                name = SELECTED_DIR + mappings.get<string>(ptree::path_type(match1.first,'|'));
+            
+            std::cout << "Verifying GDl file : " << name << "\n";
+            std::cout << "Verifying Match: " << match1.second.get<string>("url") << "\n";
+            parser->parse(g,name);    
+            reasoner.setGame(g);
+            simulateMatch(match, reasoner);
+            std::cout << "Successfuly Verified Match: " << match1.second.get<string>("url") << "\n";
+        }
+    }
+    
+}
+
+void simulateMatch(ptree& match,ares::Reasoner& reasoner){
+    auto pmatchStates = match.get_child("data.states");
+    auto pmatchMoves = match.get_child("data.moves");
 
     auto matchStates = getState(pmatchStates);
     auto matchMoves = getMove(pmatchMoves);
@@ -67,7 +112,7 @@ void verifyChessMatch(){
         assert(moves.size() == roles.size());
         for (auto &&s : lstMatchState){
             PoolKey key{Namer::TRUE, new Body{s}};
-            auto true_ = aresP->memCache->getLiteral(key);
+            auto true_ = Ares::memCache->getLiteral(key);
             matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
         }
         //Assert that the computed state is the same as the matches state.
@@ -93,7 +138,7 @@ void verifyChessMatch(){
     auto last = matchStates.size()-1;
     for (auto &&s : matchStates[last]){
         PoolKey key{Namer::TRUE, new Body{s}};
-        auto true_ = aresP->memCache->getLiteral(key);
+        auto true_ = Ares::memCache->getLiteral(key);
         matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
     }
     assert( matchState == (*computedState));
@@ -109,11 +154,10 @@ std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt){
             std::vector<ares::cnst_term_sptr> moves_i;
             BOOST_FOREACH(auto& move, smoves.second){
                 auto move_s = move.second.get_value<std::string>();
-                std::cout << move_s << "\n";
                 if( move_s[0] == '(' )
                     moves_i.push_back(parser->parseFn(move_s.c_str()));
                 else
-                    moves_i.push_back(aresP->memCache->getConst(Namer::id(move_s)));
+                    moves_i.push_back(Ares::memCache->getConst(Namer::id(move_s)));
             }
             moves.push_back(moves_i);
         }
@@ -133,15 +177,24 @@ std::vector<std::vector<ares::cnst_term_sptr>> getState(ptree& pt){
     }
     return states;
 }
+
 void writeOutMatch(){
-    out = std::ofstream(CHESS_MATCHES,std::ios::app);
+    out = std::ofstream(SELECTED_MATCHES,std::ios::app);
     out.setf(std::ios::unitbuf);
     std::cout.setf(std::ios::unitbuf);
     out << "{ ";
     //Get a match
-    std::cout << "Looking for match with game name " << "\n";
     fflush(NULL);
-    auto match = getMatch("chess");
+    std::vector<uint> allMatches(N);
+    std::iota(allMatches.begin(), allMatches.end(), 0);
+
+    std::random_shuffle(allMatches.begin(), allMatches.end());
+
+    std::vector<uint> selected(allMatches.begin(), allMatches.begin() + SAMPLE);
+    for (auto &&i : selected)
+        std::cout << "Selecting matche " << i <<"\n";
+    
+    auto match = getMatch("http",selected);
     if( not match.size() ){
         std::cout << "Couldn't find a match with game name " << "chess" << "\n";
         return;
@@ -151,13 +204,13 @@ void writeOutMatch(){
 /**
  * Get a match which contains name_ish in its name.
  */
-ptree getMatch(const char* name_ish){
+ptree getMatch(const char* name_ish,std::vector<uint>& selected){
     uint i=0;
     using namespace std;
     string name("tests/ggp.org/matchesFrom2014");
     ifstream matches(name);    
     ptree pt;
-    for (string line; getline(matches, line) and i< 10;){
+    for (string line; getline(matches, line);++i){
         std::stringstream ss;
         std::string sep = "";
         ss << line;
@@ -165,12 +218,17 @@ ptree getMatch(const char* name_ish){
         try
         {
             auto name = pt.get<string>("data.gameMetaURL");
-            if( name.find("chess") != name.npos ){
-                if( not pt.get<bool>("data.isCompleted") ) continue;
+            auto it = std::find(selected.begin(),selected.end(), i);
+            if( it != selected.end()){
+                if( not pt.get<bool>("data.isCompleted") ) {
+                    uint j=1;
+                    while ( std::find(selected.begin(),selected.end(),i+j) != selected.end()) j++;
+                    *it = i+j;
+                    continue;
+                };
                 cout << name <<'\n';
                 out << sep << "\"" << name << " \": " << line ;
                 sep = ",";
-                i++;
             }
         }
         catch(const std::exception& e){
@@ -180,46 +238,3 @@ ptree getMatch(const char* name_ish){
     }
     return pt;
 }
-
-namespace ares
-{
-    Prover* ClauseCB::prover;
-    MemCache* Ares::memCache = nullptr;
-    MemoryPool* Ares::mempool = nullptr;
-    
-    //Initialize static members of term
-    cnst_term_sptr     Term::null_term_sptr(nullptr);
-    cnst_lit_sptr     Term::null_literal_sptr(nullptr);
-    
-    //Namer static
-    std::unordered_map<ushort, std::string> Namer::vIdName;
-    std::unordered_map<std::string, ushort> Namer::vNameId;
-    
-    std::unordered_map<ushort, std::string> Namer::idName;
-    std::unordered_map<std::string, ushort> Namer::nameId;
-
-    /**
-     * Reserve ids for known keywords.
-     */
-    const ushort Namer::ROLE = Namer::registerName(std::string("role"));
-    const ushort Namer::INIT = Namer::registerName(std::string("init"));
-    const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));
-    const ushort Namer::NEXT = Namer::registerName(std::string("next"));
-    const ushort Namer::TRUE = Namer::registerName(std::string("true"));
-    const ushort Namer::DOES = Namer::registerName(std::string("does"));
-    const ushort Namer::DISTINCT = Namer::registerName(std::string("distinct"));
-    const ushort Namer::GOAL = Namer::registerName(std::string("goal"));
-    const ushort Namer::TERMINAL = Namer::registerName(std::string("terminal"));
-    const ushort Namer::INPUT = Namer::registerName(std::string("input"));
-    const ushort Namer::BASE = Namer::registerName(std::string("base"));
-    const ushort Namer::X = Namer::registerVname(std::string("?x"));
-    const ushort Namer::R = Namer::registerVname(std::string("?r"));
-    
-    template<class T>
-    MemoryPool* _Body<T>::mempool =nullptr;
-
-    std::ostream& operator<<(std::ostream& os, const Cfg& cfg){
-        os << cfg.str();
-        return os;
-    }
-} // namespace ares

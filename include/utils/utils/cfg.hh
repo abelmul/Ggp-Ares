@@ -6,9 +6,18 @@
 #include <boost/property_tree/json_parser.hpp>
 #include <boost/foreach.hpp>
 #include  <initializer_list>
-
+#include "utils/utils/color.hh"
 namespace ares
 {
+    typedef bool Determinism;
+    
+    inline std::ostream& log(const std::string& msg){
+        using namespace rang;
+        using namespace std;
+        cout << style::bold << fg::green << msg <<" "<< style::reset;     
+        return cout;
+    }
+    
     struct Cfg
     {
         Cfg(){}
@@ -20,6 +29,8 @@ namespace ares
             ptree pt;
             read_json(cfg_s, pt);
             
+
+            strategy = pt.get<std::string>("strategy");
             parserThreads     = pt.get<uint>("parser_threads");
             proverThreads     = pt.get<uint>("prover_threads");
             debug             = pt.get<bool>("debug");
@@ -41,6 +52,7 @@ namespace ares
         friend std::ostream& operator<<(std::ostream& os, const Cfg& cfg);
         std::string str()const{
             // std::string s = boost::format().str();
+            auto strf = boost::format("%|-20| : %|-5|\n") % "Strategy" % strategy;
             auto pbf = boost::format("%|-20| : %|-5|\n") % "proverThreads" % proverThreads;
             auto dqf = boost::format("%|-20| : %|-5|\n") % "deletionQueueSize" % deletionQueueSize;
             auto dpf = boost::format("%|-20| : %|-5|\n") % "deletionPeriodFn" % deletionPeriodFn;
@@ -51,8 +63,9 @@ namespace ares
             auto bf = boost::format("%|-20| : %|-5|\n") % "bucket" % bucket;
             auto df = boost::format("%|-20| : %|-5|\n") % "debug" % debug;
             auto rf = boost::format("%|-20| : %|-5|\n") % "random   " % random ;
-            return  pbf.str() + dqf.str() + dpf.str() + dpl.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str() + bf.str();
+            return  strf.str() + pbf.str() + dqf.str() + dpf.str() + dpl.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str() + bf.str();
         }
+        std::string strategy;
         std::string gdl;
         std::string gdlFile;
         uint parserThreads;

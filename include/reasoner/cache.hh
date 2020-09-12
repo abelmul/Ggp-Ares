@@ -13,44 +13,12 @@
 #include "utils/utils/cfg.hh"
 #include "utils/threading/threading.hh"
 #include "reasoner/suffixRenamer.hh"
+#include "utils/utils/iterators.hh"
 
 namespace ares 
 {
-    /**
-     * Inorder to restart a query we need to know how much of 
-     * the answer we have consumed so far.
-     * This class encapsulate that logic. 
-     */
-    struct AnsIterator{
-        typedef std::vector<cnst_lit_sptr>::const_iterator iterator;
-        typedef UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> container;
 
-        AnsIterator(const container* c,const uint curr,Clause* nxt )
-        :nxt(nxt),ans(c), current(curr)
-        {}
-
-        inline iterator begin()const{ 
-            if(not ans) throw "Tried to call begin on empty iterator.";
-            return ans->begin() + current; 
-        }
-        inline iterator end()const{ 
-            if(not ans) throw "Tried to call end on empty iterator."; 
-            return ans->end();
-        }
-        inline bool operator==(const AnsIterator& other)const{
-            return (ans == other.ans) and ( current == other.current) and ( nxt == other.nxt);
-        }
-        inline bool operator!=(const AnsIterator& other)const{
-            return !((*this) == other);
-        }
-
-        ~AnsIterator(){ if( nxt ) delete nxt;}
-        Clause* nxt;
-        private:
-            const container* ans;
-            const uint current;
-    };
-
+    
     struct AnswerList
     {
         AnswerList():qi(0){
@@ -159,7 +127,10 @@ namespace ares
         tbb::concurrent_hash_map<cnst_lit_sptr, std::unique_ptr<AnswerList>, LiteralHasher> ansCache;
         // std::unordered_set<cnst_lit_sptr> failCache;
     public:
-        Cache() = default;
+        Cache(AnsIterator::Type ansType_=AnsIterator::SEQ)
+        :ansType(ansType_)
+        {
+        }
         /**
          * Get the indexed solutions list if this query has been cached before.
          * else create an empty solutions list
@@ -172,11 +143,14 @@ namespace ares
             if (ansCache.insert(ac, q->front())){
                 //Solution node. Has been successfully inserted.
                 ac->second.reset(new AnswerList());
+                nsolns++;
                 return NOT_CACHED;
             }
-            else
-                //Lookup node. Variant exists as key in cache.
-                return ac->second->addObserver(std::move(q));
+            //Lookup node. Variant exists as key in cache.
+            auto ansIt = ac->second->addObserver(std::move(q));
+            nconsumedAns+= ansIt.remaining();
+            nlookups++;
+            return ansType == AnsIterator::SEQ  ? ansIt : RandomAnsIterator(ansIt);
         }
         /**
          * insert a new answer to the answer list of l.
@@ -187,6 +161,7 @@ namespace ares
             if( auto ansl = ac->second->addAnswer(l, ans) ){
                 //Found a new answer, register answerlist so that we can restart suspended queries            
                 next_.push_back(ansl);
+                nnewAns++;
                 return true;
             }
             return false;
@@ -210,6 +185,15 @@ namespace ares
     public:
         static AnsIterator NOT_CACHED;
         Next next_;
+        AnsIterator::Type ansType;
+    
+    /**
+     * Stats
+     */
+        long nlookups;
+        long nnewAns;
+        long nsolns;
+        long nconsumedAns;
     };
 } // namespace Cache
 

@@ -134,7 +134,7 @@ namespace ares
                 return true;
             }
             bool operator!=(const UniqueVector& other){ return not ((*this) == other);}
-
+            const T& operator[](uint i) const { return elements.at(i);}
             inline std::size_t size()const { return elements.size();}
             iterator begin()const { return elements.cbegin();}
             iterator end()const { return elements.cend();}

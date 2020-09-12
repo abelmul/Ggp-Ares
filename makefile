@@ -128,28 +128,28 @@ run:
 
 #These are to make and run tests
 TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
-$(TESTS_UNIT)/Test_ThreadPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
-	$(CC) $(FLAGS) -o $(UNIT_BIN)/Test_ThreadPool -Wl,--start-group $^ -Wl,--end-group 
+Test_ThreadPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_ThreadPool.o $(OBJS_DIR)/$(THREADING)/threadPool.o
+	$(CC) $(FLAGS) -o $(UNIT_BIN)/ThreadPool_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(TESTS_UNIT)/Test_MemPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_MemPool.o $(TEST_OBJS)
-	$(CC) $(FLAGS)  -o $(UNIT_BIN)/Test_MemPool -Wl,--start-group $^ -Wl,--end-group 
+Test_MemPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_MemPool.o $(TEST_OBJS)
+	$(CC) $(FLAGS)  -o $(UNIT_BIN)/MemPool_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(TESTS_UNIT)/AnswerList_Test: $(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o $(TEST_OBJS)
+AnswerList_Test: $(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o $(TEST_OBJS)
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/AnswerList_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o: $(TESTS_UNIT)/AnswerList_Test.cpp
-	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
-
-$(TESTS_UNIT)/Cache_Test: $(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o $(TEST_OBJS)
+Cache_Test: $(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o $(TEST_OBJS)
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/Cache_Test -Wl,--start-group $^ -Wl,--end-group 
 
-$(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o: $(TESTS_UNIT)/Cache_Test.cpp
+$(OBJS_DIR)/$(TESTS_UNIT)/AnswerList_Test.o: $(TESTS_UNIT)/AnswerList_Test.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
-$(OBJS_DIR)/$(TESTS)/verifier.o : $(TESTS)/verifier.cpp
+$(OBJS_DIR)/$(TESTS_UNIT)/Cache_Test.o: $(TESTS_UNIT)/Cache_Test.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
-$(OBJS_DIR)/$(TESTS)/simulator.o : $(TESTS)/simulator.cpp
+$(OBJS_DIR)/$(TESTS)/verifier.o : $(TESTS)/verifier.cpp $(INCLS)
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
+
+$(OBJS_DIR)/$(TESTS)/simulator.o : $(TESTS)/simulator.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
 #Tests involving Random simulation and verification of the reasoner
@@ -165,15 +165,16 @@ run_verifier:
 run_simulator:
 	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/simulator $(game)
 
-Test_ThreadPool:
+run_threadPool_test:
 	$(UNIT_BIN)/Test_ThreadPool
-Test_MemPool:
+run_nemPool_test:
 	$(UNIT_BIN)/Test_MemPool
-Test_AnswerList:
+run_answerList_test:
 	$(UNIT_BIN)/AnswerList_Test
-
-Cache_Test:
+run_cache_test:
 	$(UNIT_BIN)/Cache_Test
 
 .clean:	
-	find $(OBJS_DIR) -type f -name '*.o' -delete && rm ares && rm $(UNIT_BIN)/*
+	find $(OBJS_DIR) -type f -name '*.o' -delete 
+	rm -f ares
+	rm -f $(UNIT_BIN)/* 

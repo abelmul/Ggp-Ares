@@ -1,6 +1,7 @@
 {
+    "strategy":"Random",
     "parser_threads":1,
-    "prover_threads":2,
+    "prover_threads":4,
     "gdl":"tests/ggp.org/games/chess.kif",
     "debug":false,
     "file":true,
@@ -11,6 +12,6 @@
     "jobQueue":24,
     "simulaions":1,
     "bucket":600,
-    "steps":201,
+    "steps":3,
     "port":8080
 }

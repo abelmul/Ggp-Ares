@@ -11,6 +11,7 @@
 #include <functional>
 #include <boost/algorithm/string/case_conv.hpp>
 #include <atomic>
+#include "utils/utils/cfg.hh"
 
 namespace ares
 {
@@ -18,22 +19,7 @@ namespace ares
     {
         typedef std::function<std::string(std::reference_wrapper<std::vector<std::string>>)> Hook;
     public:
-        HttpHandler(Ares& ares_,std::string url)
-        :ares(ares_),listener(url),hooks(3),playing(false)
-        {
-            using namespace web::http;
-            
-            //Setup the hooks
-            hooks[START] = ([this](std::vector<std::string>& s){ return startHandler(s); });
-            hooks[PLAY] = ([this](std::vector<std::string>& s){ return playHandler(s); });
-            hooks[STOP] = ([this](std::vector<std::string>& s){ return stopHandler(s); });
-
-            //Start up the server
-            listener.support(methods::POST,std::bind(&HttpHandler::handle, this, std::placeholders::_1));
-            listener.open()
-            .then([&]{cout << "[*] HttpHandler: Ares Server Started on Adress : " << url << "\n";})
-            .wait();
-        }
+        HttpHandler(Ares& ares_,std::string url);
 
         /**
          * Stop accepting requests.
@@ -59,14 +45,24 @@ namespace ares
         inline short type(const std::string& s){
             const auto& str = boost::to_lower_copy(s);
             
-            if(  str == "play")
+            if(   str == "info" )
+                return INFO;
+            else if(  str == "play")
                 return PLAY;
             else if(  str == "start")
                 return START;
-            else if(   str == "stop")
+            else if(   str == "stop" )
                 return STOP;
-            
+            else if( str == "abort")
+                return ABORT;
             return -1;
+        }
+        void wait(){
+            //Just wait
+            std::mutex mWait;
+            std::condition_variable cvWait;
+            std::unique_lock<std::mutex> lk(mWait);
+            cvWait.wait(lk);
         }
     /**
      * Data 
@@ -78,9 +74,11 @@ namespace ares
         std::vector<Hook> hooks;
         std::atomic_bool playing;
 
-        const ushort START=0;
-        const ushort PLAY=1;
-        const ushort STOP=2;
+        const ushort INFO=0;
+        const ushort START=1;
+        const ushort PLAY=2;
+        const ushort STOP=3;
+        const ushort ABORT=4;
 
 
     };

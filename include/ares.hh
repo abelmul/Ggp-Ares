@@ -10,6 +10,7 @@
 #include "utils/utils/cfg.hh"
 #include "utils/memory/memoryPool.hh"
 #include "utils/memory/namer.hh"
+#include "strategy/strategy.hh"
 #include <thread>
 #include <chrono> 
 #include <fstream>  
@@ -22,50 +23,71 @@ namespace ares
     {
     private:
         /* data */
-        Ares(Reasoner* rsnr , GdlParser* p)
-        : parser(p),reasoner(rsnr)
+        Ares(Reasoner& rsnr ,Strategy& st, GdlParser& p)
+        : parser(p),reasoner(rsnr), strategy(st)
         {
         }
 
     public:
-        Reasoner* operator->(){ return reasoner;}
+        Reasoner* operator->(){ return &reasoner;}
 
         inline void startMatch(Match& m,const std::string& role){
             match = m;
             match.role =  memCache->getConst(Namer::id(role));
-            reasoner->setGame(m.game);
+            reasoner.setGame(m.game);
         }
         inline cnst_term_sptr makeMove(){
             return makeMove(Moves());
         }
         inline cnst_term_sptr makeMove(const Moves& moves){
-            auto* nextState = moves.size()==0 ? match.state : reasoner->getNext(*match.state, moves);
-
+            auto* currentState = moves.size()==0 ? match.state : reasoner.getNext(*match.state, moves);
 
             if( match.state != match.game->getInit() )
                 delete match.state;
 
-            match.state = nextState;
-            //make a random move for now
-            auto* legals = reasoner->legalMoves(*nextState, *match.role);
-            auto i = rand() %  legals->size();
-            auto selected = (*legals)[i];
-            delete legals;
-            return selected;
+            match.state = currentState;
+            return strategy(match,reasoner);
         }
 
         inline const std::string& currentMatch() { return match.matchId;}
         inline const State& getMatchState() { return *match.state;}
-        inline void stopMatch(){
+        
+        inline bool abortMatch(const std::string& id){
+            if( match.matchId != id ) return false;
             match.reset();
-            reasoner->setGame(nullptr);
+            reasoner.setGame(nullptr);
+            return true;
         }
-        static Ares* getAres(Reasoner* rsnr , GdlParser* p){
-            {
-                std::lock_guard<SpinLock> lk(sl);
-                if( not ares )
-                    ares = new Ares(rsnr,p);
+
+        inline void stopMatch(const Moves& moves){
+            //Compute the current state
+            auto* current = reasoner.getNext(*match.state,moves);
+
+            if( match.state != match.game->getInit() )
+                delete match.state;
+
+            match.state = current;
+
+            //Just display the rewards, if its a terminal state
+            if( reasoner.isTerminal(*match.state) ){
+                log("[Ares] Rewards: ");
+                std::string sep("");
+                for (auto &&role : match.game->getRoles() )
+                {
+                    std::cout << sep ;
+                    log(Namer::name(role->get_name())) << ", ";
+                    log(to_string(reasoner.getReward(*role, match.state)));
+                    sep = " | ";
+                }
+                std::cout << "\n";
             }
+
+            //Delete the knowledgebase
+            match.reset();
+            reasoner.setGame(nullptr);
+        }
+        static Ares& create(Reasoner& rsnr ,Strategy& st, GdlParser& p){
+            static Ares ares(rsnr,st,p);
             return ares;
         }
 
@@ -74,20 +96,16 @@ namespace ares
             memCache = mem->getCache();
         }
         ~Ares(){
-            delete reasoner;
-            delete parser;
-            delete mempool;
         }
 
         static MemoryPool* mempool;
         static MemCache* memCache;
-        GdlParser* parser;
+        GdlParser& parser;
 
     private:
-        Reasoner* reasoner;
+        Reasoner& reasoner;
+        Strategy& strategy;
         Match match;
-        static SpinLock sl;
-        static Ares* ares;
     };
 } // namespace ares
 

@@ -8,10 +8,16 @@ void Hashing_Correct();
 void Hashing_Incorrect();
 void AnswerIterator();
 void Hashing_Variants();
-void CacheTest();
+void CacheTest(Cache& cache);
+void SeqCacheTest();
+void RandCacheTest();
+
 namespace ares{
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
+
+    std::random_device RandomAnsIterator::rd;
+    std::mt19937 RandomAnsIterator::gen(RandomAnsIterator::rd());
 }
 int main(int argc, char const *argv[])
 {
@@ -21,7 +27,7 @@ int main(int argc, char const *argv[])
     add_test(runner,Hashing_Correct);
     add_test(runner,Hashing_Incorrect);
     add_test(runner,Hashing_Variants);
-    add_test(runner,CacheTest);
+    add_test(runner,SeqCacheTest);
     runner();
     return 0;
 }
@@ -154,8 +160,18 @@ void Hashing_Variants(){
     assert_true( (renamed->equals(*lit.get(),renaming)) );
 }
 
-void CacheTest(){
+void SeqCacheTest(){
+    Cache cache(AnsIterator::SEQ);
+    CacheTest(cache);
+}
 
+void RandCacheTest(){
+    Cache cache(AnsIterator::RAND);
+    CacheTest(cache);
+}
+
+void CacheTest(Cache& cache){
+    typedef std::unique_ptr<Clause> unique_clause;
     std::vector<uint> queries;
     std::vector<Query> newQueries;
     Query::resetid();
@@ -164,7 +180,6 @@ void CacheTest(){
         qcount++;
         assert( std::find(queries.begin(),queries.end(),q.id ) != queries.end() );
     };
-    Cache cache;
     //Create a solution node
     auto [lit, vars] = getRandLiteral(3,15);
     while (lit->is_ground()){
@@ -174,13 +189,13 @@ void CacheTest(){
     auto clause = getRandClause();
     while( clause->size() == 0)
         clause = getRandClause();
-        
+    
     std::atomic_bool done;
     std::shared_ptr<CallBack> cb(new ClauseCBOne(done,nullptr));
     Query q(clause,cb,nullptr,0,0);
     q->front() = lit;
 
-    assert_true( cache[q] == Cache::NOT_CACHED );
+    assert_true( cache[q].null() );
     
     //insert solutions
     uint nSoln = (rand() % 10) + 1;
@@ -209,17 +224,17 @@ void CacheTest(){
         uint nQ = (rand() % 10)+3;
         for (size_t i = 0; i < nQ; i++)
         {
-            auto clause2 = getRandClause();
-            while( clause2->size() == 0)
-                clause2 = getRandClause();
+            auto uC2 = getRandClause(1);
+            while( uC2->size() == 0)
+                uC2 = getRandClause();
 
-            Query q2(clause2,cb,nullptr,0,0);
+            Query q2(uC2,cb,nullptr,0,0);
             queries.push_back(q2.id);
             q2->front() = lit;
             auto it = cache[q2];
             newQueries.push_back(q2);
-            assert_true( it != Cache::NOT_CACHED );
-            assert_true( (it.end() - it.begin()) == soln );
+            assert_false( it.null() );
+            assert_true( it.remaining() == soln );
         }  
     };
     //there are no solutions.
@@ -246,9 +261,9 @@ void CacheTest(){
             auto it = cache[newQueries[i]];
             queries.push_back(newQueries[i].id);
 
-            assert_true( it != Cache::NOT_CACHED );
+            assert_false( it.null() );
             //Should be able to consume the previous solutions.
-            assert_true( (it.end() - it.begin()) == solnExpected );
+            assert_true( it.remaining() == solnExpected );
         }
     };
 

@@ -237,7 +237,7 @@ namespace ares{
         return sigma;
     }
     std::unique_ptr<Clause> getRandClause(ushort max_size=15){
-        ushort size = rand() % max_size;
+        ushort size =( rand() % max_size);
         ClauseBody* body = new ClauseBody(size);
         for (size_t i = 0; i < size; i++)
         {

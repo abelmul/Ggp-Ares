@@ -17,18 +17,30 @@ namespace ares
     class Prover
     {
     private:
+        //ctor
         Prover(const KnowledgeBase* _kb=nullptr)
         :kb(_kb)
         {
             if( cfg.proverThreads > 0 ) proverPool = new ThreadPool(new LoadBalancerRR(cfg.proverThreads));
         };
+
+
+        Prover(const Prover&)=delete;
+        Prover& operator=(const Prover&)=delete;
+        Prover(const Prover&&)=delete;
+        Prover& operator=(const Prover&&)=delete;
+    /**
+     * Methods
+     */
     public:
-        static Prover* getProver(const KnowledgeBase* _kb=nullptr){
-            slock.lock();
-            if(not  _prover) _prover = new Prover(_kb);
-            slock.unlock();
-            return _prover;     //singleton
+        /**
+         * The singleton prover.
+         */
+        static Prover& create(const KnowledgeBase* _kb=nullptr){
+            static Prover prover(_kb);
+            return prover;     //singleton
         }
+
         inline void setKb(const KnowledgeBase* kb_){ kb=kb_; }
         /**
          * Carry out backward chaining. Search the sld-tree for a successful refutation.
@@ -37,7 +49,7 @@ namespace ares
          * @param query.cb is called with an answer each time a successful refutation is derived.
          */
         void compute(Query& query);  
-        ~Prover(){ _prover = nullptr; delete proverPool; }
+        ~Prover(){ delete proverPool; }
     private:
         /**
          * Extension of compute(Query& query), needed for recursion.
@@ -70,9 +82,10 @@ namespace ares
             return context and (  g->get_name() == Namer::DOES  or  g->get_name() == Namer::TRUE) ;
         }
 
-
-        static Prover* _prover;
-        static SpinLock slock;
+    /**
+     * Data
+     */
+    private:
         const KnowledgeBase* kb;
         ThreadPool* proverPool = nullptr;     //Used for the initial query, and subequent searches.   
 
