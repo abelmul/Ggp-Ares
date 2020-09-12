@@ -85,6 +85,7 @@ namespace ares
      */
     template<class T,class Hash = std::hash<T>, class Eq=std::equal_to<T>>
     class UniqueVector{
+        
         typedef typename std::vector<T>::const_iterator iterator;
         typedef std::unordered_set<T,Hash,Eq> set;
         public:
@@ -114,6 +115,8 @@ namespace ares
             void copy_elements(UniqueVector& vec){
                 elements.insert(elements.end(), vec.begin(), vec.end());
             }
+
+            inline const std::vector<T>& getElements()const{ return elements;}
             inline bool exists(const T& el)const{
                 const set* lookup_ = &lookup;
                 if( lookupPtr ) lookup_ = lookupPtr;
@@ -136,9 +139,11 @@ namespace ares
             bool operator!=(const UniqueVector& other){ return not ((*this) == other);}
             const T& operator[](uint i) const { return elements.at(i);}
             inline std::size_t size()const { return elements.size();}
+
             iterator begin()const { return elements.cbegin();}
             iterator end()const { return elements.cend();}
-
+            
+            void apply(bool rand, const std::function<void(std::reference_wrapper<const T>)> op) const;
         private:
             std::vector<T> elements;
             set lookup;

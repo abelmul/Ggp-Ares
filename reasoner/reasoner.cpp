@@ -11,11 +11,11 @@ namespace ares
     
 
     typedef std::shared_ptr<CallBack> SharedCB;
-    void Reasoner::query(const Clause* goal,const State* context,SharedCB cb){
+    void Reasoner::query(const Clause* goal,const State* context,SharedCB cb,bool rand){
         auto g = std::unique_ptr<Clause>(goal->clone());
         g->setSubstitution(new Substitution());
-        auto cache = new Cache(AnsIterator::RAND);
-        Query query(g, cb,context,cache,0);
+        auto cache = new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ );
+        Query query(g, cb,context,cache,0,rand);
         prover.compute(query);
         delete cache;   
     }
@@ -30,52 +30,89 @@ namespace ares
         if( cache->nlookups)
             std::cout <<" Average Consumed Answer by a Lookup Node : " << (cache->nconsumedAns/cache->nlookups)<<"\n";
     }
-    State* Reasoner::getNext(const State& state,const Moves& moves){
+    State* Reasoner::next(const State& state,const Moves& moves){
         auto& roles = game->getRoles();
         State* context = new State();
-        std::vector<Clause*> does;
-        (*context) += state;
+        (*context) += state;            //Shallow copy
         PoolKey key;
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
             key = PoolKey{Namer::DOES, body,true,nullptr};
             auto l = memCache.getLiteral(key);
-            does.push_back(new Clause(l,new ClauseBody(0)));
-            context->add(Namer::DOES, does.back());           //This is thread safe
+            context->add(Namer::DOES, new Clause(l,new ClauseBody(0)));           //This is thread safe
         }
         auto cb = std::shared_ptr<NxtCallBack>(new NxtCallBack(this, new State()));
         query(NEXT_GOAL, context, cb);
-
-        for (auto &&d : does)
+        
+        for (auto &&d : *(*context)[Namer::DOES])
             delete d;
+
+        delete (*context)[Namer::DOES];
+        
+        context->reset();
+        delete context;
         
         return cb->newState;
     }
 
-    Moves* Reasoner::legalMoves(const State& state,const Role& role){
+    Moves* Reasoner::moves(const State& state,const Role& role,bool rand){
         const cnst_lit_sptr& legal = roleLegalMap[role.get_name()];        //Get the legal query specific to this role 
-        auto cb = std::shared_ptr<LegalCallBack>(new LegalCallBack(this));
-        query(new Clause(nullptr, new ClauseBody{legal}), &state, cb);
+        auto cb = std::shared_ptr<LegalCallBack>(new LegalCallBack(this,rand));
+        query(new Clause(nullptr, new ClauseBody{legal}), &state, cb,rand);
         return cb->moves;
     }
     
-    bool Reasoner::isTerminal(const State& state){
+    bool Reasoner::terminal(const State& state){
         auto cb = std::shared_ptr<TerminalCallBack>(new TerminalCallBack());
         query(TERMINAL_GOAL, &state,cb);
         return cb->terminal;
     }
     
-    float Reasoner::getReward(Role& role, const State* state){
+    float Reasoner::reward(Role& role, const State* state){
         cnst_lit_sptr& goal = roleGoalMap[role.get_name()];        //Get the query specific to this role
         auto cb = std::shared_ptr<RewardCallBack>(new RewardCallBack(this));
         query(new Clause(nullptr, new ClauseBody{goal}), state, cb);
         return cb->reward;
     }
 
+    /**
+     *Helper Functions.
+     */
+    move_sptr Reasoner::randMove(const State& state,const Role& role){
+        auto* legals = moves(state, role,true);
+        uint i = rand() % legals->size();
+        auto selected = (*legals)[i];
+        delete legals;
+        return selected;
+    }
+
+    Moves* Reasoner::randAction(const State& state){
+        Moves* moves = new Moves();
+        for (auto &&role : roles())
+            moves->push_back( randMove(state,*role));
+        return moves;
+    }
+    typedef std::unique_ptr<Moves> unique_moves;
+    std::vector<unique_moves>* Reasoner::actions(const State& state){
+        const auto& roles = this->roles();
+        std::vector<unique_moves> legals;
+        for (auto &&r : roles)
+            legals.push_back( unique_moves(moves(state, *r)));
+
+        Moves partials;
+        std::vector<unique_moves>* combos= new std::vector<unique_moves>();
+        getCombos(legals, 0,partials,*combos);
+        return combos;
+    }
+
     void Reasoner::initMapping(){
         auto& roles = game->getRoles();
         if( roleLegalMap.size() > 0) return;
+
+        for (size_t i = 0; i < roles.size(); i++)
+            rolesIndex[roles[i]->get_name()] = i;        //from the name to its index
+        
         /**
          * Template for (legal some_role ?x) and (goal some_role ?x)
          */

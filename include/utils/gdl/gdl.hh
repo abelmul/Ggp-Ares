@@ -18,15 +18,15 @@ namespace ares{
         typedef std::unique_ptr<Clause> unique_clause;
         typedef std::shared_ptr<CallBack> shared_callback;
 
-        Query(unique_clause& g,shared_callback& cb,const State* s,Cache* c,ushort suff)
+        Query(unique_clause& g,shared_callback& cb,const State* s,Cache* c,ushort suff,bool rand)
         :context(s), cb(cb),goal( std::move( g)),pool(nullptr),
-         cache(c),suffix(suff),id(nextId++), ptr(0)
+         cache(c),suffix(suff),id(nextId++),random(rand), ptr(0)
         {
         }
 
         Query(const Query& q)
         :context(q.context), cb(q.cb), goal( std::move( *(unique_clause*)&q.goal)),
-        pool(q.pool),cache(q.cache),suffix(q.suffix),id(q.id), ptr(q.ptr)
+        pool(q.pool),cache(q.cache),suffix(q.suffix),id(q.id), random(q.random),ptr(q.ptr)
         {
         }
         inline static void resetid(){nextId = 0;}
@@ -39,6 +39,8 @@ namespace ares{
         Cache* cache;
         const ushort suffix;
         const uint id;      //The id is just to make some tests easier
+        bool random;
+
         private:
             uint ptr;
             static std::atomic<int> nextId;

@@ -136,7 +136,7 @@ namespace ares{
 void setup(){
     using namespace ares;
     srand(time(NULL));
-    aresP.mempool = new MemoryPool(100,100,std::vector<std::pair<arity_t,uint>>());
+    aresP.mempool = &MemoryPool::create(100,100,std::vector<std::pair<arity_t,uint>>());
     aresP.memCache = aresP.mempool->getCache();
     Body::mempool = ClauseBody::mempool = aresP.mempool;
     Term::null_term_sptr = nullptr;

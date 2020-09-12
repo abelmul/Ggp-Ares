@@ -73,7 +73,8 @@ namespace ares
         web::http::experimental::listener::http_listener listener;
         std::vector<Hook> hooks;
         std::atomic_bool playing;
-
+        std::atomic_uint seq;
+        
         const ushort INFO=0;
         const ushort START=1;
         const ushort PLAY=2;

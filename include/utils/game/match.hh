@@ -10,7 +10,9 @@ namespace ares
     
     struct Match
     {
-        Match(/* args */) {}
+        typedef Moves Action;
+
+        Match():takenAction(nullptr) {}
         ~Match() {}
         void reset(){
             game = nullptr;
@@ -21,9 +23,9 @@ namespace ares
         }
         Game* game;
         std::string matchId;
-        const State* state;
         uint strtClck;
         uint plyClck;
+        Action* takenAction;
         cnst_term_sptr role;
     };
     /**
@@ -64,7 +66,13 @@ namespace ares
             state.insert(s.state.begin(), s.state.end());
             return *this;
         }
-        std::string toString(){
+        void reset() { state.clear();}
+        State* clone()const{
+            auto sClone = new State();
+            sClone->state = state;
+            return sClone; 
+        }
+        std::string toString()const{
             std::string s;
             for (auto &&[name,vec] : state)
             {

@@ -1,9 +1,15 @@
 #include "reasoner/prover.hh"
 #include "ares.hh"
 namespace ares
-{
+{ 
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
+
+    // template <class T>
+    // std::random_device RandIterator<T>::rd;
+    
+    // template <class T>
+    // std::mt19937 RandIterator<T>::gen(RandIterator<T>::rd());
 
     void Prover::compute(Query& query){
         proverPool->restart();
@@ -16,7 +22,7 @@ namespace ares
         //For Starting the subsequent stages
         auto nextstage = [=](Query& q){ proverPool->post( [=](){ compute(q,false); } ); };
         //Check if there are any suspended queries and new answers
-        while (cache and cache->hasChanged())
+        while (cache and cache->hasChanged() and (not query.cb->done))
         {
             proverPool->restart();
             //New answers have been obtained, resume suspended queries
@@ -26,13 +32,14 @@ namespace ares
     }
 
     void Prover::compute(Query query, const bool isLookup){
+        if( query.cb->done ) 
+            return; //Done stop searching
+        
         //Found an answer
         if( Clause::EMPTY_CLAUSE(*query) ){
             (*query.cb)(query->getSubstitution(),query.suffix, isLookup);
             return;
         }
-        if( query.cb->done ) 
-            return; //Done stop searching
         
         //Instantiate front
         VarSet vset;
@@ -83,7 +90,7 @@ namespace ares
             if( Unifier::unifyPredicate(*lit, *soln,mgu) ) {
                 auto resolvent = std::unique_ptr<Clause>(nxt->clone());
                 resolvent->setSubstitution( nxt->getSubstitution() + mgu);
-                Query nxtQ(resolvent, query.cb,query.context,query.cache,query.suffix);
+                Query nxtQ(resolvent, query.cb,query.context,query.cache,query.suffix,query.random);
                 nxtQ.pool = query.pool;
                 if( query.pool ) //We are not trying to prove a negation
                     proverPool->post([=] { compute(nxtQ,true);});
@@ -104,18 +111,24 @@ namespace ares
         //Need to know weather lit is contextual or not, so as to determine the correct knowldge base to check
         const KnowledgeBase& kb_t = isContxt ? *q.context : *this->kb;
         SuffixRenamer renamer(q.suffix);
-        for (auto &&c : *kb_t[lit->get_name()])
+        //Resolve against each candidate
+        const auto& cs = kb_t[lit->get_name()]->getElements();
+        UIterator<const ares::Clause *>* it = q.random ? new RandIterator(cs) : new UIterator(cs);
+        while (*it)
         {
-            std::unique_ptr<Clause> gn( resolve( lit, *c, renamer));
-            if( !gn ) continue;
-            Query qn(gn, cbsptr, q.context,q.cache,renamer.gets());
-            qn.pool = q.pool;
-            if( q.pool ) //We are not trying to prove a negation
-                proverPool->post([=]{ compute(qn, false);});
-            else //We are in the middle of proving a negation
-                compute(qn, false);
+            std::unique_ptr<Clause> gn( resolve( lit, ***it, renamer));
+            if( gn ) 
+            {
+                Query qn(gn, cbsptr, q.context,q.cache,renamer.gets(),q.random);
+                qn.pool = q.pool;
+                if( q.pool ) //We are not trying to prove a negation
+                    proverPool->post([=]{ compute(qn, false);});
+                else //We are in the middle of proving a negation
+                    compute(qn, false);
+            }
+            ++(*it);
         }
-        
+        delete it;
     }
 
     Clause* Prover::resolve(const cnst_lit_sptr& lit, const Clause& c,SuffixRenamer& vr){
@@ -148,7 +161,7 @@ namespace ares
         //Callback which stops all computations when one answer is computed
         std::atomic_bool done = false;
         std::unique_ptr<Clause> g(nullptr);
-        Query q(g,query.cb,query.context,nullptr,0);//pstvLit is ground so we could restart the suffix
+        Query q(g,query.cb,query.context,nullptr,0,query.random);//pstvLit is ground so we could restart the suffix
         q.pool  = nullptr;
         compute(pstvLit, q, new ClauseCBOne(done,nullptr));
         if( done ) //Atleast one answer has been found, so <-A1 succedeed 

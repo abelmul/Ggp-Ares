@@ -1,7 +1,6 @@
-#include "ares.hh"
+#include "static.hh"
 #include "utils/utils/httpHandler.hh"
 #include "strategy/random.hh"
-#include "static.hh"
 
 ares::Cfg ares::cfg;
 
@@ -31,7 +30,8 @@ int main(int argc, char const *argv[])
 
     //Create a reasoner over a game
     Reasoner& reasoner(Reasoner::create(p, prover,*mempool.getCache()));
-
+    Strategy::setReasoner(&reasoner);
+    
     //Create Ares
     Ares& ares( Ares::create(reasoner, Registrar::get(cfg.strategy.c_str()), p));
 

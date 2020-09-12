@@ -5,8 +5,20 @@
 #include <string.h>
 #include "utils/gdl/clause.hh"
 #include "reasoner/cache.hh"
+#include "utils/utils/iterators.hh"
+
 namespace ares
 {   
+    
+    template<class T,class Hash , class Eq>
+    void UniqueVector<T,Hash,Eq>::apply(bool rand, const std::function<void(std::reference_wrapper<const T>)> op) const{
+        UIterator<T> it= rand ? RandIterator<T>(elements) : UIterator<T>(elements);
+        while (it)
+        {
+            op(*it);
+            ++it;
+        }
+    }
     std::size_t CharpHasher::operator()(const char* name) const{
         unsigned long hash = 5381;
         int c;

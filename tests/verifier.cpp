@@ -86,7 +86,7 @@ void verifyMatches(std::vector<const char*> matchFiles){
             std::cout << "Verifying GDl file : " << name << "\n";
             std::cout << "Verifying Match: " << match1.second.get<string>("url") << "\n";
             parser->parse(g,name);    
-            reasoner.setGame(g);
+            reasoner.reset(g);
             simulateMatch(match, reasoner);
             std::cout << "Successfuly Verified Match: " << match1.second.get<string>("url") << "\n";
         }
@@ -101,9 +101,9 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
     auto matchStates = getState(pmatchStates);
     auto matchMoves = getMove(pmatchMoves);
 
-    const auto& roles = reasoner.getRoles();
+    const auto& roles = reasoner.roles();
     
-    const State *computedState = &reasoner.getInit();
+    const State *computedState = &reasoner.init();
     uint step =0;
     for (auto &&moves : matchMoves)
     {
@@ -121,7 +121,7 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
         for (size_t i = 0; i < moves.size(); i++)
         {
             //player i made moves[i]
-            auto* computedMoves = reasoner.legalMoves(*computedState, *roles[i]);
+            auto* computedMoves = reasoner.moves(*computedState, *roles[i]);
             //Assert that the taken move has been computed
             auto it = find(computedMoves->begin(), computedMoves->end(), moves[i]);
             assert( it != computedMoves->end() );
@@ -129,8 +129,8 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
         }
         //Compute the next state.
         auto* prev =computedState;
-        computedState = reasoner.getNext(*prev,*(cnst_term_container*)&moves);
-        if( prev!= &reasoner.getInit()) delete prev;
+        computedState = reasoner.next(*prev,*(cnst_term_container*)&moves);
+        if( prev!= &reasoner.init()) delete prev;
         step++;
     }
     //Verify the terminal state.
@@ -142,7 +142,7 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
         matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
     }
     assert( matchState == (*computedState));
-    if( computedState!= &reasoner.getInit()) delete computedState;
+    if( computedState!= &reasoner.init()) delete computedState;
 }
 /**
  * Get the ith moves of the match

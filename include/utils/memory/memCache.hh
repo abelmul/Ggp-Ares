@@ -84,12 +84,12 @@ namespace ares
         
         template <class T>
         struct Deleter{
-            Deleter(MemCache* exp):_this(exp){}
+            Deleter(MemCache* exp):this_(exp){}
             void operator()(T* st){
-                if (st->get_type() == Term::FN)   _this->fnQueue.enqueue((const Function*)st);
-                else if(st->get_type()==Term::LIT) _this->litQueue.enqueue((const Literal*)st);
+                if (st->get_type() == Term::FN)   this_->fnQueue.enqueue((const Function*)st);
+                else if(st->get_type()==Term::LIT) this_->litQueue.enqueue((const Literal*)st);
             }
-            MemCache* _this =nullptr;
+            MemCache* this_ =nullptr;
         };
        /**
         * Poll the deletion queue and reset queued shared pointers
@@ -98,7 +98,7 @@ namespace ares
        template<class T,class TP>
        void remove(DeletionQueue<T>& queue,TP& nameStMap,Term::Type type,seconds period){
            /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
-            auto _reset = [&](T st){
+            auto reset_ = [&](T st){
                 /* use_count could be > 1 b/c st could be reused between the time
                 * its queued for deletion and its actuall deletion. 
                 */
@@ -126,7 +126,7 @@ namespace ares
                     std::unique_lock<std::mutex> lk(mRemove);
                     cvRemove.wait_for(lk, period,[&](){ return pollDone;} );
                 }
-                queue.apply(_reset);
+                queue.apply(reset_);
             }
        }
 

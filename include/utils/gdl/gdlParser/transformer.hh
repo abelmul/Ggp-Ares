@@ -34,19 +34,15 @@ namespace ares
          */
         void getBalanced(vector<string>::iterator& it,const vector<string>::iterator& end);
         void parseFml(Clause* c, KnowledgeBase* base,TokenStream& stream);
-        void _transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream);
-        static Transformer* getTransformer(GdlParser* p){
-            slock.lock();
-            if(not _t) _t = new Transformer(p);
-            slock.unlock();
-            return _t;
+        void transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream);
+        static Transformer* create(GdlParser* p){
+            static Transformer transformer(p);
+            return &transformer;
         }
 
 
         ~Transformer() {}
         /**Data**/
-        static Transformer* _t;
-        static SpinLock slock;
         GdlParser* parser;
     };
 
@@ -68,7 +64,7 @@ namespace ares
             vector<string>::iterator nxt,      //Next "position" 
             vector<string>::iterator end       //End of the stream    
         )
-        :tokens(ts),_current(cur),_end(end)
+        :tokens(ts),current_(cur),end_(end)
         {
             setNext(nxt);
         }
@@ -76,51 +72,51 @@ namespace ares
          * If Duplication of the underlying stream(vector) is necessary.
          */
         TokenStream(vector<string>* ts):tokens(ref(*ts)){
-            _tokens = ts;
-            _current = tokens.begin();   //current "position" of the stream   
-            next = _current;             //Next "position"
-            _end = tokens.end();         //End of the stream
+            tokens_ = ts;
+            current_ = tokens.begin();   //current "position" of the stream   
+            next = current_;             //Next "position"
+            end_ = tokens.end();         //End of the stream
         }
         ~TokenStream(){
-            if(_tokens ) delete _tokens;
+            if(tokens_ ) delete tokens_;
         }
 
         TokenStream& operator++(){
-            if ( next <= _current)
-                _current++;
+            if ( next <= current_)
+                current_++;
             else
-                _current = next;
+                current_ = next;
 
             return *this;
         }
         string& operator*(){
-            return *_current;
+            return *current_;
         }
-        vector<string>::iterator& current(){ return _current;}
-        void current(vector<string>::iterator c){ _current = c;}
+        vector<string>::iterator& current(){ return current_;}
+        void current(vector<string>::iterator c){ current_ = c;}
         void setNext(vector<string>::iterator n){
             if( n > next)
                 next = n;
         }
         const vector<string>::iterator& getNext(){return next;}
-        void replaceData(vector<string>* _data){
-            if(_tokens ) delete _tokens;
-            _tokens = _data;
-            tokens = ref(*_tokens);
-            _current = _data->begin();
-            next = _current;
-            _end = _data->end();
+        void replaceData(vector<string>* data_){
+            if(tokens_ ) delete tokens_;
+            tokens_ = data_;
+            tokens = ref(*tokens_);
+            current_ = data_->begin();
+            next = current_;
+            end_ = data_->end();
         }
 
-        const vector<string>::iterator end(){ return _end;}
+        const vector<string>::iterator end(){ return end_;}
         vector<string>&  data() { return tokens;}
         
     private:
         vector<string>& tokens;
-        vector<string>* _tokens = nullptr;
-        vector<string>::iterator _current;
+        vector<string>* tokens_ = nullptr;
+        vector<string>::iterator current_;
         vector<string>::iterator next;
-        vector<string>::iterator _end;
+        vector<string>::iterator end_;
 
     };
 } // namespace ares

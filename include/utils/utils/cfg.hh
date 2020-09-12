@@ -37,6 +37,9 @@ namespace ares
             random             = pt.get<bool>("random");
             simulaions        = pt.get<uint>("simulaions");
             steps           = pt.get<uint>("steps");
+            ansSample           = pt.get<ushort>("ansSample");
+            delta_sec           = pt.get<ushort>("delta_sec");
+            uct_c           = pt.get<ushort>("uct_c");
             bucket        = pt.get<uint>("bucket");
             deletionPeriodFn    = pt.get<uint>("deletionPeriodFn");
             deletionPeriodLit    = pt.get<uint>("deletionPeriodLit");
@@ -60,10 +63,15 @@ namespace ares
             auto gf = boost::format("%|-20| : %|-5|\n") % "gdl" % gdlFile;
             auto sf = boost::format("%|-20| : %|-5|\n") % "simulaions" % simulaions;
             auto stf = boost::format("%|-20| : %|-5|\n") % "steps" % steps;
-            auto bf = boost::format("%|-20| : %|-5|\n") % "bucket" % bucket;
+            auto dltf = boost::format("%|-20| : %|-5|\n") % "delta secods" % delta_sec;
+            auto ansf = boost::format("%|-20| : %|-5|\n") % "Answer sample" % ansSample;
+            auto uctf = boost::format("%|-20| : %|-5|\n") % "uct C" % uct_c;
+            auto bf = boost::format("%|-20| : %|-5|\n") % "Buckets" % bucket;
             auto df = boost::format("%|-20| : %|-5|\n") % "debug" % debug;
             auto rf = boost::format("%|-20| : %|-5|\n") % "random   " % random ;
-            return  strf.str() + pbf.str() + dqf.str() + dpf.str() + dpl.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str() + bf.str();
+            return  strf.str() + pbf.str() + dqf.str() + dpf.str() + dpl.str() + 
+                    gf.str()+ sf.str()+ stf.str()+ df.str()+ rf.str() + bf.str() + dltf.str()
+                    + ansf.str()+ ansf.str()+ uctf.str();
         }
         std::string strategy;
         std::string gdl;
@@ -75,6 +83,9 @@ namespace ares
         uint deletionQueueSize;
         uint stTerms;
         uint clauses;
+        ushort ansSample;
+        ushort uct_c;
+        ushort delta_sec;
         std::vector<std::pair<uint,uint>> arities;
         // uint jobQueue;
         uint simulaions;

@@ -1,26 +1,66 @@
 #include "common.hh"
 #include "reasoner/cache.hh"
+#include "utils/utils/iterators.hh"
 #include <unordered_set>
 #include <atomic>
+
 using namespace ares;
 void setup();
 void AnswerIterator();
 void AnsList();
+void RandIteratorTest();
 
 namespace ares{
     std::atomic<int> Query::nextId = 0;
     std::random_device RandomAnsIterator::rd;
     std::mt19937 RandomAnsIterator::gen(RandomAnsIterator::rd());
+
+    template <class T>
+    std::random_device RandIterator<T>::rd;
+    
+    template <class T>
+    std::mt19937 RandIterator<T>::gen(RandIterator<T>::rd());
 }
 int main(int argc, char const *argv[])
 {
     setup();
     Runner runner;
     runner.iter = 100;
+    add_test(runner, RandIteratorTest);
     add_test(runner, AnswerIterator);
     add_test(runner, AnsList);
     runner();
     return 0;
+}
+void RandIteratorTest(){
+    uint size = rand() % 100;
+    std::vector<int> ints(size);
+    std::vector<int> zero(0);
+    std::iota(ints.begin(), ints.end(), (rand() % 1000) );
+    std::random_shuffle(ints.begin(), ints.end());
+
+    UIterator it(ints);
+    UIterator zit(zero);
+
+    RandIterator rit(ints);
+    RandIterator zrit(zero);
+
+    auto asserter  = [&](UIterator<int>& it,std::vector<int>& cont){
+        std::unordered_set<int> seen;
+        while (it)
+        {
+            auto i = *it;
+            assert_true( seen.find(i) == seen.end());
+            seen.insert(i);
+            ++it;
+        }
+        assert_true( seen.size() ==cont.size() );
+    };
+    asserter(rit,ints);
+    asserter(zrit,zero);
+
+    asserter(it,ints);
+    asserter(zit,zero);
 }
 /**
  * The answer iterator should take in a next clause, a container, and a ptr--current position.
@@ -112,7 +152,7 @@ void AnsList(){
         {
             auto c = getRandClause();
             auto* clause = c.get();
-            Query q(c, cb, nullptr,nullptr,0);
+            Query q(c, cb, nullptr,nullptr,0,false);
             auto it = ansList.addObserver(std::move(q));
             assert_true( it.remaining() == n );
             assert_false(q.goal);   // Goal should be moved

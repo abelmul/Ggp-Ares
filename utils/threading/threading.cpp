@@ -51,7 +51,7 @@ namespace ares
     inline void ClauseCB::operator()(const Substitution& ans, ushort suffix, bool isLookup){
         auto c = std::unique_ptr<Clause>(nxt->clone());
         c->setSubstitution(nxt->getSubstitution()  + ans);
-        Query q(c , nxt.cb, nxt.context,nxt.cache,suffix+1);
+        Query q(c , nxt.cb, nxt.context,nxt.cache,suffix+1,nxt.random);
         q.pool = nxt.pool;
         if( nxt.pool )
             prover->proverPool->post(  [=]{prover->compute(q,isLookup);} );

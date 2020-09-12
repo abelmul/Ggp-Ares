@@ -18,8 +18,8 @@ namespace ares
     {
     private:
         //ctor
-        Prover(const KnowledgeBase* _kb=nullptr)
-        :kb(_kb)
+        Prover(const KnowledgeBase* kb_=nullptr)
+        :kb(kb_)
         {
             if( cfg.proverThreads > 0 ) proverPool = new ThreadPool(new LoadBalancerRR(cfg.proverThreads));
         };
@@ -36,8 +36,8 @@ namespace ares
         /**
          * The singleton prover.
          */
-        static Prover& create(const KnowledgeBase* _kb=nullptr){
-            static Prover prover(_kb);
+        static Prover& create(const KnowledgeBase* kb_=nullptr){
+            static Prover prover(kb_);
             return prover;     //singleton
         }
 
@@ -49,7 +49,7 @@ namespace ares
          * @param query.cb is called with an answer each time a successful refutation is derived.
          */
         void compute(Query& query);  
-        ~Prover(){ delete proverPool; }
+        ~Prover(){ delete proverPool; log("[~Prover]");}
     private:
         /**
          * Extension of compute(Query& query), needed for recursion.

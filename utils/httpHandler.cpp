@@ -9,7 +9,7 @@ namespace ares
     inline std::ostream& log(const std::string& msgs);
 
     HttpHandler::HttpHandler(Ares& ares_,std::string url)
-    :ares(ares_),listener(url),hooks(5),playing(false)
+    :ares(ares_),listener(url),hooks(5),playing(false),seq(0)
     {
         using namespace web::http;
         
@@ -22,8 +22,9 @@ namespace ares
         hooks[PLAY] = [this](std::vector<std::string>& s){ return playHandler(s); };
         hooks[STOP] = [this](std::vector<std::string>& s){ return stopHandler(s); };
         hooks[ABORT] =[this](std::vector<std::string>& s){ 
-            if( !ares.abortMatch(s[1]) ) return "";
+            if( !ares.abortMatch(s[2]) ) return "";
             playing = false; 
+            seq = 0;
             return "DONE";
         };
 
@@ -52,7 +53,7 @@ namespace ares
             auto& hook = hooks[t];
             auto reply = hook(tokens);
             if( cfg.debug or t != INFO ) log("[HttpHandler]") << "HttpReply : " << reply << "\n";
-            msg.reply(status_codes::OK, reply);
+            if( reply.size() ) msg.reply(status_codes::OK, reply);
         }).wait();
     }
     /**
@@ -80,9 +81,6 @@ namespace ares
         match.game = new Game();
         ares.parser.parse(match.game, tokens);
 
-        match.state = match.game->getInit();
-
-
         log("[HttpHandler]") << "Starting a new match\n";
         log("[HttpHandler]") << "Id : " << match.matchId << "\n";
         log("[HttpHandler]") << "Role : " << role << "\n";
@@ -100,25 +98,26 @@ namespace ares
      */
     std::string HttpHandler::playHandler(std::vector<std::string>& tokens){
         static visualizer viz;
-        log("[HttpHandler]") << "Recieved Play message for match : " << tokens[2] << '\n';
-
         if( tokens[2] != ares.currentMatch() )
             return "WRONG MATCH";
+        uint cseq = ++seq;
+        log("[HttpHandler]") << "Recieved Play message for match : " << tokens[2] << '\n';
         
+        log("[HttpHandler]") << "Message Sequence num : " << cseq << '\n';
         tokens.pop_back();
         tokens.erase(tokens.begin(), tokens.begin()+3);
 
-        cnst_term_sptr selectedMove;
-        if( tokens[3] != "nil" ){
+        std::pair<move_sptr,uint> selectedMove;
+        if( tokens[0] != "nil" ){
             //Parse the made moves
             const auto& moves = ares.parser.parseSeq(tokens);
             //Get the next move from ares strategy
-            selectedMove = ares.makeMove(moves);
+            selectedMove = ares.makeMove(cseq,moves);
         }
         else
-            selectedMove = ares.makeMove();
-        // viz.draw( ares.getMatchState(),false);
-        return selectedMove->to_string();
+            selectedMove = ares.makeMove(cseq);
+        // Make sure Another play message hasn't come before replying
+        return ( selectedMove.second == seq and selectedMove.first ) ? selectedMove.first->to_string() : "";
     }
     /**
      *(STOP <MATCHID> (<A1> <A2> ... <An>))
@@ -132,8 +131,10 @@ namespace ares
 
         const auto& moves = ares.parser.parseSeq(tokens);
         ares.stopMatch(moves);
+        delete moves;
         //At the end
         playing = false;
+        seq = 0;
         return "DONE";
     }
 

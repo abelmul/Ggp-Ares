@@ -33,7 +33,7 @@ namespace ares
         GdlParser(uint nThreads, MemCache* mem)
         : pool(new ThreadPool(new LoadBalancerRR(1))), memCache(mem)
         {
-            transformer = new Transformer(this);
+            transformer = Transformer::create(this);
         }
         
         GdlParser(const GdlParser&)=delete;
@@ -69,7 +69,7 @@ namespace ares
          * Parse rules of the form A<-A1,..,An
          */
         void parseRule(Clause* c,KnowledgeBase* base,vector<string>& tokens, vector<string>::iterator start,const vector<string>::iterator end);
-        cnst_st_term_sptr _create(stack<pair<string,Body*>>& bodies,const Creator&,bool p=true);
+        cnst_st_term_sptr create(stack<pair<string,Body*>>& bodies,const Creator&,bool p=true);
         string removeComments(string gdl);
 
       
@@ -118,21 +118,21 @@ namespace ares
          * parse a list of functions like ( (mark 3 1 x) ... () )
          * "((MARK 3 3) NOOP)"
          */
-        inline std::vector<cnst_term_sptr> parseSeq(const char* seq){
+        inline std::vector<cnst_term_sptr>* parseSeq(const char* seq){
             std::vector<string> tokens;
             tokenize( seq, tokens);
             return parseSeq(tokens);
         }
-        inline std::vector<cnst_term_sptr> parseSeq(std::vector<string>& tokens){
-            std::vector<cnst_term_sptr> terms;
+        inline std::vector<cnst_term_sptr>* parseSeq(std::vector<string>& tokens){
+            auto* terms = new std::vector<cnst_term_sptr>();
             auto start = tokens.begin() +1;
             for(auto it = start; it < (tokens.end()-1);){
                 transformer->getBalanced(it,tokens.end());
                 if( it >= tokens.end() ) throw "GdlParser :: Bad Sequence.";
                 if( start != it)
-                    terms.push_back(parseFn(start, ++it));
+                    terms->push_back(parseFn(start, ++it));
                 else{
-                    terms.push_back(memCache->getConst(Namer::id(*it)));
+                    terms->push_back(memCache->getConst(Namer::id(*it)));
                     it++;
                 }
                     
@@ -141,8 +141,8 @@ namespace ares
             return terms;
         }
         ~GdlParser(){
+            log("[~GdlParser]");
             delete pool;
-            delete transformer;
         }
 
     /**

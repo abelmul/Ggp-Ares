@@ -55,35 +55,57 @@ namespace ares
         /**
          * @returns all the roles in the game
          */
-        inline const Roles& getRoles(){return game->getRoles();}
+        inline const Roles& roles(){return game->getRoles();}
         /**
          * @returns the initial state
          */
-        inline const State& getInit(){return *game->getInit();}
+        inline const State& init(){return *game->init();}
         /**
          * @returns the next state following from @param state if the players
          * made move @param moves, the moves of each role should have the same 
          * order as the roles in roles. moves[i] is the action taken by role[i].
          */
-        State* getNext(const State& state,const Moves& moves);
+        State* next(const State& state,const Moves& moves);
         /**
          * What are the legal moves in the state @param state
          */
-        Moves* legalMoves(const State& state,const Role& role);
-
+        Moves* moves(const State& state,const Role& role,bool rand=false);
         /**
          * Is @param state a terminal state?
          */
-        bool isTerminal(const State& state);
+        bool terminal(const State& state);
 
         /**
          * @returns the reward associated with this role in the @param state.
          */
-        float getReward(Role& role, const State* state);
+        float reward(Role& role, const State* state);
         
-        inline void setGame(Game* kb){
+
+        /**
+         * Some helper functions.
+         */
+        
+        inline ushort roleIndex(ushort name)const{ return rolesIndex.at(name);}
+         /**
+         * Get a random move.
+         */
+        move_sptr randMove(const State& state,const Role& role);
+        /**
+         * Get a random action, i.e <move_1,...,move_n> , where move_i is taken by role i.
+         */
+        Moves* randAction(const State& state);
+
+        typedef std::unique_ptr<Moves> unique_moves;
+        /**
+         * Get all possible actions from this state,
+         * an action = <move_1,...,move_n> , where move_i is taken by role i.
+         */
+        std::vector<unique_moves>* actions(const State& state);
+        
+        inline void reset(Game* kb){
             roleLegalMap.clear();
             roleGoalMap.clear();
+            rolesIndex.clear();
             prover.setKb(kb);
             if( game ) delete game;
             game = kb;
@@ -94,19 +116,34 @@ namespace ares
                 delete c;
             
             if( game ) delete game;
+            log("[~Reasoner]");
         }
     
     private:
         /**
          * Just a wrapper method.
          */
-        void query(const Clause* goal,const State* context,SharedCB cb);
+        void query(const Clause* goal,const State* context,SharedCB cb,bool rand=false);
 
         /**
          * For ease of access to legal and goal queries of the form (legal some_role ?x)/(goal some_role ?x).
          * initializes roleLegalMap and roleGoalMap.
          */
         void initMapping();
+        
+        /**
+         * Get all the possible combination of legals. (Order considered)
+         */
+        inline void getCombos(std::vector<unique_moves>& legals, uint i, Moves& partials, std::vector<unique_moves>& combos){
+            if( i >= legals.size()){ combos.push_back( unique_moves(new Moves(partials.begin(), partials.end()))); return;}
+
+            for (auto &&m : *legals[i])
+            {
+                partials.push_back(m);
+                getCombos(legals,i+1,partials,combos);
+                partials.pop_back();
+            }
+        }
 
     /**
      * Data
@@ -121,6 +158,8 @@ namespace ares
         std::unordered_map<ushort, cnst_lit_sptr> roleLegalMap;
         //Just to "pre-create" and hold the goal query, (goal some_role ?x)
         std::unordered_map<ushort, cnst_lit_sptr> roleGoalMap;
+        //role name to index mapping
+        std::unordered_map<ushort, ushort> rolesIndex;
 
         const Clause* ROLE_GOAL;
         const Clause* INIT_GOAL;
@@ -153,39 +192,46 @@ namespace ares
      */
     struct NxtCallBack : public CallBack
     {
-        NxtCallBack(Reasoner* _t, State* s):CallBack(_done, nullptr),_this(_t),newState(s),_done(false){}
+        NxtCallBack(Reasoner* t, State* s):CallBack(_done, nullptr),this_(t),newState(s),_done(false){}
 
         virtual void operator()(const Substitution& ans,ushort,bool){
             // isCurrent()
             VarSet vset;
-            const cnst_term_sptr& true_ = (*_this->TRUE_LITERAL)(ans,vset);      //Instantiate
+            const cnst_term_sptr& true_ = (*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
             if(true_)
                 newState->add(Namer::TRUE, new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
         }
         ~NxtCallBack(){
-            _this = (Reasoner*)0xbeef;
+            this_ = (Reasoner*)0xbeef;
             newState = (State*)0xbeef;
         }
-        Reasoner* _this;
+        Reasoner* this_;
         State* newState;
         std::atomic_bool _done;
     };
     struct LegalCallBack : public CallBack
     {
-        LegalCallBack(Reasoner* _t):CallBack(_done, nullptr),_this(_t),moves(new Moves()),_done(false){}
+        LegalCallBack(Reasoner* t,bool r)
+        :CallBack(_done, nullptr),this_(t),moves(new Moves()),_done(false),rand(r),count(0)
+        {}
         virtual void operator()(const Substitution& ans,ushort,bool){
-            // isCurrent()
+            if( rand ){
+                ++count;
+                if( count >= cfg.ansSample ) done = true;
+            }
             VarSet vset;
-            const move_sptr& move = (*_this->x)(ans,vset);
+            const move_sptr& move = (*this_->x)(ans,vset);
             if( move ){
                 std::lock_guard<SpinLock> lk(slk);
                 moves->push_back(move);
             }
         }
-        Reasoner* _this;
+        Reasoner* this_;
         Moves* moves;
         SpinLock slk;
         std::atomic_bool _done;
+        bool rand;
+        byte count;
     };
     struct TerminalCallBack : public CallBack
     {
@@ -199,15 +245,15 @@ namespace ares
     };
     struct RewardCallBack : public CallBack
     {
-        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),reward(0.0),_this(t),_done(false){}
+        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),reward(0.0),this_(t),_done(false){}
         virtual void operator()(const Substitution& ans,ushort,bool){
             done = true;
             VarSet vset;
-            const cnst_term_sptr& rewardTerm =(* _this->x)(ans, vset);
+            const cnst_term_sptr& rewardTerm =(* this_->x)(ans, vset);
             reward = atof(Namer::name(rewardTerm->get_name()).c_str());
         }
         float reward;
-        Reasoner* _this;
+        Reasoner* this_;
         std::atomic_bool _done;
     };
 

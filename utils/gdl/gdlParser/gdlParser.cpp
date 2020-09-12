@@ -114,7 +114,7 @@ namespace ares
             if( start >= end ) throw SyntaxError( "GDLParser :: Error :: Literal start > end");
             checkValid(*start); //valid name
             bodies.push(pair<string, Body*>(*start, new Body(0)));
-            return _create(bodies,crtr,p);
+            return create(bodies,crtr,p);
         }
         checkValid( *(++start) );       //Next token should be a valid name.
         auto& name = *start++;
@@ -148,7 +148,7 @@ namespace ares
             else if ( token == ")"){
                 //Pop an element and check if we are done.
                 //a well formed expression should eventually get into the next if.
-                if( (l=_create(ref(bodies),crtr,p)) )
+                if( (l=create(ref(bodies),crtr,p)) )
                     return l;
             }
             else 
@@ -159,7 +159,7 @@ namespace ares
         //Control should not reach here!
         throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
-    cnst_st_term_sptr GdlParser::_create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool p) {
+    cnst_st_term_sptr GdlParser::create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool p) {
         auto name = bodies.top().first;
         Body* body = bodies.top().second;
         

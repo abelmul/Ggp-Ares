@@ -1,8 +1,8 @@
 {
     "strategy":"Random",
     "parser_threads":1,
-    "prover_threads":4,
-    "gdl":"tests/ggp.org/games/chess.kif",
+    "prover_threads":1,
+    "gdl":"tests/ggp.org/games/tic.kif",
     "debug":false,
     "file":true,
     "random":false,
@@ -12,6 +12,9 @@
     "jobQueue":24,
     "simulaions":1,
     "bucket":600,
-    "steps":3,
+    "steps":5,
+    "ansSample":30,
+    "uct_c":2,
+    "delta_sec":2,
     "port":8080
 }

@@ -22,6 +22,12 @@ namespace ares
 
     struct KnowledgeBase
     {
+        KnowledgeBase(){}
+        KnowledgeBase(const KnowledgeBase&)=delete;
+        KnowledgeBase& operator=(const KnowledgeBase&)=delete;
+        KnowledgeBase(const KnowledgeBase&&)=delete;
+        KnowledgeBase& operator=(const KnowledgeBase&&)=delete;
+        
         virtual const UniqueClauseVec* operator [](ushort name)const = 0;
         virtual void add(ushort name, Clause*) = 0;
         virtual ~KnowledgeBase(){}
@@ -34,10 +40,10 @@ namespace ares
         /*A mapping from head names --> [clauses with the same head name]*/
         std::unordered_map<ushort, UniqueClauseVec*> rules;
         Roles roles;
-        State* init;
+        State* init_;
 
     public:
-        Game(/* args */):init(nullptr){}
+        Game(/* args */):init_(nullptr){}
 
         virtual const UniqueClauseVec* operator [](ushort name) const {
             const UniqueClauseVec* v = nullptr;
@@ -74,7 +80,8 @@ namespace ares
         /**
          * THe initial state is static within the game no need to compute it.
          */
-        const State* getInit();
+        const State* init();
+
         std::string toString(){
             std::string s;
             for (auto &&[name,vec] : rules)

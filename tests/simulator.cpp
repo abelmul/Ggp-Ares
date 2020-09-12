@@ -1,7 +1,10 @@
 #include "ares.hh"
 #include "static.hh"
+#include "strategy/random.hh"
+#include "strategy/montecarlo.hh"
 
 ares::Cfg ares::cfg;
+void takeIn(const ares::State* state,std::vector<ares::Reasoner::unique_moves>*  moves,int& m);
 void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,const ares::role_sptr& r0,const ares::role_sptr& r1, int& m0,int& m1);
 int main(int argc, char const *argv[])
 {
@@ -29,20 +32,20 @@ int main(int argc, char const *argv[])
 
     //Create a reasoner over a game
     Reasoner& reasoner(Reasoner::create(p, prover,*mempool.getCache()));
-
+    Strategy::setReasoner(&reasoner);
+    
     //Create Ares
     Ares& ares( Ares::create(reasoner, Registrar::get(cfg.strategy.c_str()), p));
-
     //Start game, this is done after the start message has been recieved
     //Create the knowledge base
     Game* kb(new Game());
    
     //Parse the gdl
     p.parse(kb,cfg.gdlFile);
-    reasoner.setGame(kb);
+    reasoner.reset(kb);
 
-    const role_sptr& r0 = reasoner.getRoles()[0];
-    const role_sptr& r1 = reasoner.getRoles()[1];
+    const role_sptr& r0 = reasoner.roles()[0];
+    const role_sptr& r1 = reasoner.roles()[1];
 
     std::cout << "-----Roles------\n\n";
     std::cout << *r0 << std::endl;
@@ -53,7 +56,7 @@ int main(int argc, char const *argv[])
     visualizer viz;
 
     //Get the initial state
-    const State& init = reasoner.getInit();
+    const State& init = reasoner.init();
     uint sims = 0;
 
     auto c = std::chrono::high_resolution_clock();
@@ -65,27 +68,34 @@ int main(int argc, char const *argv[])
         ushort steps=0;
         while (steps < cfg.steps)
         {
-            if( reasoner.isTerminal(*state) ){
-                auto reward_0 = reasoner.getReward(*r0, state);
-                auto reward_1 = reasoner.getReward(*r1, state);
+            if( reasoner.terminal(*state) ){
+                auto reward_0 = reasoner.reward(*r0, state);
+                auto reward_1 = reasoner.reward(*r1, state);
                 viz.draw(*state);
                 std::cout << "Rewards for " << *r0<< " , " << reward_0 << "\n";
                 std::cout << "Rewards for " << *r1<< " , " << reward_1 << "\n";
                 break;
             }
-            Moves* moves = reasoner.legalMoves(*state, *r0);
-            Moves* moves1 = reasoner.legalMoves(*state, *r1);
+            // Moves* moves = reasoner.moves(*state, *r0,false);
+            // Moves* moves1 = reasoner.moves(*state, *r1,false);
+            // auto moves = reasoner.actions(*state);
+            // auto action = reasoner.randAction(*state);
+            auto mr0 = reasoner.randMove(*state,*r0);
+            auto mr1 = reasoner.randMove(*state,*r1);
             int m0=0,m1=0;
             if( cfg.random ){
-                m0= rand() % moves->size();
-                m1= rand() % moves1->size();
+                // m0= rand() % moves->size();
+                // m1= rand() % moves1->size();
             }
-            else takeIn(state,moves,moves1,r0,r1,m0,m1);
-            Moves nmoves{(*moves)[m0], (*moves1)[m1]};
-
-            State* nxt = reasoner.getNext(*state, nmoves);
-            delete moves;
-            delete moves1;
+            // else takeIn(state,moves,moves1,r0,r1,m0,m1);
+            // else takeIn(state,moves,m0);
+            Moves nmoves{mr0,mr1};
+            // viz.draw(*state);
+            // std::cin >> m0;
+            State* nxt = reasoner.next(*state, nmoves);
+            // delete moves;
+            // delete moves1;
+            // delete action;
             
             if( state != &init ) delete state;
             state = nxt;
@@ -94,6 +104,7 @@ int main(int argc, char const *argv[])
         }
         std::cout << "Steps : " << steps << "\n";
         sims++;
+        if( state != &init ) delete state;
         total_steps+=steps;
     }
     auto end = c.now();
@@ -135,3 +146,26 @@ void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,co
     }
 }
 
+void takeIn(const ares::State* state,std::vector<ares::Reasoner::unique_moves>*  moves,int& m){
+    static auto viz = ares::visualizer();
+    viz.draw(*state);
+    std::cout << "Legal Actions" <<"\n";
+    uint j=1;
+    for (auto &&action : *moves){
+        std::string s,sep;
+        for (auto &&a : *action)
+        {
+            s+= sep + a->to_string();
+            sep = ",";
+        }
+        if( j%5 == 0) std::cout << "\n";
+        std::cout << (boost::format("[%|-2|]%|=32|") % (j-1) % s);
+        j++;
+    }
+    std::cout <<"\n-------------------------------------------------------\n\n";
+
+    if(moves->size() > 1){
+        std::cout << "Selected Action "<< ": ";
+        std::cin >> m;   
+    }
+}

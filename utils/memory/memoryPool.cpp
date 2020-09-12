@@ -32,6 +32,8 @@ namespace ares
         for (auto&& it: container_pool)
             for (void* vp : it.second.second)
                 delete ((term_container*)vp);
+        
+        log("[~MemoryPool]");
         // delete EMPTY_CONTAINER;
     }
     void MemoryPool::init_pools(

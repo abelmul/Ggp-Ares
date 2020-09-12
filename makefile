@@ -32,12 +32,12 @@ GAME_IDIR = $(IDIR)/$(GAME)
 OBJS_DIR = ../objs
 #-fno-strict-aliasing -fsanitize=address -fsanitize=undefined -Wextra
 CC = g++
-FLAGS =  
-ifdef DEBUG_ARES
-FLAGS+= -ggdb
-else
-FLAGS+= -O3
-endif
+FLAGS =  -ggdb
+# ifdef DEBUG_ARES
+# FLAGS+= -ggdb
+# else
+# FLAGS+= -O3
+# endif
 
 
 FLAGS += -fno-strict-aliasing -Wall -std=c++17 -I$(IDIR) -I$(CPPREST_INC)
@@ -75,6 +75,8 @@ setup:
 	git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git lib/cpprestsdk 
 	mkdir lib/cpprestsdk/build.debug
 	cd lib/cpprestsdk/build.debug && cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug && ninja
+
+all: ares
 
 ares:  $(OBJS) #$(INCLS)
 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
@@ -151,19 +153,25 @@ $(OBJS_DIR)/$(TESTS)/verifier.o : $(TESTS)/verifier.cpp $(INCLS)
 
 $(OBJS_DIR)/$(TESTS)/simulator.o : $(TESTS)/simulator.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
+$(OBJS_DIR)/$(TESTS)/monte_test.o : $(TESTS)/monte_test.cpp $(INCLS)
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
 #Tests involving Random simulation and verification of the reasoner
-VERIFIER_DEP =  ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o ../objs/reasoner/prover.o ../objs/reasoner/reasoner.o ../objs/reasoner/substitution.o ../objs/reasoner/suffixRenamer.o ../objs/reasoner/unifier.o
+VERIFIER_DEP =  ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o ../objs/reasoner/prover.o ../objs/reasoner/reasoner.o ../objs/reasoner/substitution.o ../objs/reasoner/suffixRenamer.o ../objs/reasoner/unifier.o
 verifier: $(OBJS_DIR)/$(TESTS)/verifier.o $(VERIFIER_DEP)
 	$(CC) $(FLAGS) $(LIBS) -o $(TESTS)/verifier $^
 simulator: $(OBJS_DIR)/$(TESTS)/simulator.o $(VERIFIER_DEP)
 	$(CC) $(FLAGS) $(LIBS) -o $(TESTS)/simulator $^
+monte_test:$(OBJS_DIR)/$(TESTS)/monte_test.o $(VERIFIER_DEP)  
+	$(CC) $(FLAGS) $(LIBS) -o $(TESTS)/monte_test $^
 
 ## Run the tests
 run_verifier:
 	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/verifier $(game)
 run_simulator:
 	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/simulator $(game)
+run_monte_test:
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(TESTS)/monte_test 
 
 run_threadPool_test:
 	$(UNIT_BIN)/Test_ThreadPool

@@ -3,13 +3,6 @@
 
 namespace ares
 {
-    /*Define static members*/
-    Transformer* Transformer::_t = nullptr;   
-    SpinLock Transformer::slock;
-    /*Define static members*/
-
-
-
     void Transformer::getBalanced(vector<string>::iterator& it, const vector<string>::iterator& end){
         short i =0;
         // if( *it != "(" ) throw SyntaxError( "[*] GdlParser ::Error:: Gdl not well formed! Expecting a '('");
@@ -85,7 +78,7 @@ namespace ares
         //*it == "(", 
         else if(*(it+1) == "not"){
             it+=2;
-            _transformNot(c, ref(it), ref(stream));
+            transformNot(c, ref(it), ref(stream));
         }
 
         else{
@@ -98,7 +91,7 @@ namespace ares
     }
 
     //Different cases of not
-    void Transformer::_transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream){
+    void Transformer::transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream){
         if( *it != "("){
             // A literal without a body
             cnst_lit_sptr l = parser->parseLiteral(it,stream.end(),false);
