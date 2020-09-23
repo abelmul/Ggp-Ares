@@ -10,12 +10,10 @@ namespace ares
         }
         cvRemove.notify_all();
 
-        litQueueTh->join();
-        fnQueueTh->join();
+        delQueueTh->join();
 
-        delete litQueueTh;
-        delete fnQueueTh;
-        
+        delete delQueueTh;
+
         nameLitPool.clear();
         nameFnPool.clear();
         
@@ -58,19 +56,19 @@ namespace ares
         fn_sptr fn;
         if( fnPool.insert(fnAc, key) ){
             //key didn't exist, Create a shared ptr and insert that
-            PoolKey* _key = (PoolKey*)&fnAc->first;
-            _key->_this = new Function(key.name,key.body);
-            fn.reset((Function*)_key->_this,Deleter<const Function>(this));
+            fn.reset(new Function(key.name,key.body),Deleter(this));
             fnAc->second = fn;
         }
         else{
             //key  exists but weak ptr might be 0.
             fn = fnAc->second.lock();
             if( not fn ){
-                fn.reset( (Function*) fnAc->first._this,Deleter<const Function>(this));
+                ((PoolKey*)&fnAc->first)->body = key.body;  //Reassign it to the new body
+                fn.reset( new Function(key.name,key.body),Deleter(this));
                 fnAc->second = fn;
             }
-            delete key.body;
+            else
+                delete key.body;
         }
         fnAc.release();
         key.body = nullptr;
@@ -84,19 +82,19 @@ namespace ares
         lit_sptr lit;
         if( litPool.insert(litAc, key) ){
             //key didn't exist, Create a shared ptr and insert that
-            PoolKey* _key = (PoolKey*)&litAc->first;
-            _key->_this = new Literal(key.name,key.p,key.body);
-            lit.reset((Literal*) _key->_this,Deleter<const Literal>(this));
+            lit.reset(new Literal(key.name,key.p,key.body),Deleter(this));
             litAc->second = lit;
         }
         else{
             //key  exists but weak ptr might be 0.
             lit = litAc->second.lock();
             if( not lit ){
-                lit.reset( (Literal*) litAc->first._this,Deleter<const Literal>(this));
+                ((PoolKey*)&litAc->first)->body = key.body; //Reassign it to the new body
+                lit.reset( new Literal(key.name,key.p,key.body),Deleter(this));
                 litAc->second = lit;
             }
-            delete key.body;
+            else
+                delete key.body;
         }
         litAc.release();
         key.body = nullptr;

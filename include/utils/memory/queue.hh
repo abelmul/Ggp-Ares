@@ -5,6 +5,8 @@
 #include <thread>
 #include <functional>
 #include <array>
+#include <tbb/tbb.h>
+
 #define BUCKET_SIZE 64
 
 namespace ares
@@ -16,7 +18,8 @@ namespace ares
         // enum types {queue, lock};
         typedef std::function<void(T)> op_t;
         DeletionQueue(){
-            queues[0] = queues[1] = UniqueVector<T>(cfg.deletionQueueSize);
+            queues[0].reserve(cfg.deletionQueueSize);
+            queues[1].reserve(cfg.deletionQueueSize);
             i=0;
         }
 
@@ -35,13 +38,20 @@ namespace ares
             for (auto &&st : queues[j])
                 op(st);
             
+            // const auto& r = tbb::blocked_range(queues[j].begin(), queues[j].end());
+            // tbb::parallel_for(r, [&](auto& pr){
+            //     for (auto &&st : pr)
+            //         op(st);   
+            // });
             queues[j].clear();
         }
-        inline bool exists(const T el){
-            return queues[i].exists(el);
+
+        inline bool empty(){
+            std::lock_guard<SpinLock> lk(lock);
+            return queues[i].size() == 0;
         }
         // private:
-            UniqueVector<T> queues[2];
+            std::vector<T> queues[2];
             SpinLock lock;
             byte i;
     };

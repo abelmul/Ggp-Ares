@@ -40,10 +40,12 @@ namespace ares
 
     struct PoolKey
     {
+        PoolKey(ushort n=0,const Body* b=nullptr,bool p_=true)
+        :name(n),body(b),p(p_)
+        {}
         ushort name;
         const Body* body=nullptr;
         bool p = true;
-        structured_term* _this;
     };
 
     /**

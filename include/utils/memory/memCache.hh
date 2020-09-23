@@ -37,11 +37,9 @@ namespace ares
          * and its created by the singleton MemoryPool.
          */
         MemCache(){            
-            auto poll_fn=[&]{  remove(fnQueue,nameFnPool,Term::FN,seconds(cfg.deletionPeriodFn)); };
-            auto poll_lit=[&]{ remove(litQueue, nameLitPool,  Term::LIT, seconds(cfg.deletionPeriodLit));};
+            auto del_poll=[&]{  remove(seconds(cfg.deletionPeriod)); };
             pollDone =false;
-            litQueueTh = new std::thread(poll_lit);
-            fnQueueTh = new std::thread(poll_fn);
+            delQueueTh = new std::thread(del_poll);
         }
 
         MemCache(const MemCache&)=delete;
@@ -78,46 +76,24 @@ namespace ares
         ~MemCache();
 
     private:
-
-        template <class T>
-        struct Deleter;
-        
-        template <class T>
         struct Deleter{
             Deleter(MemCache* exp):this_(exp){}
-            void operator()(T* st){
-                if (st->get_type() == Term::FN)   this_->fnQueue.enqueue((const Function*)st);
-                else if(st->get_type()==Term::LIT) this_->litQueue.enqueue((const Literal*)st);
+            void operator()(const structured_term* st){
+                this_->delQueue.enqueue(st);
             }
             MemCache* this_ =nullptr;
         };
        /**
-        * Poll the deletion queue and reset queued shared pointers
-        * if the only reference that exists is within the pool.
+        * Poll the deletion queue and delte queued pointers
+        * and also remove thier entries in the pool if another thread
+        * hasn't allocated the entry a new pointer.
         */
-       template<class T,class TP>
-       void remove(DeletionQueue<T>& queue,TP& nameStMap,Term::Type type,seconds period){
-           /* if use_count() == 1 then the only copy that exists is within the expression pool. So delete it.*/
-            auto reset_ = [&](T st){
-                /* use_count could be > 1 b/c st could be reused between the time
-                * its queued for deletion and its actuall deletion. 
-                */
-                if( not st->body ) return;
-                if( type != st->get_type() ){
-                    if( type == Term::FN ) litQueue.enqueue((const ares::Literal*)st);
-                    else if( type == Term::LIT ) fnQueue.enqueue((const ares::Function*)st);
-                    return;
-                }
-                typename TP::accessor ac;
-                if ( not nameStMap.find(ac, st->name) )  throw BadAllocation("Tried to delete an st whose name doesnt exist in pool.");
-                typename TP::mapped_type& pool = ac->second;
-                typename TP::mapped_type::accessor pAc;
-                PoolKey key{st->name, st->body, st->positive, nullptr};
-                
-                if( not pool.find(pAc,key)) throw BadAllocation("Tried to delete an st that doesn't exist in pool : " + st->to_string());
-                if( pAc->second.use_count() > 0 ) return;
-                pool.erase(pAc);
-                delete st;
+       void remove(seconds period){
+           auto reset = [&](const structured_term* st){
+                if( st->get_type() == Term::FN )
+                    remove_<NameFnMap,FnPool>(nameFnPool, st);
+                else
+                    remove_<NameLitMap,LitPool>(nameLitPool, st);
             };
 
            while (!pollDone)
@@ -126,10 +102,27 @@ namespace ares
                     std::unique_lock<std::mutex> lk(mRemove);
                     cvRemove.wait_for(lk, period,[&](){ return pollDone;} );
                 }
-                queue.apply(reset_);
+                delQueue.apply(reset);
             }
-       }
-
+            while (not delQueue.empty() )
+                delQueue.apply(reset);
+        }
+        /** 
+         * if use_count() == 0 then the weak_ptr that exists is within the expression pool has expited.
+         * So delete the entry.
+         */
+        template<class T,class TP>
+        inline void remove_(T& namePool, const structured_term* st){
+            typename T::accessor ac;
+            if( !namePool.find(ac,st->get_name()) ) throw BadAllocation("Tried to delete an st with name that doesn't exist");
+            PoolKey key{st->get_name(), &st->getBody(), bool(*st)};
+            TP& pool = ac->second;
+            typename TP::accessor pAc;
+            //This entry has been reassigned and then may deleted later
+            if( !pool.find(pAc, key) or (pAc->second.lock()) ){delete st; return;};
+            pool.erase(pAc);    //Can safley erase this entry, as it hasn't been reassigned.
+            delete st;
+        }
 
     /**
      * Data
@@ -142,10 +135,9 @@ namespace ares
         NameFnMap nameFnPool;
         NameLitMap nameLitPool;
 
-        DeletionQueue<const Function*> fnQueue;
-        DeletionQueue<const Literal*> litQueue;
+        DeletionQueue<const structured_term*> delQueue;
 
-        std::thread *litQueueTh,*fnQueueTh;
+        std::thread *delQueueTh;
 
         std::condition_variable cvRemove;
         std::mutex mRemove;

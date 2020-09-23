@@ -9,22 +9,22 @@ namespace ares
     typedef std::shared_ptr<CallBack> SharedCB;
     class Reasoner
     {
-    private:
+    protected:
         /**
          * Ctor
          */
-        Reasoner( GdlParser& _p, Prover& _prover,MemCache& mem)
+        Reasoner( GdlParser& p, Prover& prover_,MemCache& mem)
         :game(nullptr)
-        ,parser(_p)
-        ,prover(_prover)
+        ,parser(p)
+        ,prover(prover_)
         ,memCache(mem)
-        ,ROLE_GOAL(makeGoal(_p,ROLE_QUERY))
-        ,INIT_GOAL(makeGoal(_p,INIT_QUERY))
-        ,LEGAL_GOAL(makeGoal(_p,LEGAL_QUERY))
-        ,NEXT_GOAL(makeGoal(_p,NEXT_QUERY))
-        ,TERMINAL_GOAL( makeGoal(_p,TERMINAL_QUERY) )
-        ,GOAL_GOAL( makeGoal(_p,GOAL_QUERY))
-        ,TRUE_LITERAL(_p.parseQuery(TRUE_QUERY))
+        ,ROLE_GOAL(makeGoal(p,ROLE_QUERY))
+        ,INIT_GOAL(makeGoal(p,INIT_QUERY))
+        ,LEGAL_GOAL(makeGoal(p,LEGAL_QUERY))
+        ,NEXT_GOAL(makeGoal(p,NEXT_QUERY))
+        ,TERMINAL_GOAL( makeGoal(p,TERMINAL_QUERY) )
+        ,GOAL_GOAL( makeGoal(p,GOAL_QUERY))
+        ,TRUE_LITERAL(p.parseQuery(TRUE_QUERY))
         ,x(memCache.getVar(Namer::X))
         ,r(memCache.getVar(Namer::R))
         {
@@ -44,74 +44,75 @@ namespace ares
         /**
          * The singleton Reasoner;
          */
-        static Reasoner& create(GdlParser& _p, Prover& _prover,MemCache& mem){
-            static Reasoner reasoner(_p,_prover,mem);
+        static Reasoner& create(GdlParser& p, Prover& prover_,MemCache& mem){
+            static Reasoner reasoner(p,prover_,mem);
             return reasoner;
         }
 
-        static Clause* makeGoal(GdlParser& _p, const char * q){
-            return new Clause(nullptr, new ClauseBody{_p.parseQuery(q)});
+        static Clause* makeGoal(GdlParser& p, const char * q){
+            return new Clause(nullptr, new ClauseBody{p.parseQuery(q)});
         }
         /**
          * @returns all the roles in the game
          */
-        inline const Roles& roles(){return game->getRoles();}
+        virtual inline const Roles& roles(){return game->getRoles();}
         /**
          * @returns the initial state
          */
-        inline const State& init(){return *game->init();}
+        virtual inline const State& init(){return *game->init();}
         /**
-         * @returns the next state following from @param state if the players
-         * made move @param moves, the moves of each role should have the same 
-         * order as the roles in roles. moves[i] is the action taken by role[i].
+         * @param state the current state
+         * @param action an ordered (by role order) list of moves taken by roles. 
+         *  i.e action[i] is the move taken by role[i].
+         * @returns the next state following from state by taking action.
          */
-        State* next(const State& state,const Moves& moves);
+        virtual State* next(const State& state,const Action& action);
         /**
          * What are the legal moves in the state @param state
          */
-        Moves* moves(const State& state,const Role& role,bool rand=false);
+        virtual Moves* moves(const State& state,const Role& role,bool rand=false);
         /**
          * Is @param state a terminal state?
          */
-        bool terminal(const State& state);
+        virtual bool terminal(const State& state);
 
         /**
          * @returns the reward associated with this role in the @param state.
          */
-        float reward(Role& role, const State* state);
+        virtual float reward(Role& role, const State* state);
         
 
         /**
          * Some helper functions.
          */
         
-        inline ushort roleIndex(ushort name)const{ return rolesIndex.at(name);}
+        virtual inline ushort roleIndex(ushort name)const{ return rolesIndex.at(name);}
          /**
          * Get a random move.
          */
-        move_sptr randMove(const State& state,const Role& role);
+        virtual move_sptr randMove(const State& state,const Role& role);
         /**
          * Get a random action, i.e <move_1,...,move_n> , where move_i is taken by role i.
          */
-        Moves* randAction(const State& state);
+        virtual Action* randAction(const State& state);
 
-        typedef std::unique_ptr<Moves> unique_moves;
+        
         /**
          * Get all possible actions from this state,
          * an action = <move_1,...,move_n> , where move_i is taken by role i.
          */
-        std::vector<unique_moves>* actions(const State& state);
+        virtual std::vector<uAction>* actions(const State& state);
         
-        inline void reset(Game* kb){
+        virtual inline void reset(Game* kb){
             roleLegalMap.clear();
             roleGoalMap.clear();
             rolesIndex.clear();
-            prover.setKb(kb);
+            prover.reset(kb);
             if( game ) delete game;
             game = kb;
             if( game ) initMapping();
         }
-        ~Reasoner(){
+        virtual ~Reasoner(){
             for (auto &&c : goals)
                 delete c;
             
@@ -134,8 +135,8 @@ namespace ares
         /**
          * Get all the possible combination of legals. (Order considered)
          */
-        inline void getCombos(std::vector<unique_moves>& legals, uint i, Moves& partials, std::vector<unique_moves>& combos){
-            if( i >= legals.size()){ combos.push_back( unique_moves(new Moves(partials.begin(), partials.end()))); return;}
+        inline void getCombos(std::vector<uAction>& legals, uint i, Moves& partials, std::vector<uAction>& combos){
+            if( i >= legals.size()){ combos.push_back( uAction(new Moves(partials.begin(), partials.end()))); return;}
 
             for (auto &&m : *legals[i])
             {
@@ -155,9 +156,9 @@ namespace ares
         MemCache& memCache;
 
         //Just to "pre-create" and hold the legal query, (legal some_role ?x)
-        std::unordered_map<ushort, cnst_lit_sptr> roleLegalMap;
+        std::unordered_map<ushort, std::unique_ptr<Clause>> roleLegalMap;
         //Just to "pre-create" and hold the goal query, (goal some_role ?x)
-        std::unordered_map<ushort, cnst_lit_sptr> roleGoalMap;
+        std::unordered_map<ushort, std::unique_ptr<Clause>> roleGoalMap;
         //role name to index mapping
         std::unordered_map<ushort, ushort> rolesIndex;
 
@@ -198,8 +199,12 @@ namespace ares
             // isCurrent()
             VarSet vset;
             const cnst_term_sptr& true_ = (*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
-            if(true_)
-                newState->add(Namer::TRUE, new Clause(*((cnst_lit_sptr*)&true_), new ClauseBody(0) ));      //This is thread safe
+            if(true_){
+                auto* cbdy = new ClauseBody(0);
+                auto* cl = new Clause(*((cnst_lit_sptr*)&true_), cbdy );
+                if ( not newState->add(Namer::TRUE, cl) )//This is thread safe
+                    delete cl;  //Duplicate element
+            }
         }
         ~NxtCallBack(){
             this_ = (Reasoner*)0xbeef;

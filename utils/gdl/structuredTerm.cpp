@@ -8,9 +8,9 @@
  */
 namespace ares
 {   
-    /**
-     * new and delete for class Function
-     */
+    // /**
+    //  * new and delete for class Function
+    //  */
     void* Function::operator new(std::size_t){
         return Ares::mempool->allocate(sterm_pool_t);
     }
@@ -44,7 +44,7 @@ namespace ares
     const cnst_term_sptr Function::operator()(const Substitution &sub,VarSet& vSet) const {
         Body* body = instantiate<Function>(*this, sub, vSet);
         if( !body ) return null_term_sptr;
-        PoolKey key{name, body,true,nullptr};
+        PoolKey key{name, body,true};
         return Ares::memCache->getFn(key);
     }
 
@@ -52,7 +52,7 @@ namespace ares
 
         Body* body = instantiate<Literal>(*this, sub, vSet);
         if( !body ) return null_term_sptr;
-        PoolKey key{name, body,this->positive,nullptr};
+        PoolKey key{name, body,this->positive};
         return Ares::memCache->getLiteral(key);
     }
 

@@ -5,16 +5,15 @@ namespace ares
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
 
-    // template <class T>
-    // std::random_device RandIterator<T>::rd;
-    
-    // template <class T>
-    // std::mt19937 RandIterator<T>::gen(RandIterator<T>::rd());
-
     void Prover::compute(Query& query){
-        proverPool->restart();
-        query.pool = proverPool;
+        {
+            std::lock_guard<std::mutex> lk(lock);
+            if( done )return;
+            done = false;
+            proverCount++;
+        }
         Cache* cache = query.cache;
+        auto* proverPool = query.pool;
         //First stage
         proverPool->post( [&](){compute(query,false);} );
         proverPool->wait();
@@ -24,15 +23,20 @@ namespace ares
         //Check if there are any suspended queries and new answers
         while (cache and cache->hasChanged() and (not query.cb->done))
         {
-            proverPool->restart();
             //New answers have been obtained, resume suspended queries
             cache->next(nextstage);
             proverPool->wait();
         }
+
+        {
+            std::lock_guard<std::mutex> lk(lock);
+            proverCount--;
+        }
+        cv.notify_one();
     }
 
     void Prover::compute(Query query, const bool isLookup){
-        if( query.cb->done ) 
+        if( query.cb->done or done ) 
             return; //Done stop searching
         
         //Found an answer
@@ -76,9 +80,12 @@ namespace ares
     }
 
     void Prover::lookup(AnsIterator& it, Query& query,cnst_lit_sptr& lit){
+        if( query.cb->done or done ) 
+            return; //Done stop searching
         /**
          * TODO: CHECK WETHER NOT RENAMING CREATES A PROBLEM
          */
+        auto* proverPool = query.pool;
         auto& nxt = it.nxt;
         while (it)
         {
@@ -102,7 +109,9 @@ namespace ares
     }
     
     void Prover::compute(cnst_lit_sptr lit,Query q, CallBack* cb,const bool lookup){
-        if( cb->done ) return;
+        if( cb->done or done ) 
+            return; //Done stop searching
+        auto* proverPool = q.pool;
         bool isContxt = contextual(q.context, lit);
         //If its contextual or lit has was head of the resolvent b/n a lookup node and a solution we dont cache
         auto cblit = new LiteralCB(lit, std::unique_ptr<CallBack>(cb), ( (isContxt or lookup) ? nullptr : q.cache) );

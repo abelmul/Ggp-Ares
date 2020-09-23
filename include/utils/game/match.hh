@@ -10,8 +10,6 @@ namespace ares
     
     struct Match
     {
-        typedef Moves Action;
-
         Match():takenAction(nullptr) {}
         ~Match() {}
         void reset(){
@@ -50,12 +48,12 @@ namespace ares
             
             return v;
         }
-        virtual void add(ushort name, Clause* c){
+        virtual bool add(ushort name, Clause* c){
             std::lock_guard<SpinLock> lk(slock);
             if( state.find(name) == state.end() )
                 state[name] = new UniqueClauseVec();
             
-            state[name]->push_back(c);
+            return state[name]->push_back(c);
         }
         std::unordered_map<ushort, UniqueClauseVec*>::const_iterator begin()const
         { return state.cbegin();}
@@ -69,7 +67,14 @@ namespace ares
         void reset() { state.clear();}
         State* clone()const{
             auto sClone = new State();
-            sClone->state = state;
+            for (auto &&[name,vec] : state)
+            {
+                auto& stateC =sClone->state[name];
+                stateC = new UniqueClauseVec(vec->size());
+                for (size_t i = 0; i < vec->size(); i++)
+                    stateC->push_back((*vec)[i]->clone());
+            }
+            
             return sClone; 
         }
         std::string toString()const{
@@ -79,6 +84,15 @@ namespace ares
                 s.append( "----" + std::to_string(name) + "-----\n");
                 for (auto &&i : *vec)
                     s.append( i->to_string() + "\n") ;
+            }   
+            return s;
+        }
+        std::string toStringHtml()const{
+            std::string s;
+            for (auto &&[name,vec] : state)
+            {
+                for (auto &&i : *vec)
+                    s.append( i->to_string() + "<br/>") ;
             }   
             return s;
         }

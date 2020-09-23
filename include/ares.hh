@@ -23,9 +23,12 @@ namespace ares
     {
     private:
         /* data */
-        Ares(Reasoner& rsnr ,Strategy& st, GdlParser& p)
-        : parser(p),reasoner(rsnr), strategy(st)
+        Ares(Strategy& strategy_,Reasoner& reasoner_)
+        :parser(GdlParser::create(memCache))
+        ,reasoner(reasoner_)
+        ,strategy(strategy_)
         {
+            Registrar::init(&reasoner);
         }
 
     public:
@@ -50,9 +53,9 @@ namespace ares
         inline bool abortMatch(const std::string& id){
             if( match.matchId != id ) return false;
             if( match.takenAction  ) {delete match.takenAction; match.takenAction=nullptr;}
+            strategy.reset();
             match.reset();
             reasoner.reset(nullptr);
-            strategy.reset();
             return true;
         }
 
@@ -80,8 +83,8 @@ namespace ares
             strategy.reset();
             reasoner.reset(nullptr);
         }
-        static Ares& create(Reasoner& rsnr ,Strategy& st, GdlParser& p){
-            static Ares ares(rsnr,st,p);
+        static Ares& create(Strategy& strategy,Reasoner& reasoner_){
+            static Ares ares(strategy,reasoner_);
             return ares;
         }
 

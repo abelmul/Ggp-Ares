@@ -12,14 +12,6 @@ void RandIteratorTest();
 
 namespace ares{
     std::atomic<int> Query::nextId = 0;
-    std::random_device RandomAnsIterator::rd;
-    std::mt19937 RandomAnsIterator::gen(RandomAnsIterator::rd());
-
-    template <class T>
-    std::random_device RandIterator<T>::rd;
-    
-    template <class T>
-    std::mt19937 RandIterator<T>::gen(RandIterator<T>::rd());
 }
 int main(int argc, char const *argv[])
 {

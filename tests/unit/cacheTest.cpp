@@ -15,9 +15,6 @@ void RandCacheTest();
 namespace ares{
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
-
-    std::random_device RandomAnsIterator::rd;
-    std::mt19937 RandomAnsIterator::gen(RandomAnsIterator::rd());
 }
 int main(int argc, char const *argv[])
 {
@@ -171,7 +168,6 @@ void RandCacheTest(){
 }
 
 void CacheTest(Cache& cache){
-    typedef std::unique_ptr<Clause> unique_clause;
     std::vector<uint> queries;
     std::vector<Query> newQueries;
     Query::resetid();
@@ -192,7 +188,7 @@ void CacheTest(Cache& cache){
     
     std::atomic_bool done;
     std::shared_ptr<CallBack> cb(new ClauseCBOne(done,nullptr));
-    Query q(clause,cb,nullptr,0,0);
+    Query q(clause,cb,nullptr,0,0,false);
     q->front() = lit;
 
     assert_true( cache[q].null() );
@@ -228,7 +224,7 @@ void CacheTest(Cache& cache){
             while( uC2->size() == 0)
                 uC2 = getRandClause();
 
-            Query q2(uC2,cb,nullptr,0,0);
+            Query q2(uC2,cb,nullptr,0,0,false);
             queries.push_back(q2.id);
             q2->front() = lit;
             auto it = cache[q2];

@@ -54,7 +54,7 @@ namespace ares
         Query q(c , nxt.cb, nxt.context,nxt.cache,suffix+1,nxt.random);
         q.pool = nxt.pool;
         if( nxt.pool )
-            prover->proverPool->post(  [=]{prover->compute(q,isLookup);} );
+            q.pool->post(  [=]{prover->compute(q,isLookup);} );
         else
             prover->compute(q,isLookup);
     }

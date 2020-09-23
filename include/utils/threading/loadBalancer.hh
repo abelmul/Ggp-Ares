@@ -19,7 +19,8 @@ namespace ares
         public:
             std::condition_variable cvCheckEmpty;
             std::mutex mOutstdWork;
-
+            uint nWorkers;
+            
             LoadBalancer(ushort nWrks);
             /**
              *  execute @param job
@@ -42,7 +43,7 @@ namespace ares
             void shutdown();
             virtual ~LoadBalancer(){}
         protected:
-            uint nWorkers;
+            
             std::vector<WorkerThread*> workerThreads;
             std::size_t outstanding_work; //total outstanding work
 

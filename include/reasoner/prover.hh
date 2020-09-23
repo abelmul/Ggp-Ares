@@ -19,11 +19,8 @@ namespace ares
     private:
         //ctor
         Prover(const KnowledgeBase* kb_=nullptr)
-        :kb(kb_)
-        {
-            if( cfg.proverThreads > 0 ) proverPool = new ThreadPool(new LoadBalancerRR(cfg.proverThreads));
-        };
-
+        :kb(kb_),proverCount(0),done(false)
+        {}
 
         Prover(const Prover&)=delete;
         Prover& operator=(const Prover&)=delete;
@@ -41,7 +38,15 @@ namespace ares
             return prover;     //singleton
         }
 
-        inline void setKb(const KnowledgeBase* kb_){ kb=kb_; }
+        inline void reset(const KnowledgeBase* kb_){
+            {//Make sure there are no threads already using kb
+                std::unique_lock<std::mutex> lk(lock);
+                if(!kb_)done = true;
+                cv.wait(lk,[&]{return proverCount == 0;});
+                done= false;
+            }
+            kb = kb_;
+        }
         /**
          * Carry out backward chaining. Search the sld-tree for a successful refutation.
          * Using kb + context as a combined knowledgebase.
@@ -49,7 +54,7 @@ namespace ares
          * @param query.cb is called with an answer each time a successful refutation is derived.
          */
         void compute(Query& query);  
-        ~Prover(){ delete proverPool; log("[~Prover]");}
+        ~Prover(){}
     private:
         /**
          * Extension of compute(Query& query), needed for recursion.
@@ -87,9 +92,12 @@ namespace ares
      */
     private:
         const KnowledgeBase* kb;
-        ThreadPool* proverPool = nullptr;     //Used for the initial query, and subequent searches.   
 
         friend class ClauseCB;
+        std::mutex lock;
+        std::condition_variable cv;
+        uint proverCount;
+        bool done;
     }; 
 } // namespace ares
 #endif

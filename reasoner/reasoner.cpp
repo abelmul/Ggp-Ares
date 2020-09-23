@@ -14,10 +14,11 @@ namespace ares
     void Reasoner::query(const Clause* goal,const State* context,SharedCB cb,bool rand){
         auto g = std::unique_ptr<Clause>(goal->clone());
         g->setSubstitution(new Substitution());
-        auto cache = new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ );
-        Query query(g, cb,context,cache,0,rand);
+        auto cache = std::unique_ptr<Cache>( new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ ));
+        Query query(g, cb,context,cache.get(),0,rand);
+        query.pool = ThreadPoolFactroy::get(cfg.proverThreads);
         prover.compute(query);
-        delete cache;   
+        ThreadPoolFactroy::deallocate(query.pool);
     }
     void printCacheStat(const Clause* goal, Cache* cache){
         std::cout << "------- Cache Statistics "<< goal->to_string() << "------- \n" ;
@@ -30,7 +31,7 @@ namespace ares
         if( cache->nlookups)
             std::cout <<" Average Consumed Answer by a Lookup Node : " << (cache->nconsumedAns/cache->nlookups)<<"\n";
     }
-    State* Reasoner::next(const State& state,const Moves& moves){
+    State* Reasoner::next(const State& state,const Action& moves){
         auto& roles = game->getRoles();
         State* context = new State();
         (*context) += state;            //Shallow copy
@@ -38,7 +39,7 @@ namespace ares
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
-            key = PoolKey{Namer::DOES, body,true,nullptr};
+            key = PoolKey{Namer::DOES, body,true};
             auto l = memCache.getLiteral(key);
             context->add(Namer::DOES, new Clause(l,new ClauseBody(0)));           //This is thread safe
         }
@@ -57,9 +58,9 @@ namespace ares
     }
 
     Moves* Reasoner::moves(const State& state,const Role& role,bool rand){
-        const cnst_lit_sptr& legal = roleLegalMap[role.get_name()];        //Get the legal query specific to this role 
+        const auto& legal = roleLegalMap[role.get_name()].get();        //Get the legal query specific to this role 
         auto cb = std::shared_ptr<LegalCallBack>(new LegalCallBack(this,rand));
-        query(new Clause(nullptr, new ClauseBody{legal}), &state, cb,rand);
+        query(legal, &state, cb,rand);
         return cb->moves;
     }
     
@@ -70,9 +71,9 @@ namespace ares
     }
     
     float Reasoner::reward(Role& role, const State* state){
-        cnst_lit_sptr& goal = roleGoalMap[role.get_name()];        //Get the query specific to this role
+        const auto& goal = roleGoalMap[role.get_name()].get();        //Get the query specific to this role
         auto cb = std::shared_ptr<RewardCallBack>(new RewardCallBack(this));
-        query(new Clause(nullptr, new ClauseBody{goal}), state, cb);
+        query(goal, state, cb);
         return cb->reward;
     }
 
@@ -80,28 +81,28 @@ namespace ares
      *Helper Functions.
      */
     move_sptr Reasoner::randMove(const State& state,const Role& role){
-        auto* legals = moves(state, role,true);
+        auto* legals = moves(state, role);
         uint i = rand() % legals->size();
         auto selected = (*legals)[i];
         delete legals;
         return selected;
     }
 
-    Moves* Reasoner::randAction(const State& state){
-        Moves* moves = new Moves();
+    Action* Reasoner::randAction(const State& state){
+        Action* action = new Action();
         for (auto &&role : roles())
-            moves->push_back( randMove(state,*role));
-        return moves;
+            action->push_back( randMove(state,*role));
+        return action;
     }
-    typedef std::unique_ptr<Moves> unique_moves;
-    std::vector<unique_moves>* Reasoner::actions(const State& state){
+    
+    std::vector<uAction>* Reasoner::actions(const State& state){
         const auto& roles = this->roles();
-        std::vector<unique_moves> legals;
+        std::vector<uMoves> legals;
         for (auto &&r : roles)
-            legals.push_back( unique_moves(moves(state, *r)));
+            legals.push_back( uMoves(moves(state, *r)));
 
         Moves partials;
-        std::vector<unique_moves>* combos= new std::vector<unique_moves>();
+        std::vector<uAction>* combos= new std::vector<uAction>();
         getCombos(legals, 0,partials,*combos);
         return combos;
     }
@@ -119,8 +120,8 @@ namespace ares
         auto& template_body_legal = LEGAL_GOAL->front()->getBody();
         auto& template_body_goal = GOAL_GOAL->front()->getBody();
 
-        PoolKey key_legal{Namer::LEGAL, nullptr, true,nullptr};
-        PoolKey key_goal{Namer::GOAL, nullptr, true,nullptr};
+        PoolKey key_legal{Namer::LEGAL, nullptr, true};
+        PoolKey key_goal{Namer::GOAL, nullptr, true};
 
 
         for (auto &&r : roles)
@@ -129,13 +130,13 @@ namespace ares
             key_legal.body = new Body(template_body_legal.begin(), template_body_legal.end());
             (*(Body*)key_legal.body)[0] = r;
             const cnst_lit_sptr& legal_l = memCache.getLiteral(key_legal);
-            roleLegalMap[r->get_name()] = legal_l;
+            roleLegalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{legal_l}));
             
             //Init goal query for role
             key_goal.body = new Body(template_body_goal.begin(), template_body_goal.end());;
             (*(Body*)key_goal.body)[0] = r;
             const cnst_lit_sptr& goal_l = memCache.getLiteral(key_goal);
-            roleGoalMap[r->get_name()] = goal_l;
+            roleGoalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{goal_l}));
         }
     }
 

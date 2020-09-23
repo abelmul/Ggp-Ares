@@ -185,8 +185,8 @@ namespace ares
     /**
      * Iterators for strategies to iterate over actions and states.
      */
-    typedef cnst_term_sptr moves_sptr;
-    typedef std::vector<moves_sptr> Moves;
+    typedef std::vector<cnst_term_sptr> Action;
+    typedef std::unique_ptr<Action> uAction;
     class Reasoner;
     class State;
     /**
@@ -197,11 +197,10 @@ namespace ares
     private:
         uint i;
         const State* state;
-        std::vector<std::unique_ptr<Moves>>* actions;
+        std::vector<uAction>* actions;
         Reasoner* reasoner;
 
     public:
-        typedef Moves Action;
         typedef std::unique_ptr<const Action> UniqueAction;
         ActionIterator(const State* s,Reasoner* r):i(0),state(s),actions(nullptr),reasoner(r){}
 

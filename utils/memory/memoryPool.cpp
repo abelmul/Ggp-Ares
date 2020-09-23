@@ -33,8 +33,8 @@ namespace ares
             for (void* vp : it.second.second)
                 delete ((term_container*)vp);
         
+        delete EMPTY_CONTAINER;
         log("[~MemoryPool]");
-        // delete EMPTY_CONTAINER;
     }
     void MemoryPool::init_pools(
         std::size_t st_terms,
@@ -72,6 +72,7 @@ namespace ares
         std::vector<void*>& pool = ar_pool(arity);
         if( pool.size()==0) grow(pool, ar_gfactor(arity),arity);
         return allocate(pool);
+
     }
     /**
      * Return @param st a structured_term back to the free pool to be reused.

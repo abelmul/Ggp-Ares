@@ -4,10 +4,14 @@
 #include "ares.hh"
 namespace ares
 {
+    //Create the static memory pool
+    MemoryPool& mempool = MemoryPool::create(131072,262144,{make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)});
+    tbb::concurrent_hash_map<ushort,std::vector<ThreadPool*>> ThreadPoolFactroy::pools;
+    auto& tpf  = ThreadPoolFactroy::create();
     /**
      * Static elements in Strategy.
      */
-    std::unordered_set<const char*> Registrar::initd;
+    std::unordered_set<std::string> Registrar::initd;
     std::unordered_map<std::string, Strategy*> Registrar::strategies;
 
     template <class T>

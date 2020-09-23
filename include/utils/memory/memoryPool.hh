@@ -42,7 +42,7 @@ namespace ares
     typedef std::shared_ptr<Literal>          lit_sptr;
 
     typedef std::weak_ptr<Term>             term_wkptr;
-    typedef std::weak_ptr<structured_term>  structured_term_wkptr;
+    typedef std::weak_ptr<structured_term>  st_term_wkptr;
     typedef std::weak_ptr<Function>         fn_wkptr;
     typedef std::weak_ptr<Literal>          lit_wkptr;
 

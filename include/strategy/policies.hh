@@ -25,7 +25,7 @@ namespace ares{
          * @param n a Node where the simulation will begin
          * @param indx the index of the role whose reward will be returned.
          */
-        virtual float operator()(Montecarlo::Node* n,ushort indx)const;
+        virtual float operator()(Montecarlo::Node* n,ushort indx,std::atomic_bool&)const;
         ~SimPolicy() {}
     };
 }

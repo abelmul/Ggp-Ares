@@ -8,16 +8,20 @@
 #include "strategy.hh"
 #include "utils/utils/iterators.hh"
 #include "utils/threading/threading.hh"
+#include <limits>
+
 
 namespace ares{
     class Montecarlo : public Strategy, public RegistrarBase<Montecarlo>
     {
+
     public:
+        // typedef std::numeric_limits<float> INFINITY
         struct ISelectionPolicy;
         struct ISimPolicy;
         
         struct Node{
-            Node(const State* s,const ActionIterator::Action* a)
+            Node(const State* s,const Action* a)
             :n(0),value(0),parent(nullptr),state(s),actions(s,reasoner),action(a)
             {
             }
@@ -26,12 +30,12 @@ namespace ares{
             void erase();                               //Delete the subtree rooted at this node
             /*data*/
             uint n;                                     //#Simulations through this node
-            uint value;                                 //Total value
+            float value;                                 //Total value
             Node* parent;
             std::unique_ptr<const State> state;
             ActionIterator actions;                     //The available actions from this nodes state
             std::vector<Node*> children;    
-            ActionIterator::UniqueAction action;       //The action that was taken from the parents state
+            ucAction action;                            //The action that was taken from the parents state
             std::mutex lock;
         };
 
@@ -40,9 +44,13 @@ namespace ares{
      */
     public:
         Montecarlo()
-        :timer(*this)
+        :tree(*this),timer(*this),selPolicy(nullptr),simPolicy(nullptr)
         {}
-        virtual void init();
+        virtual void init(Reasoner*);
+        /**
+         * Dump the constructed tree
+         */
+        virtual void dump(std::string str="{}");
         /**
          * Construct the game tree for match.games.
          */
@@ -55,24 +63,35 @@ namespace ares{
          * Destroy game tree.
          */
         inline virtual void reset(){
+            stoped = true;
             timer.cancel();
+            std::lock_guard<std::mutex> lk(lock);
             tree.reset();
         }
 
         virtual std::string name(){return "Montecarlo";}
         static Montecarlo* create(){ static Montecarlo monte; return &monte;}
 
-        inline void setPolicies(ISelectionPolicy* s,ISimPolicy* sim_){ selPolicy=s; simPolicy = sim_;}
-
-        inline static float uct(const Node& nd,ushort c) {  return (nd.value/nd.n) +( c * sqrt( (2*std::log(nd.parent->n))/ nd.n)) ; }
+        inline void setPolicies(ISelectionPolicy* s,ISimPolicy* sim_){
+            if(selPolicy) delete selPolicy;
+            if(simPolicy) delete simPolicy;
+            selPolicy=s; simPolicy = sim_;
+        }
+        
+        /**
+         * @param def the default value to return for unexplored nodes.
+         */
+        inline static float uct(const Node& nd,ushort c,float def=0) 
+        { return  nd.n == 0 ? def :(nd.value/nd.n) +( c * sqrt( (2*std::log(nd.parent->n))/ nd.n)) ; }
         /**
          * Choose the best child according to uct.
          * @param n the node whose children (>0) are to be compared
+         * @param def the default value to use for unexplored nodes.
          */
-        inline static Node* bestChild(Node& n,ushort c){
+        inline static Node* bestChild(Node& n,ushort c,float def=0){
             std::lock_guard<std::mutex> lk(n.lock);
-            return *std::max_element(n.children.begin(),n.children.end(),[&](auto& n, auto& m){ 
-                                                                            return uct(*n,c) < uct(*m,c);});
+            return *std::max_element(n.children.begin(),n.children.end(),
+                                    [&](auto& n, auto& m) {return uct(*n,c,def) < uct(*m,c,def);});
         }
         virtual ~Montecarlo();
 
@@ -81,13 +100,20 @@ namespace ares{
          * update v's value and Propagate val through ancestors of v
          */
         inline void update(Node* v,ushort val){
-            while (v and v->parent )
-            {
-                //The parent depends on its children's  value for selecting best child.
-                std::lock_guard<std::mutex> lk(v->parent->lock);
+            auto update_ =[&](Node*& n,ushort& val){
                 v->n++;
                 v->value += val;
                 v = v->parent;
+            };
+            while (v )
+            {
+                if( v->parent){//The parent depends on its children's  value for selecting best child.
+                    std::lock_guard<std::mutex> lk(v->parent->lock);
+                    update_(v,val);
+                    continue;
+                }
+                std::lock_guard<std::mutex> lk(tree.lock);
+                update_(v,val);
             }
         }
 
@@ -97,13 +123,15 @@ namespace ares{
     private:    
         //The tree
         struct Tree{
-            Tree():root(nullptr){}
-            void select(const ActionIterator::Action* action);
+            Tree(Montecarlo& m):mc(m),root(nullptr),origRoot(nullptr){}
+            void select(const Action* action);
             void reset(Montecarlo::Node* root_=nullptr);
             ~Tree(){ reset(); }
             /*Data*/
+            Montecarlo& mc;
             std::mutex lock;
-            Node* root;
+            Node* root;    // Keep track of current state. This dynamically changes on every step.
+            Node* origRoot;  //For debugging and visualization purposes don't delete the original tree.
         };
         /**
          * The timer, to assert that replies are made with the assigned time
@@ -112,7 +140,14 @@ namespace ares{
             public: 
                 Timer(Montecarlo& mc):mct(mc),seq(0),done(nullptr){}
                 std::future<ares::cnst_term_sptr> reset(std::atomic_bool& done_,const Match& match);
+                /**
+                 * Cancel any scheduled timers;
+                 */ 
                 void cancel();
+                /**
+                 * Cancel the current timer if stored done matches given done.
+                 */
+                void cancel(std::atomic_bool* done_);
             private: 
                 Montecarlo& mct;
                 std::atomic_uint seq;
@@ -120,9 +155,17 @@ namespace ares{
                 std::mutex lock;
                 std::condition_variable cv;
         };
-         public :
-            struct ISelectionPolicy{ virtual Node* operator()(Node*,const std::atomic_bool&)const=0; };
-            struct ISimPolicy{ virtual float operator()(Node*,ushort)const=0; };
+    public :
+        struct ISelectionPolicy
+        { 
+            virtual Node* operator()(Node*,const std::atomic_bool&)const=0;
+            virtual ~ISelectionPolicy(){} 
+        };
+        struct ISimPolicy
+        { 
+            virtual float operator()(Node*,ushort,std::atomic_bool&)const=0; 
+            virtual ~ISimPolicy(){}
+        };
     /**
      * Data
      */
@@ -131,8 +174,11 @@ namespace ares{
         Timer timer;
         std::mutex lock;
         ISelectionPolicy* selPolicy; ISimPolicy* simPolicy;
-
+        std::atomic_bool stoped;
+        
+    public:
     friend class Timer;
+    friend class MonteTester;
     };//End Class Montecarlo
 }//namespace ares
 #endif

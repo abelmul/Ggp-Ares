@@ -30,8 +30,8 @@ namespace ares
         /**
          * ctor
          */
-        GdlParser(uint nThreads, MemCache* mem)
-        : pool(new ThreadPool(new LoadBalancerRR(1))), memCache(mem)
+        GdlParser(MemCache* mem)
+        : pool(ThreadPoolFactroy::get(1)), memCache(mem)
         {
             transformer = Transformer::create(this);
         }
@@ -76,8 +76,8 @@ namespace ares
 
     public:
         //Singleton parser/transformer
-        static GdlParser& create(uint nThreads,MemCache* mem){
-            static GdlParser parser(nThreads,mem);
+        static GdlParser& create(MemCache* mem){
+            static GdlParser parser(mem);
             return parser;
         }
         /**
@@ -141,8 +141,8 @@ namespace ares
             return terms;
         }
         ~GdlParser(){
+            ThreadPoolFactroy::deallocate(pool);
             log("[~GdlParser]");
-            delete pool;
         }
 
     /**

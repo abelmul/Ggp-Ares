@@ -6,7 +6,6 @@ namespace ares
     using namespace web::http;
     using namespace web::http::experimental::listener;
 
-    inline std::ostream& log(const std::string& msgs);
 
     HttpHandler::HttpHandler(Ares& ares_,std::string url)
     :ares(ares_),listener(url),hooks(5),playing(false),seq(0)
@@ -18,10 +17,17 @@ namespace ares
             const char* status = playing ? "busy))" : "available))";
             return std::string("( (name Ares) (status ") + status;  //Return info
         };
-        hooks[START] = [this](std::vector<std::string>& s){ return startHandler(s); };
+        hooks[START] = [this](std::vector<std::string>& s){
+            std::unique_lock<std::mutex> lk(lock);
+            return startHandler(s); 
+        };
         hooks[PLAY] = [this](std::vector<std::string>& s){ return playHandler(s); };
-        hooks[STOP] = [this](std::vector<std::string>& s){ return stopHandler(s); };
+        hooks[STOP] = [this](std::vector<std::string>& s){
+            std::unique_lock<std::mutex> lk(lock);
+            return stopHandler(s); 
+        };
         hooks[ABORT] =[this](std::vector<std::string>& s){ 
+            std::unique_lock<std::mutex> lk(lock);
             if( !ares.abortMatch(s[2]) ) return "";
             playing = false; 
             seq = 0;
@@ -31,7 +37,7 @@ namespace ares
         //Start up the server
         listener.support(methods::POST,std::bind(&HttpHandler::handle, this, std::placeholders::_1));
         listener.open()
-        .then([&]{ log("[HttpHandler]") << "Ares Server Started on Adress : " << url << "\n";})
+        .then([&]{ log("\n[HttpHandler]") << "Ares Server Started on Adress : " << url << "\n";})
         .wait();
     }
     void HttpHandler::handle(http_request msg){
@@ -117,7 +123,14 @@ namespace ares
         else
             selectedMove = ares.makeMove(cseq);
         // Make sure Another play message hasn't come before replying
-        return ( selectedMove.second == seq and selectedMove.first ) ? selectedMove.first->to_string() : "";
+        bool valid =  selectedMove.second == seq and selectedMove.first ;
+        if( not valid ){
+            if(selectedMove.second != seq )
+                logerr("[HttpHandler]") << "Strategy returned invalid move.\n\tcurrent seq="<<seq << ", returned seq = " << selectedMove.first <<"\n";
+            else
+                logerr("[HttpHandler]") << "Strategy returned invalid move. Returned move is null.\n";
+        }
+        return valid ? selectedMove.first->to_string() : "";
     }
     /**
      *(STOP <MATCHID> (<A1> <A2> ... <An>))

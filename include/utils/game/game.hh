@@ -17,6 +17,11 @@ namespace ares
     typedef cnst_term_sptr role_sptr;
     typedef std::vector<move_sptr> Moves;
     typedef std::vector<role_sptr> Roles;
+    typedef Moves Action;
+    typedef std::unique_ptr<Action> uAction;
+    typedef std::unique_ptr<const Action> ucAction;
+    typedef std::unique_ptr<Moves> uMoves;
+
     
     typedef UniqueVector<const Clause*,ClauseHasher,ClauseHasher> UniqueClauseVec;
 
@@ -29,7 +34,7 @@ namespace ares
         KnowledgeBase& operator=(const KnowledgeBase&&)=delete;
         
         virtual const UniqueClauseVec* operator [](ushort name)const = 0;
-        virtual void add(ushort name, Clause*) = 0;
+        virtual bool add(ushort name, Clause*) = 0;
         virtual ~KnowledgeBase(){}
         protected:
             SpinLock slock;
@@ -59,12 +64,12 @@ namespace ares
             return v;
         }
         
-        virtual void add(ushort name, Clause* c){
+        virtual bool add(ushort name, Clause* c){
             std::lock_guard<SpinLock> lk(slock);
             if( rules.find(name) == rules.end() )
                 rules[name] = new UniqueClauseVec();
             
-            rules[name]->push_back(c);
+            return rules[name]->push_back(c);
         }
         
         std::unordered_map<ushort, UniqueClauseVec*>::iterator begin(){ return rules.begin();}

@@ -6,6 +6,8 @@
 #include <algorithm>
 #include "ares.hh"
 #include "static.hh"
+#include "strategy/random.hh"
+#include "runner.hh"
 
 #define GAME_DIR "tests/ggp.org/games/"
 #define CHESS_MATCHES "tests/ggp.org/chess_matches.json"
@@ -27,7 +29,7 @@ void verifyMatches(std::vector<const char*>);
 void simulateMatch(ptree& match,ares::Reasoner& reasoner);
 
 std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt);
-std::vector<std::vector<ares::cnst_term_sptr>> getState(ptree& pt);
+std::vector<std::vector<ares::cnst_term_sptr>*> getState(ptree& pt);
 
 void writeOutMatch();
 ptree getMatch(const char* name_ish,std::vector<uint>& selected);
@@ -39,12 +41,9 @@ using namespace ares;
 void setup(){
     using namespace ares;
     srand(time(NULL));
-    std::vector<std::pair<arity_t, uint>> arities = {make_pair(1,32768),make_pair(2,32768),make_pair(3,32768),make_pair(4,32768),make_pair(5,32768),make_pair(6,32768),make_pair(7,32768),make_pair(8,32768),make_pair(9,4096),make_pair(10,32768),make_pair(11,4096),make_pair(12,4096)};
-    
-    MemoryPool& mempool = MemoryPool::create(131072,262144,arities);
     Ares::setMem(&mempool);
 
-    Body::mempool = ClauseBody::mempool = Ares::mempool;
+    Body::mempool = ClauseBody::mempool = &mempool;
     Term::null_term_sptr = nullptr;
     Term::null_literal_sptr = nullptr;
     SuffixRenamer::setPool(Ares::memCache);
@@ -53,7 +52,11 @@ void setup(){
 std::ofstream out;
 int main(int argc, char const *argv[]){
     setup();
-    verifyMatches({CHESS_MATCHES,SELECTED_MATCHES});
+    Runner runner;
+    runner.iter =1;
+    add_test(runner,[&]{verifyMatches({CHESS_MATCHES,SELECTED_MATCHES});});
+    runner();
+    return 0;
 }
 
 void verifyMatches(std::vector<const char*> matchFiles){
@@ -64,9 +67,10 @@ void verifyMatches(std::vector<const char*> matchFiles){
     Prover& prover = Prover::create();
     ClauseCB::prover = &prover;
 
-    parser = &GdlParser::create(1,Ares::memCache);
-
-    auto& reasoner(Reasoner::create(*parser,prover,*Ares::memCache));
+    parser = &GdlParser::create(mempool.getCache());
+    //The reasoner
+    Reasoner& reasoner(Reasoner::create(*parser, Prover::create(), *mempool.getCache()));
+    Ares& ares( Ares::create(Registrar::get("Random"),reasoner));
     
     for (auto &&matchF : matchFiles)
     {
@@ -83,12 +87,12 @@ void verifyMatches(std::vector<const char*> matchFiles){
             else
                 name = SELECTED_DIR + mappings.get<string>(ptree::path_type(match1.first,'|'));
             
-            std::cout << "Verifying GDl file : " << name << "\n";
-            std::cout << "Verifying Match: " << match1.second.get<string>("url") << "\n";
+            std::cout << "Using GDl file : " << name << "\n";
+            std::cout << "Verifying Reasoner with Match: " << match1.second.get<string>("url") << "\n";
             parser->parse(g,name);    
             reasoner.reset(g);
             simulateMatch(match, reasoner);
-            std::cout << "Successfuly Verified Match: " << match1.second.get<string>("url") << "\n";
+            log("Successfuly Verified Reasoner With Match: ") << match1.second.get<string>("url") << "\n";
         }
     }
     
@@ -109,22 +113,22 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
     {
         auto& lstMatchState = matchStates[step];
         State matchState;
-        assert(moves.size() == roles.size());
-        for (auto &&s : lstMatchState){
+        assert_true(moves.size() == roles.size());
+        for (auto &&s : *lstMatchState){
             PoolKey key{Namer::TRUE, new Body{s}};
             auto true_ = Ares::memCache->getLiteral(key);
             matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
         }
-        //Assert that the computed state is the same as the matches state.
-        assert( matchState == (*computedState));
+        //assert that the computed state is the same as the matches state.
+        assert_true( matchState == (*computedState));
         //Compute the legal moves.
         for (size_t i = 0; i < moves.size(); i++)
         {
             //player i made moves[i]
             auto* computedMoves = reasoner.moves(*computedState, *roles[i]);
-            //Assert that the taken move has been computed
+            //assert that the taken move has been computed
             auto it = find(computedMoves->begin(), computedMoves->end(), moves[i]);
-            assert( it != computedMoves->end() );
+            assert_true( it != computedMoves->end() );
             delete computedMoves;
         }
         //Compute the next state.
@@ -136,19 +140,22 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
     //Verify the terminal state.
     State matchState;
     auto last = matchStates.size()-1;
-    for (auto &&s : matchStates[last]){
+    for (auto &&s : *matchStates[last]){
         PoolKey key{Namer::TRUE, new Body{s}};
         auto true_ = Ares::memCache->getLiteral(key);
         matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
     }
-    assert( matchState == (*computedState));
+    assert_true( matchState == (*computedState));
     if( computedState!= &reasoner.init()) delete computedState;
+    for (auto &&state : matchStates)
+        delete state;
+    
 }
 /**
  * Get the ith moves of the match
  */
 std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt){
-    static std::vector<std::vector<ares::cnst_term_sptr>> moves;
+    std::vector<std::vector<ares::cnst_term_sptr>> moves;
     if( moves.size() == 0){
         BOOST_FOREACH(auto& smoves, pt){
             std::vector<ares::cnst_term_sptr> moves_i;
@@ -167,8 +174,8 @@ std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt){
 /**
  * Get the ith state of the match
  */
-std::vector<std::vector<ares::cnst_term_sptr>> getState(ptree& pt){
-    static std::vector<std::vector<ares::cnst_term_sptr>> states;
+std::vector<std::vector<ares::cnst_term_sptr>*> getState(ptree& pt){
+    std::vector<std::vector<ares::cnst_term_sptr>*> states;
     if( states.size() ==0 ){
         BOOST_FOREACH(ptree::value_type& x, pt){
             auto seq = parser->parseSeq(x.second.get_value<std::string>().c_str());

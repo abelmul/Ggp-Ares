@@ -17,7 +17,6 @@ namespace ares
      * Parse from a gdl file, and populate knowledgebase
      */
     void GdlParser::parse(KnowledgeBase* base, string& gdlF){
-        pool->restart();
         ifstream f(gdlF);
         string gdl((istreambuf_iterator<char>(f)),
                  istreambuf_iterator<char>());
@@ -32,7 +31,6 @@ namespace ares
      * Parse a gdl string, and populate knowledgebase
      */
     void GdlParser::parse(KnowledgeBase* base, vector<string>& tokens){
-        pool->restart();
         parse(tokens,base);
         pool->wait();
     }
@@ -163,7 +161,7 @@ namespace ares
         auto name = bodies.top().first;
         Body* body = bodies.top().second;
         
-        PoolKey key{Namer::registerName(name), body,true,nullptr};
+        PoolKey key{Namer::registerName(name), body,true};
         
         bodies.pop();
         if( bodies.empty() ){       //Balanced parentheses

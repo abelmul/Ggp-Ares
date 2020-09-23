@@ -74,6 +74,7 @@ namespace ares
         std::vector<Hook> hooks;
         std::atomic_bool playing;
         std::atomic_uint seq;
+        std::mutex lock;
         
         const ushort INFO=0;
         const ushort START=1;

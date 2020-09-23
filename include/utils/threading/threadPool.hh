@@ -8,26 +8,26 @@
 #include <atomic>
 #include <condition_variable>
 #include "utils/threading/loadBalancer.hh"
-#include "utils/threading/callbacks.hh"
+#include "tbb/concurrent_hash_map.h"
 namespace ares
-{
+{   
+    
     class ThreadPool
     {
     protected:
-        LoadBalancer* loadBalancer;
-        std::atomic<bool> stopped = false;                   //are we accepting jobs from current owner?
-        bool finished = false;                  //Workers constantly check this to know if they should exit processing loop.
+        ThreadPool(LoadBalancer* ldB):loadBalancer(ldB){}
+        ~ThreadPool(){
+            loadBalancer->shutdown();
+            delete loadBalancer;
+        }
 
     public:
-        ThreadPool(LoadBalancer* ldB):loadBalancer(ldB){}
-
         /**
          * Schedule a job.
          */
         inline void post(JobQueue::Job_t job){
             //queue the job
             if( stopped.load() ) return;
-            
             loadBalancer->submit(job);
         }
         /**
@@ -36,27 +36,69 @@ namespace ares
         inline void wait(){
             std::unique_lock<std::mutex> lk(loadBalancer->mOutstdWork);
             loadBalancer->cvCheckEmpty.wait(lk, [this](){ return loadBalancer->noJobs(); });
-            stop();
+            // stop();//for debugging purposes
         }
         /**
          * No more jobs are scheduled after this point, untill pool is re-started using restart().
          */
-        inline void stop(){
+        inline void stop(){//for debugging purposes
             stopped.store(true);
         }
         /**
          * Start accepting jobs.
          */
-        inline void restart(){
-            stopped.store(false);
-        }
-        ~ThreadPool(){
-            loadBalancer->shutdown();
-            delete loadBalancer;
-        }
+        // inline void restart(){//for debugging purposes
+        //     stopped.store(false);
+        // }
         friend class TestableThreadPool;
+        friend class ThreadPoolFactroy;
+    /**
+     * Data
+     */
+    private:
+        LoadBalancer* loadBalancer;
+        std::atomic<bool> stopped = false;                       //are we accepting jobs?
+        bool finished = false;                                  //Workers constantly check this to know if they should exit processing loop.
     };
 
+    class ThreadPoolFactroy{
+    private:
+        typedef tbb::concurrent_hash_map<ushort,std::vector<ThreadPool*>> PoolMap;
+        ThreadPoolFactroy(){}
+    public:
+        inline static ThreadPoolFactroy& create(){ static ThreadPoolFactroy tpf;return tpf;}
+        inline static ThreadPool* get(ushort nThreads){
+            ThreadPool* p;
+           {
+                PoolMap::accessor ac;
+                if( pools.insert(ac,nThreads) or !ac->second.size() )
+                    ac->second.push_back(new ThreadPool(new LoadBalancerRR(nThreads)));
+                
+                p = ac->second.back();
+                ac->second.pop_back();
+           }
+            return p;
+        }
+        inline static void deallocate(ThreadPool* tp){
+            {
+                PoolMap::accessor ac;
+                pools.find(ac,tp->loadBalancer->nWorkers);
+                ac->second.push_back(tp);
+            }
+        }
+
+        ~ThreadPoolFactroy(){
+            for (auto &&[nth, vec] : pools)
+                for (auto &&thp : vec)
+                    delete thp;
+        }
+    /**
+     * Data
+     */
+    private:
+        static PoolMap pools;
+
+    };
     /**
     * This class encapsulates the idea of a worker thread.
     * each worker thread has 1 job queue  1 thread  which it
