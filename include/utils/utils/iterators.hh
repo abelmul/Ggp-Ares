@@ -18,8 +18,8 @@ namespace ares
     struct AnsIterator{
         enum Type{SEQ,RAND};
         typedef std::unique_ptr<Clause> unique_clause;
-        typedef std::vector<cnst_lit_sptr>::const_iterator iterator;
-        typedef UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> container;
+        typedef std::vector<const Literal*>::const_iterator iterator;
+        typedef UniqueVector<const Literal*,LiteralHasher,LiteralHasher> container;
 
         AnsIterator(const container* c,const uint curr,Clause* nxtc )
         :ans(c),current(curr),i(0)
@@ -37,7 +37,7 @@ namespace ares
         virtual bool null() { return ans==nullptr;}
         virtual AnsIterator& operator++(){ i++; return *this;}
 
-        virtual const cnst_lit_sptr& operator*()const{ return (*ans)[current + i];}
+        virtual const Literal* operator*()const{ return (*ans)[current + i];}
 
         virtual std::size_t remaining() { return ans->size() - (current + i);}
         virtual ~AnsIterator(){}
@@ -94,7 +94,7 @@ namespace ares
             return *this;
         }
  
-        virtual const cnst_lit_sptr& operator*()const{ return (*ans)[indx];}
+        virtual const Literal* operator*()const{ return (*ans)[indx];}
 
         virtual std::size_t remaining() { return ans->size() - seen.size();}
 
@@ -185,7 +185,7 @@ namespace ares
     /**
      * Iterators for strategies to iterate over actions and states.
      */
-    typedef std::vector<cnst_term_sptr> Action;
+    typedef std::vector<const Term*> Action;
     typedef std::unique_ptr<Action> uAction;
     class Reasoner;
     class State;

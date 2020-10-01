@@ -18,7 +18,7 @@ namespace ares
     template<class T>
     struct _Body
     {
-        typedef const typename std::vector<std::shared_ptr<T>>::const_iterator const_vec_iterator;
+        typedef const typename std::vector<T*>::const_iterator const_vec_iterator;
         private:
             /**
              * This is called by GdlParser, to first create a
@@ -26,7 +26,7 @@ namespace ares
              */
             _Body(){
                 front_ = 0;
-                container = new std::vector<std::shared_ptr<T>>();
+                container = new std::vector<T*>();
             }
             /**
              * Same as _Body _Body(const_vec_iterator& begin, const_vec_iterator& end) 
@@ -35,7 +35,7 @@ namespace ares
             _Body(const_vec_iterator& begin, const_vec_iterator& end,bool):_Body(){
                 container->insert(container->begin(), begin, end);
             }
-            void push_back(std::shared_ptr<T> t){
+            void push_back(T* t){
                 if( (const lit_container*)container == MemoryPool::EMPTY_CONTAINER){
                     int i;
                     std::cout << "tried to push to Body size 0, Stopping...\n";
@@ -54,28 +54,28 @@ namespace ares
                 front_ = 0;
                 //no need to allocate a container of arity 0 it should already be constructed by MemPool
                 if( arity_ == 0)
-                    container = (std::vector<std::shared_ptr<T>>*) mempool->EMPTY_CONTAINER;
+                    container = (std::vector<T*>*) mempool->EMPTY_CONTAINER;
                 else
-                    container = (std::vector<std::shared_ptr<T>>*)mempool->allocate(arity_);
+                    container = (std::vector<T*>*)mempool->allocate(arity_);
             }
             _Body(const_vec_iterator& begin, const_vec_iterator& end){
                 front_ = 0;
                 arity_t arity_ = end - begin;
                 if( arity_ == 0 )
-                    container = (std::vector<std::shared_ptr<T>>*) mempool->EMPTY_CONTAINER;
+                    container = (std::vector<T*>*) mempool->EMPTY_CONTAINER;
                 else{
-                    container = (std::vector<std::shared_ptr<T>>*)mempool->allocate(arity_);
+                    container = (std::vector<T*>*)mempool->allocate(arity_);
                     for (size_t i = 0; i < arity_; i++)
                         (*container)[i] = *(begin+i);
                 } 
             }
-            _Body(std::initializer_list<std::shared_ptr<T>> args){
+            _Body(std::initializer_list<T*> args){
                 front_ = 0;
                 arity_t arity_ = args.end() - args.begin();
                 if( arity_ == 0 )
-                    container = (std::vector<std::shared_ptr<T>>*) mempool->EMPTY_CONTAINER;
+                    container = (std::vector<T*>*) mempool->EMPTY_CONTAINER;
                 else{
-                    container = (std::vector<std::shared_ptr<T>>*)mempool->allocate(arity_);
+                    container = (std::vector<T*>*)mempool->allocate(arity_);
                     for (size_t i = 0; i < arity_; i++)
                         (*container)[i] = *(args.begin()+i);                    
                 }
@@ -92,7 +92,7 @@ namespace ares
             ~_Body(){
                 const auto& arity =  container->size();
                 for (uint i=front_;i < arity;i++)
-                    (*container)[i].reset();
+                    (*container)[i] = nullptr;
 
                 if(arity > 0)
                     mempool->deallocate(container);
@@ -101,7 +101,7 @@ namespace ares
                 container = nullptr;
             }
 
-            std::shared_ptr<T>& operator[](std::size_t i)const{
+            T*& operator[](std::size_t i)const{
                 i += front_;
                 if(i >= container->size() ) 
                     throw IndexOutOfRange("Body size out of range size is : " + std::to_string(size()) + " ,index : " + std::to_string(i) + "\n");
@@ -118,13 +118,13 @@ namespace ares
             void front_to_back(){
                 if( this->size() <= 1 ) throw EmptyBodyPop("front_to_back called on a body of size <= 1.");
 
-                const std::shared_ptr<T>  t = *this->begin();
+                const T*  t = *this->begin();
                 container->erase(this->begin());
                 container->push_back(t);
             }
             void pop_front(){
                 if( this->size() == 0 ) throw EmptyBodyPop("pop_front called on an empty body.");
-                (*container)[front_].reset();
+                (*container)[front_] = nullptr;
                 front_++;
             }
             std::size_t size()const{ return container->size() - front_;}
@@ -137,7 +137,7 @@ namespace ares
              * which makes the body not reusable.
              */
             std::size_t front_ = 0;
-            std::vector<std::shared_ptr<T>>* container = nullptr;
+            std::vector<T*>* container = nullptr;
             
         friend class GdlParser;
         friend class Transformer;

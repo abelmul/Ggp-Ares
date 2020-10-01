@@ -14,21 +14,21 @@ namespace ares
          * Ctor
          */
         Reasoner( GdlParser& p, Prover& prover_,MemCache& mem)
-        :game(nullptr)
+        :TRUE_LITERAL(p.parseQuery(TRUE_QUERY))
+        ,x(mem.getVar(Namer::X))
+        ,r(mem.getVar(Namer::R))
+        ,game(nullptr)
         ,parser(p)
         ,prover(prover_)
         ,memCache(mem)
-        ,ROLE_GOAL(makeGoal(p,ROLE_QUERY))
         ,INIT_GOAL(makeGoal(p,INIT_QUERY))
         ,LEGAL_GOAL(makeGoal(p,LEGAL_QUERY))
         ,NEXT_GOAL(makeGoal(p,NEXT_QUERY))
         ,TERMINAL_GOAL( makeGoal(p,TERMINAL_QUERY) )
         ,GOAL_GOAL( makeGoal(p,GOAL_QUERY))
-        ,TRUE_LITERAL(p.parseQuery(TRUE_QUERY))
-        ,x(memCache.getVar(Namer::X))
-        ,r(memCache.getVar(Namer::R))
+        ,ROLE_GOAL(makeGoal(p,ROLE_QUERY))
         {
-            goals = std::vector<const Clause*>{ROLE_GOAL,INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL};
+            goals = std::vector<const Clause*>{INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL,ROLE_GOAL};
         }
 
 
@@ -53,13 +53,13 @@ namespace ares
             return new Clause(nullptr, new ClauseBody{p.parseQuery(q)});
         }
         /**
-         * @returns all the roles in the game
+         * infer the initial state
          */
-        virtual inline const Roles& roles(){return game->getRoles();}
+        const State& init();
         /**
-         * @returns the initial state
+         * infer the roles
          */
-        virtual inline const State& init(){return *game->init();}
+        const Roles& roles();
         /**
          * @param state the current state
          * @param action an ordered (by role order) list of moves taken by roles. 
@@ -90,7 +90,7 @@ namespace ares
          /**
          * Get a random move.
          */
-        virtual move_sptr randMove(const State& state,const Role& role);
+        virtual Move* randMove(const State& state,const Role& role);
         /**
          * Get a random action, i.e <move_1,...,move_n> , where move_i is taken by role i.
          */
@@ -110,7 +110,11 @@ namespace ares
             prover.reset(kb);
             if( game ) delete game;
             game = kb;
-            if( game ) initMapping();
+            if( game ){
+                init();
+                roles();
+                initMapping();
+            }
         }
         virtual ~Reasoner(){
             for (auto &&c : goals)
@@ -149,6 +153,10 @@ namespace ares
     /**
      * Data
      */
+    public:
+        const Literal* const TRUE_LITERAL;
+        const Variable* const x;   
+        const Variable* const r;
     private:
         Game* game;
         GdlParser& parser;
@@ -162,18 +170,17 @@ namespace ares
         //role name to index mapping
         std::unordered_map<ushort, ushort> rolesIndex;
 
-        const Clause* ROLE_GOAL;
+        
         const Clause* INIT_GOAL;
         const Clause* LEGAL_GOAL;
         const Clause* NEXT_GOAL;
         const Clause* TERMINAL_GOAL;
         const Clause* GOAL_GOAL;
-        cnst_lit_sptr TRUE_LITERAL;
+        const Clause* ROLE_GOAL;
+        
         //Define the queries these don't change through out the lifetime of the player
         std::vector<const Clause* > goals;
 
-        cnst_var_sptr x;   
-        cnst_var_sptr r;
         static const char* ROLE_QUERY    ;
         static const char* INIT_QUERY    ;
         static const char* LEGAL_QUERY   ;
@@ -193,15 +200,14 @@ namespace ares
      */
     struct NxtCallBack : public CallBack
     {
-        NxtCallBack(Reasoner* t, State* s):CallBack(_done, nullptr),this_(t),newState(s),_done(false){}
+        NxtCallBack(Reasoner* t, State* s):CallBack(done_, nullptr),this_(t),newState(s),done_(false){}
 
         virtual void operator()(const Substitution& ans,ushort,bool){
             // isCurrent()
             VarSet vset;
-            const cnst_term_sptr& true_ = (*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
+            auto true_ = (const Literal*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
             if(true_){
-                auto* cbdy = new ClauseBody(0);
-                auto* cl = new Clause(*((cnst_lit_sptr*)&true_), cbdy );
+                auto* cl = new Clause(true_, new ClauseBody(0) );
                 if ( not newState->add(Namer::TRUE, cl) )//This is thread safe
                     delete cl;  //Duplicate element
             }
@@ -212,12 +218,12 @@ namespace ares
         }
         Reasoner* this_;
         State* newState;
-        std::atomic_bool _done;
+        std::atomic_bool done_;
     };
     struct LegalCallBack : public CallBack
     {
         LegalCallBack(Reasoner* t,bool r)
-        :CallBack(_done, nullptr),this_(t),moves(new Moves()),_done(false),rand(r),count(0)
+        :CallBack(done_, nullptr),this_(t),moves(new Moves()),done_(false),rand(r),count(0)
         {}
         virtual void operator()(const Substitution& ans,ushort,bool){
             if( rand ){
@@ -225,7 +231,7 @@ namespace ares
                 if( count >= cfg.ansSample ) done = true;
             }
             VarSet vset;
-            const move_sptr& move = (*this_->x)(ans,vset);
+            const Move* move = (*this_->x)(ans,vset);
             if( move ){
                 std::lock_guard<SpinLock> lk(slk);
                 moves->push_back(move);
@@ -234,32 +240,32 @@ namespace ares
         Reasoner* this_;
         Moves* moves;
         SpinLock slk;
-        std::atomic_bool _done;
+        std::atomic_bool done_;
         bool rand;
         byte count;
     };
     struct TerminalCallBack : public CallBack
     {
-        TerminalCallBack():CallBack(_done, nullptr),_done(false){}
-        virtual void operator()(const Substitution& ans,ushort,bool){
+        TerminalCallBack():CallBack(done_, nullptr),done_(false){}
+        virtual void operator()(const Substitution&,ushort,bool){
             done = true;
             terminal = true;
         }
         bool terminal = false;
-        std::atomic_bool _done;
+        std::atomic_bool done_;
     };
     struct RewardCallBack : public CallBack
     {
-        RewardCallBack(Reasoner* t):CallBack(_done, nullptr),reward(0.0),this_(t),_done(false){}
+        RewardCallBack(Reasoner* t):CallBack(done_, nullptr),reward(0.0),this_(t),done_(false){}
         virtual void operator()(const Substitution& ans,ushort,bool){
             done = true;
             VarSet vset;
-            const cnst_term_sptr& rewardTerm =(* this_->x)(ans, vset);
+            auto* rewardTerm =(* this_->x)(ans, vset);
             reward = atof(Namer::name(rewardTerm->get_name()).c_str());
         }
         float reward;
         Reasoner* this_;
-        std::atomic_bool _done;
+        std::atomic_bool done_;
     };
 
 } // namespace Ares

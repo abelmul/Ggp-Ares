@@ -12,11 +12,7 @@ namespace ares
     {
     
     friend class MemCache;
-    friend class ExpressionPoolTest;
     friend class visualizer;
-
-    template<class T>
-    friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet, bool fn);
 
     private:
         Literal(ushort n,bool p,const Body* b)
@@ -27,7 +23,6 @@ namespace ares
          * Only MemCache could create terms, to ensure only one instance exists 
          */
         void* operator new(std::size_t s);
-    public:
         void operator delete(void* p);
         
         virtual ~Literal(){
@@ -36,6 +31,7 @@ namespace ares
             body = nullptr;
         }
 
+    public:
         Literal(const Literal&) = delete;
         Literal(const Literal&&) = delete;
         Literal& operator= (const Literal&) = delete;
@@ -47,7 +43,7 @@ namespace ares
          * either in place modifications or by creating
          * a new clone literal and modifying that.
          */
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
     };
 } // namespace ares
 

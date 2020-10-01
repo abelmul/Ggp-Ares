@@ -16,9 +16,9 @@ namespace ares
         g->setSubstitution(new Substitution());
         auto cache = std::unique_ptr<Cache>( new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ ));
         Query query(g, cb,context,cache.get(),0,rand);
-        query.pool = ThreadPoolFactroy::get(cfg.proverThreads);
+        // query.pool = ThreadPoolFactroy::get(cfg.proverThreads);
         prover.compute(query);
-        ThreadPoolFactroy::deallocate(query.pool);
+        // ThreadPoolFactroy::deallocate(query.pool);
     }
     void printCacheStat(const Clause* goal, Cache* cache){
         std::cout << "------- Cache Statistics "<< goal->to_string() << "------- \n" ;
@@ -31,8 +31,55 @@ namespace ares
         if( cache->nlookups)
             std::cout <<" Average Consumed Answer by a Lookup Node : " << (cache->nconsumedAns/cache->nlookups)<<"\n";
     }
+
+    const State& Reasoner::init(){
+        if( game->init() ) return *game->init();
+
+        //compute it
+        struct InitCb : public CallBack{
+            InitCb(Reasoner* r):CallBack(done_,nullptr),this_(r),init(new State()),done_(false){}
+            virtual void operator()(const Substitution& ans,ushort,bool){
+                VarSet vset;
+                auto true_ = (const Literal*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
+                if( true_ ){
+                    auto* cl = new Clause(true_, new ClauseBody(0) );
+                    if ( not init->add(Namer::TRUE, cl) )//This is thread safe
+                        delete cl;  //Duplicate element
+                }
+            }
+            Reasoner* this_;
+            State* init;
+            std::atomic_bool done_;
+        };
+        auto cb = new InitCb(this);
+        auto scb = std::shared_ptr<CallBack>(cb);
+        query(INIT_GOAL,nullptr,scb);
+        game->init(cb->init);
+        return *game->init();
+    }
+    const Roles& Reasoner::roles(){
+        if( game->roles().size() ) return game->roles();
+
+        //compute it
+        struct RoleCb : public CallBack{
+            RoleCb(Reasoner* r,Game* g):CallBack(done_,nullptr),this_(r),game(g),done_(false){}
+            virtual void operator()(const Substitution& ans,ushort,bool){
+                VarSet vset;
+                auto role = (*this_->r)(ans,vset);      //Instantiate
+                if( role )
+                    game->addRole(role);
+            }
+            Reasoner* this_;
+            Game* game;
+            std::atomic_bool done_;
+        };
+        auto cb = new RoleCb(this,game);
+        auto scb = std::shared_ptr<CallBack>(cb);
+        query(ROLE_GOAL,nullptr,scb);
+        return game->roles();
+    }
     State* Reasoner::next(const State& state,const Action& moves){
-        auto& roles = game->getRoles();
+        auto& roles = game->roles();
         State* context = new State();
         (*context) += state;            //Shallow copy
         PoolKey key;
@@ -80,7 +127,7 @@ namespace ares
     /**
      *Helper Functions.
      */
-    move_sptr Reasoner::randMove(const State& state,const Role& role){
+    Move* Reasoner::randMove(const State& state,const Role& role){
         auto* legals = moves(state, role);
         uint i = rand() % legals->size();
         auto selected = (*legals)[i];
@@ -91,7 +138,8 @@ namespace ares
     Action* Reasoner::randAction(const State& state){
         Action* action = new Action();
         for (auto &&role : roles())
-            action->push_back( randMove(state,*role));
+            action->push_back(randMove(state,*role));
+        
         return action;
     }
     
@@ -108,7 +156,7 @@ namespace ares
     }
 
     void Reasoner::initMapping(){
-        auto& roles = game->getRoles();
+        auto& roles = game->roles();
         if( roleLegalMap.size() > 0) return;
 
         for (size_t i = 0; i < roles.size(); i++)
@@ -129,13 +177,13 @@ namespace ares
             //Init legal query for role
             key_legal.body = new Body(template_body_legal.begin(), template_body_legal.end());
             (*(Body*)key_legal.body)[0] = r;
-            const cnst_lit_sptr& legal_l = memCache.getLiteral(key_legal);
+            const Literal* legal_l = memCache.getLiteral(key_legal);
             roleLegalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{legal_l}));
             
             //Init goal query for role
             key_goal.body = new Body(template_body_goal.begin(), template_body_goal.end());;
             (*(Body*)key_goal.body)[0] = r;
-            const cnst_lit_sptr& goal_l = memCache.getLiteral(key_goal);
+            const Literal* goal_l = memCache.getLiteral(key_goal);
             roleGoalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{goal_l}));
         }
     }

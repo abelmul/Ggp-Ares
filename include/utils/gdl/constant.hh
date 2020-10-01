@@ -11,15 +11,14 @@ namespace ares
     friend class MemCache;
     friend class ExpressionPoolTest;
     Constant(ushort name):Term(name,CONST){}
+    /**
+     * Deleting a constant does nothing.
+     * The Memory pool will free the malloc'd memory.
+     */
+    ~Constant(){ }
     public:
-        /**
-         * Deleting a constant does nothing.
-         * The Memory pool will free the malloc'd memory.
-         */
-        ~Constant(){ }
-        void operator delete(void*){}
-        virtual const cnst_term_sptr operator ()(const Substitution &,VarSet&) const {
-            return cnst_term_sptr(this,[](const Term*){});
+        virtual const Term* operator ()(const Substitution &,VarSet&) const {
+            return this;
         }
         virtual bool is_ground() const {
             return true;

@@ -7,22 +7,22 @@ namespace ares
 {
     Substitution Substitution::emptySub;
 
-    bool  Substitution::bind(const Variable* x,const cnst_term_sptr& t){
+    bool  Substitution::bind(const Variable* x,const Term* t){
         //This variable has already been bound!
         if(mapping.find(x) != mapping.end()) return false;
         mapping[x] = t;
         return true;
     }
-    const cnst_term_sptr Substitution::get(const Variable* x) const {
+    const Term* Substitution::get(const Variable* x) const {
         return mapping.at(x);
     }
     //Overload the indexing operator, to get the underlying mapping        
-    const cnst_term_sptr Substitution::operator[] (const Variable* x) const {
-        if( not isBound(x)) return Term::null_term_sptr;
+    const Term* Substitution::operator[] (const Variable* x) const {
+        if( not isBound(x)) return nullptr;
 
         VarSet vSet;
         vSet.insert(x);
-        const cnst_term_sptr& t = mapping.at(x);
+        const Term* t = mapping.at(x);
         return (*t)(*this,vSet);    //Walk through the implicit `chain`
     }
 

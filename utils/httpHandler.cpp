@@ -13,7 +13,7 @@ namespace ares
         using namespace web::http;
         
         //Setup the hooks
-        hooks[INFO] = [&](std::vector<std::string>& s){
+        hooks[INFO] = [&](std::vector<std::string>&){
             const char* status = playing ? "busy))" : "available))";
             return std::string("( (name Ares) (status ") + status;  //Return info
         };
@@ -113,7 +113,7 @@ namespace ares
         tokens.pop_back();
         tokens.erase(tokens.begin(), tokens.begin()+3);
 
-        std::pair<move_sptr,uint> selectedMove;
+        std::pair<Move*,uint> selectedMove;
         if( tokens[0] != "nil" ){
             //Parse the made moves
             const auto& moves = ares.parser.parseSeq(tokens);

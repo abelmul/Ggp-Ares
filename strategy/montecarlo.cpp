@@ -21,13 +21,13 @@ namespace ares{
         }
         // std::thread([match,this]{(*this)(match,-1);}).detach();
     }
-    std::pair<move_sptr,uint> Montecarlo::operator()(const Match& match,uint seq){
-        log("[Montecarlo] Selecting a move\n");
+    std::pair<Move*,uint> Montecarlo::operator()(const Match& match,uint seq){
+        log("[Montecarlo]") << "Selecting a move\n";
         std::atomic_bool done=false;
-        std::future<ares::cnst_term_sptr> future = timer.reset(done,match);
+        std::future<const Term*> future = timer.reset(done,match);
         
         std::lock_guard<std::mutex> lk(lock);
-        if( stoped ) { timer.cancel(); return std::pair<move_sptr,uint>();}
+        if( stoped ) { timer.cancel(); return std::pair<Move*,uint>();}
         if( match.takenAction ) {
             tree.select(match.takenAction); //change the root according to made moves
             current = tree.root->state.get();
@@ -41,7 +41,7 @@ namespace ares{
             update(v,value);
         }
         timer.cancel(&done);
-        return std::pair<move_sptr,uint>(future.get(), seq);
+        return std::pair<Move*,uint>(future.get(), seq);
     }
 
     Montecarlo::Node* SelectionPolicy::operator()(Montecarlo::Node* n,const std::atomic_bool& done)const{
@@ -155,7 +155,7 @@ namespace ares{
     /**
      * Timer methods
      */
-    inline std::future<ares::cnst_term_sptr> Montecarlo::Timer::reset(std::atomic_bool& done_,const Match& match){
+    inline std::future<const Term*> Montecarlo::Timer::reset(std::atomic_bool& done_,const Match& match){
         std::lock_guard<std::mutex> lk(lock);
         auto duration = (match.plyClck * 1000) - cfg.delta_sec;
         uint cseq = ++seq;
@@ -166,22 +166,22 @@ namespace ares{
         log("[Montecarlo::Timer]") << "Reseting timer to " << duration << " milliseconds\n";
         done = &done_;
         cv.notify_all();        //Cancel previous searches (if any)
-        auto cb = [cseq,this,&done_,role(match.role->get_name()),duration]{
+        auto cb = [cseq,this,&done_,role(match.role->get_name()),duration]()->const Term *{
             {
                 std::unique_lock<std::mutex> lk(lock);
                 cv.wait_for(lk,std::chrono::milliseconds(duration),[&]{return (bool)done_;});
             }
             done_ = true;           //If time has expired cancel the search
             log("[Montecarlo::Timer]") << "Waking up for sequence number " << cseq << "\n";
-            if( cseq != seq ) return move_sptr();
+            if( cseq != seq ) return nullptr;
             Node* node;
             {
                 std::lock_guard<std::mutex> lk(mct.tree.lock);
                 auto* root =mct.tree.root ;
-                if( not root ) return move_sptr();
+                if( not root ) return nullptr;
                 node = root->children.size() ?  mct.bestChild(*root,0) : nullptr;
             }
-            if( !node ) return move_sptr();
+            if( !node ) return nullptr;
             auto i = mct.reasoner->roleIndex(role);
             return (*node->action)[i];
         };
@@ -227,7 +227,7 @@ namespace ares{
         treeSt += "]}";
     }
     
-    void Montecarlo::dump(std::string str){
+    void Montecarlo::dump(std::string){
         std::string treeSt;
         if(tree.root ) dump_(tree.root, tree.origRoot, treeSt);
         else treeSt = "{}";

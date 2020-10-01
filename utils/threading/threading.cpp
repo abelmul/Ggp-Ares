@@ -34,7 +34,7 @@ namespace ares
      * Inorder to balance the load submit jobs in round robin fashion.
      */
     void LoadBalancerRR::assign(JobQueue::Job_t job){
-        static uint curr =0;  
+        uint curr =0;  
         {
             std::lock_guard<SpinLock> lk(slk);
             curr = current;

@@ -28,7 +28,7 @@ namespace ares{
             log("[RandomStrategy]") << "Selecting a move\n";
             return move_sptr_seq(reasoner->randMove(*state,*match.role),seq);
         }
-        virtual void start(const Match& match){}
+        virtual void start(const Match&){}
         virtual void reset(){
             if(current and current != INIT) delete current; 
             current= nullptr;

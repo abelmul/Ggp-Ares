@@ -2,16 +2,32 @@
 #include "static.hh"
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
-
+#include <filesystem>
+#include <iostream>
+#include <random>
 ares::Cfg ares::cfg;
-void takeIn(const ares::State* state,std::vector<ares::uMoves>*  moves,int& m);
-void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,const ares::role_sptr& r0,const ares::role_sptr& r1, int& m0,int& m1);
+
 using namespace ares;
 
+#define GAMES_DIR "tests/stress/selectedGames"
+#define PERF_MD   "performance.md"
+
+std::ofstream perf(PERF_MD,std::ios::app);
+
+void profile(std::string gdl,ares::Ares& ares);
+uint doSimulation(ares::Ares& ares);
+
+void populate(std::vector<std::string>& games){
+    namespace fs = std::filesystem;
+    for (const auto & entry : fs::directory_iterator(GAMES_DIR))
+        games.push_back(entry.path());
+}
+
+// void doSimulation();
 /**
  * This test is inteded to 
  */
-int main(int argc, char const *argv[])
+int main()
 {
     srand(time(NULL));
     std::cout.setf(std::ios::unitbuf);
@@ -31,59 +47,73 @@ int main(int argc, char const *argv[])
     Reasoner& reasoner(Reasoner::create(GdlParser::create(mempool.getCache()), Prover::create(), *mempool.getCache()));
     Ares& ares( Ares::create(Registrar::get(cfg.strategy.c_str()),reasoner));
 
+
+    perf << "\n\n## Id " << cfg.impNo <<"\n\n";
+    perf << "|Game  | Nth1   	| Nth2  | Nth3  |   Nth4  |\n";
+    perf << "|-     |-          |-      |-      |-        | \n";
+
+    std::vector<std::string> games{/* "tests/stress/selectedGames/connect4.kif", */"tests/stress/selectedGames/chess.kif"/* ,
+    "tests/stress/selectedGames/bomberman2p.kif","tests/stress/selectedGames/chess.kif" */};
+    // populate(games);
+    perf.setf(std::ios::unitbuf);
+
+    for (size_t i = 0; i < games.size(); i++)
+        profile(games[i],ares);
+    return 0;
+}
+
+void profile(std::string gdl,ares::Ares& ares){
+    namespace fs = std::filesystem;
     //Start game, this is done after the start message has been recieved
     //Create the knowledge base
+    log("[Simulator]") << "Using file " << gdl << "\n";
+    log("[Simulator]") << "Doing random simulations for 20 seconds.\n";
     Game* kb(new Game());
-   
     //Parse the gdl
-    ares.parser.parse(kb,cfg.gdlFile);
+    ares.parser.parse(kb,gdl);
+    ares->reset(nullptr);
     ares->reset(kb);
-
-    const role_sptr& r0 = ares->roles()[0];
-    const role_sptr& r1 = ares->roles()[1];
-
-    std::cout << "-----Roles------\n\n";
-    std::cout << *r0 << std::endl;
-    std::cout << *r1 << std::endl;
-    std::cout << "-----Roles------\n\n";
+    std::cout << "roles\n";
+    for (auto &&r : ares->roles())
+        std::cout << r->to_string() << "\n";
+    std::cout << "roles\n";
+    
+    std::cout << ares->init().toString() << "\n";
+    
     srand(time(NULL));
-    visualizer viz;
 
-    //Get the initial state
+    size_t start_pos = gdl.find(".kif");
+    gdl.replace(start_pos, 4, "");
+    perf <<"|" << fs::path(gdl).filename() << "|";
+    for (size_t i = 1; i <= 4; i++)
+    {
+        log("[Simulator]") << "Iteration " << i <<"\n";
+        perf << doSimulation(ares) << "|";
+    }
+    perf <<"\n";
+    
+}
+uint doSimulation(ares::Ares& ares){
+    uint total_steps=0;
+    atomic_uint32_t sims=0,sims_end=0;
     const State& init = ares->init();
-    uint sims = 0;
-
+    std::atomic_bool done = false;
+    std::thread th([&]{
+        std::this_thread::sleep_for(std::chrono::seconds(20));
+        done = true;
+        sims_end = sims.load();
+    });
     auto c = std::chrono::high_resolution_clock();
     auto begin = c.now();
-    uint total_steps = 0;
-    while (sims < cfg.simulations)
+    while (not done)
     {
         const State* state = &init;
         ushort steps=0;
-        while (steps < cfg.steps)
-        {
-            if( ares->terminal(*state) ){
-                auto reward_0 = ares->reward(*r0, state);
-                auto reward_1 = ares->reward(*r1, state);
-                viz.draw(*state);
-                std::cout << "Rewards for " << *r0<< " , " << reward_0 << "\n";
-                std::cout << "Rewards for " << *r1<< " , " << reward_1 << "\n";
-                break;
-            }
-            
+
+        while ((not done) and ( not ares->terminal(*state)) )
+        {   
             Action* action;
-            if( !cfg.random ){
-                int m0=0,m1=0;
-                auto moves= ares->moves(*state, *r0,false);
-                auto moves1= ares->moves(*state, *r1,false);
-                takeIn(state,moves,moves1,r0,r1,m0,m1);
-                action = new Action{(*moves)[m0],(*moves1)[m1]};
-                delete moves;
-                delete moves1;
-            }
-            else 
-                action = ares->randAction(*state);
-            
+            action = ares->randAction(*state);
             State* nxt = ares->next(*state, *action);
             delete action;
             
@@ -92,70 +122,14 @@ int main(int argc, char const *argv[])
             // return 0;
             steps++;
         }
-        std::cout << "Steps : " << steps << "\n";
         sims++;
+        auto end = c.now();
+        std::cout << "steps " << steps << "\n";
+        auto dur = std::chrono::duration_cast<std::chrono::seconds>(end-begin);
+        std::cout << "Time for a simulation "<< sims <<" " << dur.count() << "seconds.\n";
         if( state != &init ) delete state;
         total_steps+=steps;
     }
-    auto end = c.now();
-    auto dur = std::chrono::duration_cast<std::chrono::microseconds>(end-begin);
-    std::cout << "Total time of program execution : " << dur.count() <<" microseconds\n";
-    std::cout << "Average time per step: " << (dur.count()/total_steps) <<" microseconds\n";
-    return 0;
-}
-
-void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,const ares::role_sptr& r0,const ares::role_sptr& r1, int& m0,int& m1){
-    static auto viz = ares::visualizer();
-    viz.draw(*state);
-    std::cout << "Legal Moves for : " << *r0 << "\n";
-    uint j=1;
-    for (uint i=0;i<moves->size();i++){
-        std::cout << (boost::format("[%|-2|]%|=25|") % i % (*moves)[i]->to_string());
-        if( j%5 == 0) std::cout << "\n";
-        j++;
-    }
-    std::cout <<"\n-------------------------------------------------------\n\n";
-    
-    j=1;
-    std::cout << "\nLegal Moves for : " << *r1 << "\n";
-    for (uint i=0;i<moves1->size();i++){
-        std::cout << (boost::format("[%|=2|]%|=25|") % i % (*moves1)[i]->to_string());
-        if( j%5 == 0) std::cout << "\n";
-        j++;
-    }
-    
-    std::cout <<"\n-------------------------------------------------------\n\n";
-
-    if(moves->size() > 1){
-        std::cout << "Move "<< *r0 <<": ";
-        std::cin >> m0;   
-    }
-    if(moves1->size() > 1){
-        std::cout << "Move "<< *r1 <<": ";
-            std::cin >> m1;
-    }
-}
-
-void takeIn(const ares::State* state,std::vector<ares::uMoves>*  moves,int& m){
-    static auto viz = ares::visualizer();
-    viz.draw(*state);
-    std::cout << "Legal Actions" <<"\n";
-    uint j=1;
-    for (auto &&action : *moves){
-        std::string s,sep;
-        for (auto &&a : *action)
-        {
-            s+= sep + a->to_string();
-            sep = ",";
-        }
-        if( j%5 == 0) std::cout << "\n";
-        std::cout << (boost::format("[%|-2|]%|=32|") % (j-1) % s);
-        j++;
-    }
-    std::cout <<"\n-------------------------------------------------------\n\n";
-
-    if(moves->size() > 1){
-        std::cout << "Selected Action "<< ": ";
-        std::cin >> m;   
-    }
+    th.join();
+    return sims_end;
 }

@@ -15,7 +15,7 @@ namespace ares
         void reset(){
             game = nullptr;
             matchId = "";
-            role.reset();
+            role = nullptr;
             strtClck=0;
             plyClck=0;
         }
@@ -24,7 +24,7 @@ namespace ares
         uint strtClck;
         uint plyClck;
         Action* takenAction;
-        cnst_term_sptr role;
+        Role* role;
     };
     /**
      * Represents the match's state.

@@ -17,10 +17,6 @@ namespace ares
     
     friend class MemCache;
     friend class ExpressionPoolTest;
-
-    template<class T>
-        friend Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet);
-    
     private:
         Function(const Function&) = delete;
         Function(const Function&&) = delete;
@@ -33,14 +29,10 @@ namespace ares
         {
         }
 
-        Function(ushort name,bool, const Body* _b)
-        :Function(name, _b)
-        {}
         /**
          * Only MemCache could create terms, to ensure only one instance exists 
          */
         void* operator new(std::size_t s);
-    public:
         void operator delete(void* p);
 
         virtual ~Function(){
@@ -54,14 +46,14 @@ namespace ares
                 delete body;
             body = nullptr;
         }
-        
+    public:
         /**
          * Apply the Substitution sub on this term, creating an instance.
          * This is done by traversing the "chain" present within the substitution,
          * Varset is used to detect any loops. if a variable is encountered more than once on a 
          * single dfs path then there is a loop.
          */
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
     };
 } // namespace ares
 

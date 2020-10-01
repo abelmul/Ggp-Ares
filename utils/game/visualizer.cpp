@@ -8,7 +8,7 @@ namespace ares
         board.clear();
         for (auto &&trues : *s)
         {
-            auto* propos = (*trues->head->body)[0].get();
+            auto* propos = (*trues->head->body)[0];
             if( propos->get_name() != Namer::id("cell") )  continue;
             const Function* cell =  ((const Function*)propos);
             const auto& body = *cell->body;

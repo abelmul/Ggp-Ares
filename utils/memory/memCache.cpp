@@ -4,100 +4,74 @@
 namespace ares
 {
     MemCache::~MemCache(){
-        {
-            std::unique_lock<std::mutex> lk(mRemove);
-            pollDone = true;
-        }
-        cvRemove.notify_all();
-
-        delQueueTh->join();
-
-        delete delQueueTh;
-
-        nameLitPool.clear();
-        nameFnPool.clear();
-        
-        for( auto&& [name, varptr] : varPool){
-            auto* v = varptr.get();
-            varptr.reset();
-            free((void*)v);
-        }
-        for( auto&& [name, cnstptr] : constPool){
-            auto* c = cnstptr.get();
-            cnstptr.reset();
-            free((void*)c);
-        }
+        log("[~MemCache()]");
     }
-    cnst_var_sptr MemCache::getVar(ushort n){
-        cnst_var_sptr vsptr;
+
+    const Variable* MemCache::getVar(ushort n){
         VarPool::accessor ac;
         if( varPool.insert(ac,n) ) //This thread inserted the key
-            ac->second.reset(new Variable(n))/* reset(new Variable(n)); */;
+            ac->second.reset(new Variable(n),[&](Variable* v){deleter(v);});
         
-        vsptr = ac->second;
+        auto var = ac->second.get();
         ac.release();
-        return vsptr;
+        return var;
     }
-    cnst_const_sptr MemCache::getConst(ushort n){
-        cnst_const_sptr csptr;
+    const Constant* MemCache::getConst(ushort n){
         ConstPool::accessor ac;
         if( constPool.insert(ac,n) )    //This thread inserted the key
-            ac->second.reset(new Constant(n));
+            ac->second.reset(new Constant(n),[&](Constant* c){deleter(c);});
 
-        csptr = ac->second;
+        auto cnst = ac->second.get();
         ac.release();
-        return csptr;
+        return cnst;
     }
-    cnst_fn_sptr MemCache::getFn(PoolKey& key){
-        NameFnMap::accessor ac;
+    const Function* MemCache::getFn(PoolKey& key){
+        NameFnMap::const_accessor ac;
         nameFnPool.insert(ac,key.name);     //insert it if it doesn't exist
-        FnPool& fnPool= ac->second;
+        FnPool* fnPool= (FnPool*)&ac->second;
         FnPool::accessor fnAc;
-        fn_sptr fn;
-        if( fnPool.insert(fnAc, key) ){
-            //key didn't exist, Create a shared ptr and insert that
-            fn.reset(new Function(key.name,key.body),Deleter(this));
-            fnAc->second = fn;
-        }
-        else{
-            //key  exists but weak ptr might be 0.
-            fn = fnAc->second.lock();
-            if( not fn ){
-                ((PoolKey*)&fnAc->first)->body = key.body;  //Reassign it to the new body
-                fn.reset( new Function(key.name,key.body),Deleter(this));
-                fnAc->second = fn;
-            }
-            else
-                delete key.body;
-        }
+        const Function* fn;
+        if( fnPool->insert(fnAc, key) ) //key didn't exist,so insert it
+            fnAc->second.reset(new Function(key.name,key.body),[&](Function * f){deleter(f);});
+
+        
+        else //key  exists 
+            delete key.body; 
+        
+        fn = fnAc->second.get();
         fnAc.release();
         key.body = nullptr;
         return fn;
     }
-    cnst_lit_sptr MemCache::getLiteral(PoolKey& key){
-        NameLitMap::accessor ac;
+    const Literal* MemCache::getLiteral(PoolKey& key){
+        NameLitMap::const_accessor ac;
         nameLitPool.insert(ac,key.name);     //insert it if it doesn't exist
-        LitPool& litPool= ac->second;
+        LitPool* litPool= (LitPool*)&ac->second;
         LitPool::accessor litAc;
-        lit_sptr lit;
-        if( litPool.insert(litAc, key) ){
-            //key didn't exist, Create a shared ptr and insert that
-            lit.reset(new Literal(key.name,key.p,key.body),Deleter(this));
-            litAc->second = lit;
-        }
-        else{
-            //key  exists but weak ptr might be 0.
-            lit = litAc->second.lock();
-            if( not lit ){
-                ((PoolKey*)&litAc->first)->body = key.body; //Reassign it to the new body
-                lit.reset( new Literal(key.name,key.p,key.body),Deleter(this));
-                litAc->second = lit;
-            }
-            else
-                delete key.body;
-        }
+        const Literal* lit;
+        if( litPool->insert(litAc, key) )//key didn't exist, insert it
+            litAc->second.reset( new Literal(key.name,key.p,key.body),[&](Literal* l){deleter(l);});
+        
+        else //key  exists.
+            delete key.body;
+        
+        lit = litAc->second.get();
         litAc.release();
         key.body = nullptr;
         return lit;
+    }
+    const Or* MemCache::getOr(PoolKey& key){
+        OrPool::accessor orAc;
+        const Or* or_;
+        if( orPool.insert(orAc, key) )//key didn't exist, insert it
+            orAc->second.reset( new Or(key.body),[&](Or* l){deleter(l);});
+        
+        else //key  exists.
+            delete key.body;
+        
+        or_ = orAc->second.get();
+        orAc.release();
+        key.body = nullptr;
+        return or_;
     }
 } // namespace ares

@@ -9,7 +9,7 @@ namespace ares
      */
     MemCache* SuffixRenamer::pool = nullptr;
 
-   const cnst_term_sptr SuffixRenamer::get(const Variable* x) const {
+   const Term* SuffixRenamer::get(const Variable* x) const {
         return  pool->getVar(Namer::idVers(x->get_name(), suffix));
     }
 } // namespace Ares

@@ -21,7 +21,7 @@ namespace ares
         friend class visualizer;
         
     private:
-        cnst_lit_sptr head = nullptr;
+        const Literal* head = nullptr;
         ClauseBody* body = nullptr;
         Substitution* theta = nullptr;
 
@@ -42,12 +42,12 @@ namespace ares
          * A <- A0 and ... and An
          * where A0...An are literals(the body), and A is the head
          */
-        Clause(cnst_lit_sptr head,ClauseBody* _b)
+        Clause(const Literal* head,ClauseBody* _b)
         :head(head),body(_b),theta(nullptr)
         {
         };
 
-        Clause(cnst_lit_sptr head,ClauseBody* _b,Substitution* t)
+        Clause(const Literal* head,ClauseBody* _b,Substitution* t)
         :head(head),body(_b),theta(t)
         {
         };
@@ -91,26 +91,25 @@ namespace ares
             auto vset = VarSet();
             for (uint i =0;i < body->size() ; i++){
                 auto& l = (*body)[i];
-                const cnst_term_sptr& lr = (*l)(vr, vset);       //Apply renaming
-                renamedBody[i] = *((cnst_lit_sptr*)&lr);
+                const Term* lr = (*l)(vr, vset);       //Apply renaming
+                renamedBody[i] = ((const Literal*)lr);
             }
             return;
         }
 
         std::size_t size()const { return body->size(); }
 
-        void setHead(cnst_lit_sptr h){head = h;}
+        void setHead(const Literal* h){head = h;}
         
-        const cnst_lit_sptr& getHead() const { 
-            if ( head )return head; 
-            return Term::null_literal_sptr;
+        const Literal* getHead() const { 
+            return head; 
         }
 
         Substitution& getSubstitution() const { return *theta;}
 
         void setSubstitution(Substitution* t){ theta = t;}
 
-        cnst_lit_sptr& front() const { return (*body)[0];}
+        const Literal*& front() const { return (*body)[0];}
 
         void pop_front() { body->pop_front();}
 

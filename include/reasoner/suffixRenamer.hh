@@ -31,13 +31,13 @@ namespace ares
 
         static Substitution emptySub;
 
-        virtual bool bind(const Variable*,const cnst_term_sptr&){return true;}
+        virtual bool bind(const Variable*,const Term*){return true;}
         
         ushort gets() { return suffix;}
         //To get the immediate mapping, without traversing the chain.
-        virtual const cnst_term_sptr get(const Variable*) const ;
+        virtual const Term* get(const Variable*) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        virtual const cnst_term_sptr operator[]  (const Variable* x) const{ return get(x);} 
+        virtual const Term* operator[]  (const Variable* x) const{ return get(x);} 
 
         virtual bool isRenaming() const { return true;}
         /**

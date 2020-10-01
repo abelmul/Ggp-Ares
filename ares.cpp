@@ -5,7 +5,7 @@
 using namespace ares;
 ares::Cfg ares::cfg;
 
-int main(int argc, char const *argv[])
+int main()
 {
     srand(time(NULL));
     std::cout.setf(std::ios::unitbuf);

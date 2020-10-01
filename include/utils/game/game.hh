@@ -13,10 +13,8 @@ namespace ares
     class State;
     typedef const Term Move;
     typedef const Term Role;
-    typedef cnst_term_sptr move_sptr;
-    typedef cnst_term_sptr role_sptr;
-    typedef std::vector<move_sptr> Moves;
-    typedef std::vector<role_sptr> Roles;
+    typedef std::vector<Move*> Moves;
+    typedef std::vector<Role*> Roles;
     typedef Moves Action;
     typedef std::unique_ptr<Action> uAction;
     typedef std::unique_ptr<const Action> ucAction;
@@ -44,7 +42,7 @@ namespace ares
     private:
         /*A mapping from head names --> [clauses with the same head name]*/
         std::unordered_map<ushort, UniqueClauseVec*> rules;
-        Roles roles;
+        Roles roles_;
         State* init_;
 
     public:
@@ -81,11 +79,16 @@ namespace ares
         /**
          * The roles are static wihin a game no need to compute them.
          */
-        const Roles& getRoles();
+        const Roles& roles(){return roles_;}
+        void addRole(const Role* r){roles_.push_back(r);}
         /**
-         * THe initial state is static within the game no need to compute it.
+         * set the initial state
          */
-        const State* init();
+        void init(State* s){ init_ = s;}
+        /**
+         * get the initial state
+         */
+        const State* init(){ return init_;}
 
         std::string toString(){
             std::string s;

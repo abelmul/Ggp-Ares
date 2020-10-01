@@ -100,7 +100,7 @@ namespace ares{
          * update v's value and Propagate val through ancestors of v
          */
         inline void update(Node* v,ushort val){
-            auto update_ =[&](Node*& n,ushort& val){
+            auto update_ =[&](ushort& val){
                 v->n++;
                 v->value += val;
                 v = v->parent;
@@ -109,11 +109,11 @@ namespace ares{
             {
                 if( v->parent){//The parent depends on its children's  value for selecting best child.
                     std::lock_guard<std::mutex> lk(v->parent->lock);
-                    update_(v,val);
+                    update_(val);
                     continue;
                 }
                 std::lock_guard<std::mutex> lk(tree.lock);
-                update_(v,val);
+                update_(val);
             }
         }
 
@@ -139,7 +139,7 @@ namespace ares{
         class Timer{
             public: 
                 Timer(Montecarlo& mc):mct(mc),seq(0),done(nullptr){}
-                std::future<ares::cnst_term_sptr> reset(std::atomic_bool& done_,const Match& match);
+                std::future<const Term*> reset(std::atomic_bool& done_,const Match& match);
                 /**
                  * Cancel any scheduled timers;
                  */ 

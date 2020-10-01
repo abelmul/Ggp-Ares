@@ -6,7 +6,7 @@ namespace ares
     Transformer* GdlParser::transformer = nullptr;
     /*Define static members*/
     
-    cnst_st_term_sptr GdlParser::parseSterm(const char* st,const Creator& crtr){
+    const structured_term* GdlParser::parseSterm(const char* st,const Creator& crtr){
         std::vector<string> tokens;
         tokenize(st,tokens);
         tokens.push_back(")");
@@ -65,7 +65,7 @@ namespace ares
                     pool->post([this,start,end,base](){
                         //Parse on a separate thread
                         vector<string>::iterator s = start;
-                        cnst_lit_sptr l =  parseLiteral(s, end+1,true);
+                        const Literal* l =  parseLiteral(s, end+1,true);
                         Clause* c = new Clause(l, new ClauseBody(0));
                         base->add(l->get_name(), c);
                     });
@@ -105,7 +105,7 @@ namespace ares
         return result;
     }
 
-    cnst_st_term_sptr GdlParser::parseSterm(vector<string>::iterator& start, const vector<string>::iterator& end ,const Creator& crtr,bool p){
+    const structured_term* GdlParser::parseSterm(vector<string>::iterator& start, const vector<string>::iterator& end ,const Creator& crtr,bool p){
         stack<pair<string, Body*>> bodies;
         if( *start != "(" ){
             //Its a literal without  a body like 'terminal'
@@ -118,7 +118,7 @@ namespace ares
         auto& name = *start++;
         bodies.push(pair<string, Body*>(name, new Body() ));
         auto& it = start;
-        cnst_st_term_sptr l;
+        const structured_term* l;
 
         while ( !bodies.empty() and it < end)
         {
@@ -130,12 +130,12 @@ namespace ares
                  * then add to body.
                  */
                 auto& body = bodies.top().second;
-                cnst_const_sptr cnst = memCache->getConst(Namer::registerName(token));
+                const Constant* cnst = memCache->getConst(Namer::registerName(token));
                 body->push_back(cnst);
             }
             else if( token[0] == '?' and token.size() > 1 ){
                 auto& body = bodies.top().second;
-                cnst_var_sptr var = memCache->getVar(Namer::registerVname(token));
+                const Variable* var = memCache->getVar(Namer::registerVname(token));
                 body->push_back(var);
             }
             else if( token == "("){
@@ -157,7 +157,7 @@ namespace ares
         //Control should not reach here!
         throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
-    cnst_st_term_sptr GdlParser::create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool p) {
+    const structured_term* GdlParser::create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool p) {
         auto name = bodies.top().first;
         Body* body = bodies.top().second;
         
@@ -170,7 +170,7 @@ namespace ares
             return crtr(key);
         }
         //You can do further check to ensure Function and literal names are distinct! if necessary.
-        cnst_fn_sptr fn = memCache->getFn(key);
+        const Function* fn = memCache->getFn(key);
         bodies.top().second->push_back(fn);
         return nullptr;
     }
@@ -178,7 +178,7 @@ namespace ares
         //*start == "(" , *end == ")" and *(start+1) == "<=" checked in parse(...) above
         start += 2;
         //Get the head
-        cnst_lit_sptr head = parseLiteral(ref(start), end, true);
+        const Literal* head = parseLiteral(ref(start), end, true);
         c->setHead(head);
         start++;    //advance to the next token
         if( start >= end ) throw SyntaxError( "GdlParser :: Error :: Empty Rule Body");

@@ -35,10 +35,6 @@ namespace ares
     MemCache* Ares::memCache = nullptr;
     MemoryPool* Ares::mempool = nullptr;
     
-    //Initialize static members of term
-    cnst_term_sptr     Term::null_term_sptr(nullptr);
-    cnst_lit_sptr     Term::null_literal_sptr(nullptr);
-    
     //Namer static
     std::unordered_map<ushort, std::string> Namer::vIdName;
     std::unordered_map<std::string, ushort> Namer::vNameId;
@@ -50,6 +46,7 @@ namespace ares
      * Reserve ids for known keywords.
      */
     const ushort Namer::ROLE = Namer::registerName(std::string("role"));
+    const ushort Namer::OR = Namer::registerName(std::string("or"));
     const ushort Namer::INIT = Namer::registerName(std::string("init"));
     const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));
     const ushort Namer::NEXT = Namer::registerName(std::string("next"));

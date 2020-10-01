@@ -52,12 +52,12 @@ namespace ares
      * Used to hash and compare variant literals.
      */
     struct LiteralHasher{
-        std::size_t hash(const cnst_lit_sptr&) const;
-        bool equal(const cnst_lit_sptr&, const cnst_lit_sptr&) const;
-        inline std::size_t operator()(const cnst_lit_sptr& l) const{
+        std::size_t hash(const Literal*) const;
+        bool equal(const Literal*, const Literal*) const;
+        inline std::size_t operator()(const Literal* l) const{
             return hash(l);
         }
-        inline bool operator()(const cnst_lit_sptr& l, const cnst_lit_sptr& l1) const{
+        inline bool operator()(const Literal* l, const Literal* l1) const{
             return equal(l,l1);
         }
     };

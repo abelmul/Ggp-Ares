@@ -26,6 +26,13 @@ namespace ares
     void Literal::operator delete(void *p){
         Ares::mempool->deallocate((structured_term*) p);
     }
+
+    void* Or::operator new(std::size_t){
+        return Ares::mempool->allocate(sterm_pool_t);
+    }
+    void Or::operator delete(void *p){
+        Ares::mempool->deallocate((structured_term*) p);
+    }
     /**
      * new and delete for class Clause.
      */
@@ -38,33 +45,37 @@ namespace ares
     /**
      * Instantiation of Functions and Literals.
      */
-    template<class T>
-    Body* instantiate(const T& expr,const Substitution &sub,VarSet& vSet);
+    Body* instantiate(const structured_term& expr,const Substitution &sub,VarSet& vSet);
 
-    const cnst_term_sptr Function::operator()(const Substitution &sub,VarSet& vSet) const {
-        Body* body = instantiate<Function>(*this, sub, vSet);
-        if( !body ) return null_term_sptr;
+    const Term* Function::operator()(const Substitution &sub,VarSet& vSet) const {
+        Body* body = instantiate(*this, sub, vSet);
+        if( !body ) return nullptr;
         PoolKey key{name, body,true};
         return Ares::memCache->getFn(key);
     }
 
-   const cnst_term_sptr Literal::operator()(const Substitution &sub,VarSet& vSet) const {
+   const Term* Literal::operator()(const Substitution &sub,VarSet& vSet) const {
 
-        Body* body = instantiate<Literal>(*this, sub, vSet);
-        if( !body ) return null_term_sptr;
+        Body* body = instantiate(*this, sub, vSet);
+        if( !body ) return nullptr;
         PoolKey key{name, body,this->positive};
         return Ares::memCache->getLiteral(key);
     }
+    const Term* Or::operator()(const Substitution &sub,VarSet& vSet) const {
 
-    template<class T>
-    Body* instantiate(const T& expr, const Substitution &sub,VarSet& vSet){
-        uint arity = expr.getArity();
+        Body* body = instantiate(*this, sub, vSet);
+        if( !body ) return nullptr;
+        PoolKey key{name, body,true};
+        // return Ares::memCache->getLiteral(key);
+    }
+    Body* instantiate(const structured_term& expr, const Substitution &sub,VarSet& vSet){
+        uint arity = expr.arity();
         Body* body = new Body(arity);
         const Body& bodyExp = expr.getBody();
         for (uint i =0; i < arity; i++)
         {
-            const cnst_term_sptr& arg = bodyExp[i];
-            const cnst_term_sptr& argInst = (*arg)(sub, vSet);
+            const Term* arg = bodyExp[i];
+            const Term* argInst = (*arg)(sub, vSet);
             if( not argInst ){
                 delete body;
                 return nullptr;     //Must have detected a loop

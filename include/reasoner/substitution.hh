@@ -12,7 +12,7 @@ namespace ares
     class Variable;
     class Term;
     
-    typedef std::unordered_map<const Variable*,cnst_term_sptr,VarHasher,VarEqual> Mapping;
+    typedef std::unordered_map<const Variable*,const Term*,VarHasher,VarEqual> Mapping;
 
     class Substitution
     {
@@ -35,12 +35,12 @@ namespace ares
         Substitution(){}
         static Substitution emptySub;
 
-        virtual bool bind(const Variable*,const cnst_term_sptr& t);
+        virtual bool bind(const Variable*,const Term* t);
 
         //To get the immediate mapping, without traversing the chain.
-        virtual const cnst_term_sptr get(const Variable*) const ;
+        virtual const Term* get(const Variable*) const ;
         //Overload the indexing operator, to get the underlying exact mapping        
-        virtual const cnst_term_sptr operator[]  (const Variable*) const ;
+        virtual const Term* operator[]  (const Variable*) const ;
 
         virtual bool isRenaming() const { return false;}
         /**

@@ -1,0 +1,107 @@
+body{
+  margin: 0;
+  padding: 0;
+}
+::-webkit-scrollbar {
+  display: none;
+}
+/* Hide scrollbar for Chrome, Safari and Opera */
+#svgContainer::-webkit-scrollbar {
+  display: none;
+}
+svg{
+  background: rgb(0,0,0);
+  background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(88,94,97,1) 54%, rgba(1,17,29,1) 87%, rgba(2,5,9,1) 95%, rgba(0,0,0,1) 100%);
+}
+#svgContainer{
+  overflow-x: scroll;
+  height: 100%;
+  -ms-overflow-style: none;  /* IE and Edge */
+  scrollbar-width: none;  /* Firefox */
+}
+.node {
+  fill: #fff;
+}
+.nodeRoot .aresCount{
+  font: 11px sans-serif;
+  fill: #fff !important;
+  cursor: pointer;
+}
+.nodeNonRoot .aresCount{
+  font: 11px sans-serif;
+  fill: #3a3a3a;
+  cursor: pointer;
+}
+.node circle {
+  /* fill: #fff; */
+  stroke:#4682b4;
+  stroke-width: 2px;
+}
+
+.node:hover .aresState{
+    font-size: 13px ;
+}
+.node .aresState {
+  font: 0px sans-serif;
+  fill: #dddddd;
+}
+.node .rootStateT{
+  font: 13px sans-serif;
+}
+.link {
+  fill: none;
+  stroke: #b3b3b3;
+  stroke-width: 0.9px;
+}
+/**
+the choice blocks
+**/
+
+.clearfix::after {
+  content: "";
+  clear: both;
+  display: table;
+}
+#choice_container{
+  text-align: center;
+  color: #6a6a6a;
+  font: 14px helvetica;
+  width: 100%;
+  position: absolute;
+}
+/* #aresImg{
+  width: 100%;
+  opacity: 0.56;
+}
+#aresImgCtr{
+  width: 8%;
+  margin: auto;
+} */
+.state_choices{
+  float: left;
+  padding: 15px;
+  border-radius: 10px;
+}
+.state_choices:hover{
+  cursor: pointer;
+}
+#choice {
+  border-radius: 15px;
+  border-style: solid ;
+  border-color: #18191A;
+  width: fit-content;
+  margin: auto;
+  margin-top: 5px;
+}
+#ares_current_state{
+  border-left: 3px solid #18191A;
+  border-top-left-radius: 0;
+  border-bottom-left-radius: 0;
+}
+#whole_state{
+  border-top-right-radius: 0;
+  border-bottom-right-radius: 0;
+}
+.ucts{
+  fill: #4682b4;
+}

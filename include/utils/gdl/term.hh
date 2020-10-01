@@ -13,12 +13,7 @@
 #include "utils/utils/cfg.hh"
 #include "utils/memory/namer.hh"
 namespace ares
-{
-
-    /**
-     * TODO: Pre-Compute Ground.
-     */
-    
+{    
     class MemCache;
     typedef std::unordered_set<const Variable*,VarHasher,VarEqual> VarSet;
     typedef std::unordered_map<ushort,ushort> VarRenaming;
@@ -27,7 +22,7 @@ namespace ares
     class Term
     {
     friend class MemCache;
-    public: enum Type {VAR,CONST,FN,LIT};
+    public: enum Type {VAR,CONST,FN,LIT,OR};
     protected:
         ushort name; 
         Type type;        
@@ -36,8 +31,6 @@ namespace ares
         virtual ~Term(){}
 
     public:
-        static cnst_term_sptr null_term_sptr;
-        static cnst_lit_sptr null_literal_sptr;
         /**
          * Use Term.operator()(Substitution sub) to create a deep clone.
          * Protect against accidental copying,assignment, and return by value.
@@ -52,7 +45,7 @@ namespace ares
          * Varset is used to detect any loops. if a variable is encountered more than once then
          * there is a loop.
          */
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const = 0;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const = 0;
 
         virtual bool is_ground() const = 0;
         virtual std::size_t hash() const = 0;
@@ -119,22 +112,23 @@ namespace ares
         virtual explicit operator bool() const {
             return positive;
         }
-        virtual cnst_term_sptr& getArg(uint i) const {
+        virtual const Term*& getArg(uint i) const {
             if( i >= body->size() ) throw IndexOutOfRange("Structured Term GetArg. Size is " +std::to_string(body->size()) + ", index is " + std::to_string(i)) ;
             
             return (*body)[i];
         }
         virtual const Body& getBody() const { return (*body);}
         
-        virtual uint getArity() const {return body->size();}
+        virtual uint arity() const {return body->size();}
         /**
          * Check if this structured term is a variant of term
          * @param t another term to compare against
          * @returns true iff t is a variant of this structured term.
          */
         virtual bool equals(const Term& t,VarRenaming& renaming) const{
-            if( type != t.get_type() || name != t.get_name() ) return false;
+            if( type != t.get_type() || name != t.get_name()) return false;
             auto* st = (structured_term*)&t;
+            if( positive != st->positive || arity() != st->arity()) return false;
             for (size_t i = 0; i < body->size(); i++)
                 if ( not (*body)[i]->equals(*(*st->body)[i], renaming ) )
                     return false;
@@ -142,8 +136,9 @@ namespace ares
         }
         virtual std::size_t hash() const {
             std::size_t nHash = std::hash<ushort>()(name);
-            for (const cnst_term_sptr& t : *body)
-                hash_combine(nHash,t.get());
+            nHash ^= std::hash<bool>()(positive)+ 0x9e3779b9 + (nHash<<6) + (nHash>>2);
+            for (auto& t : *body)
+                hash_combine(nHash,t);
             
             return nHash;
         }
@@ -152,8 +147,8 @@ namespace ares
          */
         virtual std::size_t hash(VarRenaming& renaming,ushort& nxt) const {
             std::size_t nHash = std::hash<ushort>()(name);
-
-            for (const cnst_term_sptr& t : *body)
+            nHash ^= std::hash<bool>()(positive)+ 0x9e3779b9 + (nHash<<6) + (nHash>>2);
+            for (auto& t : *body)
                 nHash ^= t->hash(renaming,nxt) + 0x9e3779b9 + (nHash<<6) + (nHash>>2);
 
             return nHash;
@@ -161,7 +156,7 @@ namespace ares
         virtual bool is_ground() const {
             if( not ground.valid ){
                 ground.value = true;
-                for (const cnst_term_sptr& arg : *body)
+                for (auto& arg : *body)
                     if (!arg->is_ground()) { ground.value = false; break; }
                 
                 ground.valid = true;
@@ -181,7 +176,7 @@ namespace ares
             return s;
         }
 
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const = 0;
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const = 0;
         
         virtual ~structured_term() {}
     };

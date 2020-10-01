@@ -17,7 +17,7 @@ namespace ares
         Strategy& operator=(const Strategy&&)=delete;
         
     public:
-        typedef std::pair<move_sptr,uint> move_sptr_seq;
+        typedef std::pair<Move*,uint> move_sptr_seq;
 
         /**
          * Makes a move based on the current state of the match

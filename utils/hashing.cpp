@@ -55,24 +55,18 @@ namespace ares
     }
 
     
-    std::size_t LiteralHasher::hash(const cnst_lit_sptr& l) const{
+    std::size_t LiteralHasher::hash(const Literal* l) const{
         VarRenaming renaming;
         ushort nxt=0;
         return l->hash(renaming, nxt);
     }
-    bool LiteralHasher::equal(const cnst_lit_sptr& l1, const cnst_lit_sptr& l2) const{
+    bool LiteralHasher::equal(const Literal* l1, const Literal* l2) const{
         VarRenaming renaming;
         return l1->equals(*l2, renaming);
     }
-    // std::size_t QueryHasher::operator()(const Query& v1) const{
-    //     return std::hash<uint>()(v1.id);
-    // }
-    // bool QueryHasher::operator()(const Query& v1, const Query& v2) const{
-    //     return v1.id == v2.id;
-    // }
     std::size_t PoolKeyHasher::hash (const PoolKey& k) const{
         std::size_t nHash = std::hash<bool>()(k.p);
-        for (const cnst_term_sptr& t: *k.body)
+        for (auto& t: *k.body)
             hash_combine(nHash, t);
         return nHash;
     }

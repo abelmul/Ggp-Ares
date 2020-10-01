@@ -20,6 +20,7 @@ namespace ares
     class Variable;
     class Function;
     class Literal;
+    class Or;
     class Clause;
 
     /**************************************************/
@@ -28,34 +29,20 @@ namespace ares
      */ 
     typedef _Body<const Term> Body;
     typedef _Body<const Literal> ClauseBody;
-
-    typedef std::shared_ptr<const Term>             cnst_term_sptr;
-    typedef std::shared_ptr<const structured_term>  cnst_st_term_sptr;
-    typedef std::shared_ptr<const Variable>         cnst_var_sptr;
-    typedef std::shared_ptr<const Constant>         cnst_const_sptr;
-    typedef std::shared_ptr<const Function>         cnst_fn_sptr;
-    typedef std::shared_ptr<const Literal>          cnst_lit_sptr;
-
-    typedef std::shared_ptr<Term>             term_sptr;
-    typedef std::shared_ptr<structured_term>  structured_term_sptr;
-    typedef std::shared_ptr<Function>         fn_sptr;
-    typedef std::shared_ptr<Literal>          lit_sptr;
-
-    typedef std::weak_ptr<Term>             term_wkptr;
-    typedef std::weak_ptr<structured_term>  st_term_wkptr;
-    typedef std::weak_ptr<Function>         fn_wkptr;
-    typedef std::weak_ptr<Literal>          lit_wkptr;
-
     /**************************************************/
-
+    typedef std::shared_ptr<Variable> sVariable;
+    typedef std::shared_ptr<Constant> sConstant;
+    typedef std::shared_ptr<Function> sFunction;
+    typedef std::shared_ptr<Literal> sLiteral;
+    typedef std::shared_ptr<Or> sOr;
     /**
      * Containers of shared_ptrs of terms and literals 
      */
-    typedef std::vector<term_sptr> term_container;
-    typedef std::vector<lit_sptr>  lit_container;
+    typedef std::vector<Term*> term_container;
+    typedef std::vector<Literal*>  lit_container;
 
-    typedef std::vector<cnst_term_sptr> cnst_term_container;
-    typedef std::vector<cnst_lit_sptr>  cnst_lit_container;
+    typedef std::vector<const Term *> cnst_term_container;
+    typedef std::vector<const Literal *>  cnst_lit_container;
 
     typedef u_char arity_t;
     typedef std::unordered_map<arity_t, std::pair<uint,std::vector<void*>>> arity_pool_map;
@@ -114,7 +101,7 @@ namespace ares
                 ar_pool(ar).resize(per_arity_amount);
                 //Allocate per_arity_amounts of T objects 0 initialized 
                 for (size_t k = 0; k < per_arity_amount; k++){
-                    term_container* t = static_cast<term_container*>(calloc(1,sizeof(term_container)));
+                    term_container* t = new term_container();
                     t->resize(ar);
                     ar_pool(ar)[k] =t;
                 }

@@ -35,10 +35,10 @@ namespace ares
             observers[qi].push_back(std::move(q));
             return it;
         }
-        inline AnswerList* addAnswer(const cnst_lit_sptr& lit,const Substitution& ans){
+        inline AnswerList* addAnswer(const Literal* lit,const Substitution& ans){
             VarSet vset;
             auto soln = (*lit)(ans,vset);
-            if( newSolns.push_back(*(cnst_lit_sptr*)&soln) )return this;
+            if( newSolns.push_back((const Literal*)soln) )return this;
             return nullptr;
         }
         /**
@@ -77,8 +77,8 @@ namespace ares
         private:    
             typedef std::vector<Query> Observers;
 
-            UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> solns;      //Answers found this far
-            UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> newSolns;   //new Answers                                               
+            UniqueVector<const Literal*,LiteralHasher,LiteralHasher> solns;      //Answers found this far
+            UniqueVector<const Literal*,LiteralHasher,LiteralHasher> newSolns;   //new Answers                                               
             Observers observers[2]{Observers(),Observers()};                       //Suspended queries
             ushort qi;
             
@@ -122,9 +122,9 @@ namespace ares
      */
     class Cache
     {
-        typedef tbb::concurrent_hash_map<cnst_lit_sptr,std::unique_ptr<AnswerList>,LiteralHasher> AnsCache;
+        typedef tbb::concurrent_hash_map<const Literal*,std::unique_ptr<AnswerList>,LiteralHasher> AnsCache;
     private:
-        tbb::concurrent_hash_map<cnst_lit_sptr, std::unique_ptr<AnswerList>, LiteralHasher> ansCache;
+        tbb::concurrent_hash_map<const Literal*, std::unique_ptr<AnswerList>, LiteralHasher> ansCache;
         // std::unordered_set<cnst_lit_sptr> failCache;
     public:
         Cache(AnsIterator::Type ansType_=AnsIterator::SEQ)
@@ -155,7 +155,7 @@ namespace ares
         /**
          * insert a new answer to the answer list of l.
          */
-        inline bool addAns(const cnst_lit_sptr& l, const Substitution& ans){
+        inline bool addAns(const Literal* l, const Substitution& ans){
             AnsCache::accessor ac;
             if( !ansCache.find( ac , l) ) throw "Tried to insert solution to a non existent key!";
             if( auto ansl = ac->second->addAnswer(l, ans) ){

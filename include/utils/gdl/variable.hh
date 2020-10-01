@@ -18,28 +18,27 @@ namespace ares
         Variable(ushort name):Term(name,VAR)
         {
         }
-    public:
         /**
          * Deleting a variable does nothing.
          * The Memory pool will free the malloc'd memory.
          */
         ~Variable(){}
-        void operator delete(void*){}
+    public:
         /**
          * Apply the Substitution sub on this variable, creating an instance.
          * This is done by traversing the "chain" present within the substitution,
          * vset is used to detect any loops. if a variable is encountered more than once 
          * while traversing a chain then there is a loop.
          */
-        virtual const cnst_term_sptr operator ()(const Substitution &sub,VarSet& vSet) const {
-            if( not sub.isBound(this) ) return cnst_var_sptr(this,[](const Term*){});
+        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const {
+            if( not sub.isBound(this) ) return this;
             else if(sub.isRenaming() ) return sub.get(this);        //No need to traverse the chain
 
-            if( vSet.find(this) != vSet.end() ) return null_term_sptr;     //There is a circular dependency
+            if( vSet.find(this) != vSet.end() ) return nullptr;     //There is a circular dependency
             // //Remember this var in this particular path
             vSet.insert(this);
-            const cnst_term_sptr& t = sub.get(this);
-            const cnst_term_sptr& tInst = (*t)(sub,vSet);
+            const Term* t = sub.get(this);
+            const Term* tInst = (*t)(sub,vSet);
             // //Done
             vSet.erase(this);   
             return tInst;

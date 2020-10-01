@@ -38,7 +38,7 @@ namespace ares
      * Methods
      */
     public:
-        LiteralCB(const cnst_lit_sptr& lit, unique_cb&& cb_,Cache* c)
+        LiteralCB(const Literal* lit, unique_cb&& cb_,Cache* c)
         : CallBack(cb_->done,c), lit(lit), cb(std::move(cb_))
         {
         }
@@ -49,7 +49,7 @@ namespace ares
      * Data
      */
     private:
-        const cnst_lit_sptr lit;
+        const Literal* lit;
         unique_cb cb;
         
     };
@@ -87,7 +87,7 @@ namespace ares
         : CallBack(done_,c)
         {
         }
-        virtual void operator()(const Substitution&,ushort, bool isLookup){
+        virtual void operator()(const Substitution&,ushort, bool){
             done = true;
         }
     };   

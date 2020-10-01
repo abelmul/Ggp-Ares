@@ -41,7 +41,7 @@ namespace ares
         inline void reset(const KnowledgeBase* kb_){
             {//Make sure there are no threads already using kb
                 std::unique_lock<std::mutex> lk(lock);
-                if(!kb_)done = true;
+                done = true;
                 cv.wait(lk,[&]{return proverCount == 0;});
                 done= false;
             }
@@ -63,17 +63,17 @@ namespace ares
         /**
          *
          */
-        void compute(cnst_lit_sptr lit,Query q,CallBack* cb,const bool lookup=false);
+        void compute(const Literal* lit,Query q,CallBack* cb,const bool lookup=false);
         /**
          * Iterate over all of the new solutions in `it` and resolve against lit
          * @param it a list of new solutions for lit
          */
-        void lookup(AnsIterator& it, Query& query,cnst_lit_sptr& lit);
+        void lookup(AnsIterator& it, Query& query,const Literal* lit);
         /**
          * Carry out a single (normal) SLD-Resolution Step
          * Where the selected literal in goal is positive.
          */
-        Clause* resolve(const cnst_lit_sptr& lit, const Clause& c,SuffixRenamer&);
+        Clause* resolve(const Literal* lit, const Clause& c,SuffixRenamer&);
         /**
          * Carry out a single SLDNF-Resolution Step
          * Where the selected literal in goal is negative.
@@ -83,7 +83,7 @@ namespace ares
          * The distinct relation.
          */
         void computeDistinct(Query& query);
-        inline bool contextual(const State* context, const cnst_lit_sptr& g) const{
+        inline bool contextual(const State* context, const Literal* g) const{
             return context and (  g->get_name() == Namer::DOES  or  g->get_name() == Namer::TRUE) ;
         }
 

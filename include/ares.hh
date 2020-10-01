@@ -41,7 +41,7 @@ namespace ares
             strategy.start(match);
         }
         
-        inline std::pair<move_sptr,uint> makeMove(uint seq,Moves* moves=nullptr){
+        inline std::pair<Move*,uint> makeMove(uint seq,Moves* moves=nullptr){
             if( match.takenAction ) delete match.takenAction;
             match.takenAction = moves;
             auto move = strategy(match,seq);
@@ -68,7 +68,7 @@ namespace ares
             if( reasoner.terminal(*current) ){
                 log("[Ares] Rewards: ");
                 std::string sep("");
-                for (auto &&role : match.game->getRoles() )
+                for (auto &&role : reasoner.roles() )
                 {
                     std::cout << sep ;
                     log(Namer::name(role->get_name())) << ", ";
