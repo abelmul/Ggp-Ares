@@ -40,24 +40,23 @@ namespace ares
 
     struct PoolKey
     {
-        PoolKey(ushort n=0,const Body* b=nullptr,bool p_=true)
-        :name(n),body(b),p(p_)
+        PoolKey(ushort n=0,const Body* b=nullptr)
+        :name(n),body(b)
         {}
         ushort name;
         const Body* body=nullptr;
-        bool p = true;
     };
 
     /**
      * Used to hash and compare variant literals.
      */
-    struct LiteralHasher{
-        std::size_t hash(const Literal*) const;
-        bool equal(const Literal*, const Literal*) const;
-        inline std::size_t operator()(const Literal* l) const{
+    struct AtomHasher{
+        std::size_t hash(const Atom*) const;
+        bool equal(const Atom*, const Atom*) const;
+        inline std::size_t operator()(const Atom* l) const{
             return hash(l);
         }
-        inline bool operator()(const Literal* l, const Literal* l1) const{
+        inline bool operator()(const Atom* l, const Atom* l1) const{
             return equal(l,l1);
         }
     };

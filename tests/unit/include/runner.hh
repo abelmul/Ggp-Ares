@@ -10,7 +10,7 @@
 #include <functional>
 #include "utils/utils/color.hh"
 
-void print(bool first){
+void print(bool){
     std::cout << rang::style::reset << "\n";
     fflush(NULL);
 }
@@ -24,7 +24,7 @@ void print(bool first,T s1, Types... args){
     print(false, args...);
 }
 
-void print_fail(bool first){
+void print_fail(bool){
     using namespace rang;
     using namespace std;
     cout << style::reset << endl;

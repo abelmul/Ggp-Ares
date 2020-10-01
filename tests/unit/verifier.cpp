@@ -9,12 +9,12 @@
 #include "strategy/random.hh"
 #include "runner.hh"
 
-#define GAME_DIR "tests/ggp.org/games/"
-#define CHESS_MATCHES "tests/ggp.org/chess_matches.json"
-#define SELECTED_MATCHES "tests/ggp.org/matches.json"
-#define SELECTED_DIR "tests/ggp.org/selectedGames/"
-#define CHESS_GAME "tests/ggp.org/games/chess.kif"
-#define MAPPINGS  "tests/ggp.org/selectedGames/mapping.json"
+// #define GAME_DIR "tests/ggp.org/games/"
+#define CHESS_MATCHES "tests/unit/selectedGames/chess_matches.json"
+#define SELECTED_MATCHES "tests/unit/selectedGames/matches.json"
+#define SELECTED_DIR "tests/unit/selectedGames/"
+#define CHESS_GAME "tests/unit/selectedGames/chess.kif"
+#define MAPPINGS  "tests/unit/selectedGames/mapping.json"
 
 #define N 41775
 #define SAMPLE 10
@@ -28,11 +28,11 @@ using namespace boost::property_tree;
 void verifyMatches(std::vector<const char*>);
 void simulateMatch(ptree& match,ares::Reasoner& reasoner);
 
-std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt);
-std::vector<std::vector<ares::cnst_term_sptr>*> getState(ptree& pt);
+std::vector<std::vector<const ares::Term *>> getMove(ptree& pt);
+std::vector<std::vector<const ares::Term *>*> getState(ptree& pt);
 
 void writeOutMatch();
-ptree getMatch(const char* name_ish,std::vector<uint>& selected);
+ptree getMatch(std::vector<uint>& selected);
 namespace ares{
     Cfg cfg("./ares.cfg.json");
     GdlParser* parser;
@@ -43,14 +43,12 @@ void setup(){
     srand(time(NULL));
     Ares::setMem(&mempool);
 
-    Body::mempool = ClauseBody::mempool = &mempool;
-    Term::null_term_sptr = nullptr;
-    Term::null_literal_sptr = nullptr;
+    Body::mempool =  &mempool;
     SuffixRenamer::setPool(Ares::memCache);
 }
 
 std::ofstream out;
-int main(int argc, char const *argv[]){
+int main(){
     setup();
     Runner runner;
     runner.iter =1;
@@ -70,7 +68,7 @@ void verifyMatches(std::vector<const char*> matchFiles){
     parser = &GdlParser::create(mempool.getCache());
     //The reasoner
     Reasoner& reasoner(Reasoner::create(*parser, Prover::create(), *mempool.getCache()));
-    Ares& ares( Ares::create(Registrar::get("Random"),reasoner));
+    Ares::create(Registrar::get("Random"),reasoner);
     
     for (auto &&matchF : matchFiles)
     {
@@ -116,7 +114,7 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
         assert_true(moves.size() == roles.size());
         for (auto &&s : *lstMatchState){
             PoolKey key{Namer::TRUE, new Body{s}};
-            auto true_ = Ares::memCache->getLiteral(key);
+            auto true_ = Ares::memCache->getAtom(key);
             matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
         }
         //assert that the computed state is the same as the matches state.
@@ -142,7 +140,7 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
     auto last = matchStates.size()-1;
     for (auto &&s : *matchStates[last]){
         PoolKey key{Namer::TRUE, new Body{s}};
-        auto true_ = Ares::memCache->getLiteral(key);
+        auto true_ = Ares::memCache->getAtom(key);
         matchState.add(Namer::TRUE, new Clause(true_,new ClauseBody(0)));
     }
     assert_true( matchState == (*computedState));
@@ -154,11 +152,11 @@ void simulateMatch(ptree& match,ares::Reasoner& reasoner){
 /**
  * Get the ith moves of the match
  */
-std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt){
-    std::vector<std::vector<ares::cnst_term_sptr>> moves;
+std::vector<std::vector<const Term*>> getMove(ptree& pt){
+    std::vector<std::vector<const Term*>> moves;
     if( moves.size() == 0){
         BOOST_FOREACH(auto& smoves, pt){
-            std::vector<ares::cnst_term_sptr> moves_i;
+            std::vector<const Term*> moves_i;
             BOOST_FOREACH(auto& move, smoves.second){
                 auto move_s = move.second.get_value<std::string>();
                 if( move_s[0] == '(' )
@@ -174,8 +172,8 @@ std::vector<std::vector<ares::cnst_term_sptr>> getMove(ptree& pt){
 /**
  * Get the ith state of the match
  */
-std::vector<std::vector<ares::cnst_term_sptr>*> getState(ptree& pt){
-    std::vector<std::vector<ares::cnst_term_sptr>*> states;
+std::vector<std::vector<const Term*>*> getState(ptree& pt){
+    std::vector<std::vector<const Term*>*> states;
     if( states.size() ==0 ){
         BOOST_FOREACH(ptree::value_type& x, pt){
             auto seq = parser->parseSeq(x.second.get_value<std::string>().c_str());
@@ -201,17 +199,15 @@ void writeOutMatch(){
     for (auto &&i : selected)
         std::cout << "Selecting matche " << i <<"\n";
     
-    auto match = getMatch("http",selected);
+    auto match = getMatch(selected);
     if( not match.size() ){
         std::cout << "Couldn't find a match with game name " << "chess" << "\n";
         return;
     }
     out <<"}";
 }
-/**
- * Get a match which contains name_ish in its name.
- */
-ptree getMatch(const char* name_ish,std::vector<uint>& selected){
+
+ptree getMatch(std::vector<uint>& selected){
     uint i=0;
     using namespace std;
     string name("tests/ggp.org/matchesFrom2014");

@@ -19,7 +19,7 @@ namespace ares
     class Constant;
     class Variable;
     class Function;
-    class Literal;
+    class Atom;
     class Or;
     class Clause;
 
@@ -28,21 +28,16 @@ namespace ares
      * Typedef shared_ptr for the different managed objects.
      */ 
     typedef _Body<const Term> Body;
-    typedef _Body<const Literal> ClauseBody;
+    typedef Body ClauseBody;
     /**************************************************/
-    typedef std::shared_ptr<Variable> sVariable;
-    typedef std::shared_ptr<Constant> sConstant;
-    typedef std::shared_ptr<Function> sFunction;
-    typedef std::shared_ptr<Literal> sLiteral;
-    typedef std::shared_ptr<Or> sOr;
     /**
      * Containers of shared_ptrs of terms and literals 
      */
     typedef std::vector<Term*> term_container;
-    typedef std::vector<Literal*>  lit_container;
+    typedef std::vector<Atom*>  lit_container;
 
     typedef std::vector<const Term *> cnst_term_container;
-    typedef std::vector<const Literal *>  cnst_lit_container;
+    typedef std::vector<const Atom *>  cnst_lit_container;
 
     typedef u_char arity_t;
     typedef std::unordered_map<arity_t, std::pair<uint,std::vector<void*>>> arity_pool_map;

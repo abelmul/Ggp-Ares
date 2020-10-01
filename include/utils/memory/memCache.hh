@@ -17,6 +17,12 @@ namespace ares
      */
     class MemCache
     {
+        typedef std::shared_ptr<Variable> sVariable;
+        typedef std::shared_ptr<Constant> sConstant;
+        typedef std::shared_ptr<Function> sFunction;
+        typedef std::shared_ptr<Atom> sLiteral;
+        typedef std::shared_ptr<Or> sOr;
+        typedef std::shared_ptr<Not> sNot;
 
         typedef tbb::concurrent_hash_map<ushort, sVariable> VarPool;
         typedef tbb::concurrent_hash_map<ushort, sConstant> ConstPool;
@@ -24,6 +30,7 @@ namespace ares
         typedef tbb::concurrent_hash_map<PoolKey, sFunction,PoolKeyHasher> FnPool;
         typedef tbb::concurrent_hash_map<PoolKey, sLiteral,PoolKeyHasher> LitPool;
         typedef tbb::concurrent_hash_map<PoolKey, sOr,PoolKeyHasher> OrPool;
+        typedef tbb::concurrent_hash_map<PoolKey, sNot,PoolKeyHasher> NotPool;
 
         typedef tbb::concurrent_hash_map<ushort, FnPool> NameFnMap;
         typedef tbb::concurrent_hash_map<ushort, LitPool> NameLitMap;
@@ -68,8 +75,9 @@ namespace ares
          * key.body is now owned by MemCache, and should neither be deleted nor
          * assigned to other objects at any point. This is to avoid copying the body while creation.
          */
-        const Literal* getLiteral(PoolKey& key);
+        const Atom* getAtom(PoolKey& key);
         const Or* getOr(PoolKey& key);
+        const Not* getNot(PoolKey& key);
 
         template<class T> void deleter(T* t){ delete t;}
         ~MemCache();
@@ -84,6 +92,7 @@ namespace ares
         NameFnMap nameFnPool;
         NameLitMap nameLitPool;
         OrPool orPool;
+        NotPool notPool;
     };
 } // namespace ares
 

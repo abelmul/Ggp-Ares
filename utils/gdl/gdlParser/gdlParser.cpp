@@ -65,7 +65,7 @@ namespace ares
                     pool->post([this,start,end,base](){
                         //Parse on a separate thread
                         vector<string>::iterator s = start;
-                        const Literal* l =  parseLiteral(s, end+1,true);
+                        const Atom* l =  parseAtom(s, end+1,true);
                         Clause* c = new Clause(l, new ClauseBody(0));
                         base->add(l->get_name(), c);
                     });
@@ -109,7 +109,7 @@ namespace ares
         stack<pair<string, Body*>> bodies;
         if( *start != "(" ){
             //Its a literal without  a body like 'terminal'
-            if( start >= end ) throw SyntaxError( "GDLParser :: Error :: Literal start > end");
+            if( start >= end ) throw SyntaxError( "GDLParser :: Error :: Atom start > end");
             checkValid(*start); //valid name
             bodies.push(pair<string, Body*>(*start, new Body(0)));
             return create(bodies,crtr,p);
@@ -161,14 +161,12 @@ namespace ares
         auto name = bodies.top().first;
         Body* body = bodies.top().second;
         
-        PoolKey key{Namer::registerName(name), body,true};
+        PoolKey key{Namer::registerName(name), body};
         
         bodies.pop();
-        if( bodies.empty() ){       //Balanced parentheses
-            //Its the root terms body thats been popped
-            key.p = p;
-            return crtr(key);
-        }
+        if( bodies.empty() )       //Balanced parentheses
+            return crtr(key);     //Its the root terms body thats been popped
+        
         //You can do further check to ensure Function and literal names are distinct! if necessary.
         const Function* fn = memCache->getFn(key);
         bodies.top().second->push_back(fn);
@@ -178,12 +176,48 @@ namespace ares
         //*start == "(" , *end == ")" and *(start+1) == "<=" checked in parse(...) above
         start += 2;
         //Get the head
-        const Literal* head = parseLiteral(ref(start), end, true);
+        const Atom* head = parseAtom(ref(start), end, true);
         c->setHead(head);
         start++;    //advance to the next token
         if( start >= end ) throw SyntaxError( "GdlParser :: Error :: Empty Rule Body");
         //populate the body by applying transformations as necessary
-        TokenStream* stream = new TokenStream(tokens, start, start, end);
-        transformer->applyTransformations(c, base,unique_ptr<TokenStream>(stream));
+        // TokenStream* stream = new TokenStream(tokens, start, start, end);
+        // transformer->applyTransformations(c, base,unique_ptr<TokenStream>(stream));
+        // parseBody(start, end, c->getBody())
+        parseBody(start, end, c->getBody());
+        base->add(head->get_name(), c);
+    }
+    void GdlParser::parseBody(vector<string>::iterator& begin,const vector<string>::iterator& end, Body& body){
+        if( begin == end ){
+            if( *end != ")") throw SyntaxError("GdlParser :: Expecting a ')'");
+            return;
+        }
+        if( *begin != "(")
+            //Atom without a body
+            body.push_back( parseAtom(begin, end,true));
+        
+        else if( *(begin+1) == "or"){
+            auto it = begin;
+            transformer->getBalanced(it, end);
+            if( it >= end ) throw SyntaxError("GdlParser :: end reached before a ')'");
+            begin +=2;
+            PoolKey key{Namer::OR, new Body()};
+            parseBody(begin, it,*(Body*)key.body);
+            body.push_back( memCache->getOr(key));
+        }
+        else if( *(begin+1) == "not"){
+            auto it = begin;
+            transformer->getBalanced(it, end);
+            if( it >= end ) throw SyntaxError("GdlParser :: end reached before a ')'");
+            begin +=2;
+            PoolKey key{Namer::NOT, new Body()};
+            parseBody(begin, it, *(Body*)key.body);
+            body.push_back( memCache->getNot(key));
+        }
+        else
+            body.push_back( parseAtom(begin, end));
+        
+        ++begin;
+        parseBody(begin, end,body);
     }
 } // namespace ares

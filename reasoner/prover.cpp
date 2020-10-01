@@ -48,23 +48,28 @@ namespace ares
         
         //Instantiate front
         VarSet vset;
-        auto* lit = (const Literal*)(*query->front())(query->getSubstitution(),vset);
-        query->front() = lit;
+        auto* a = (*query->front())(query->getSubstitution(),vset);
+        query->front() = a;
 
         //Check if distinct
-        if( lit->get_name() == Namer::DISTINCT ){
+        if( a->get_name() == Namer::DISTINCT ){
             computeDistinct(query);
             return;
         }
-        
+        //check if or
+        if(a->get_type() == Term::OR){
+            computeOr(query);
+            return;
+        }
         //Check if negation
-        if( !(*lit) ){
+        if( a->get_type() == Term::NOT ){
             computeNegation(query);
             return;
         }
+        auto* atom = (const Atom*)a;
         auto* cache = query.cache;
         //Register query as solution or lookup query
-        bool shldCache = !contextual(query.context, lit) and cache and !isLookup; 
+        bool shldCache = !contextual(query.context, atom) and cache and !isLookup; 
         //don't want to cache true and does, during negations, and lookups
         auto it = shldCache ? (*cache)[query] : Cache::NOT_CACHED ;    
 
@@ -72,14 +77,14 @@ namespace ares
             //Solution Node, do an sld-resolution step
             query->pop_front();
             ClauseCB* cb = new ClauseCB(std::move(query));
-            compute(lit, query, cb,isLookup);
+            compute(atom, query, cb,isLookup);
         }
         else
             //Lookup node, check if there are answers already computed
-            lookup(it, query, lit);
+            lookup(it, query, atom);
     }
 
-    void Prover::lookup(AnsIterator& it, Query& query,const Literal* lit){
+    void Prover::lookup(AnsIterator& it, Query& query,const Atom* lit){
         if( query.cb->done or done ) 
             return; //Done stop searching
         /**
@@ -93,21 +98,17 @@ namespace ares
             Substitution mgu;
             //FOR DEBUGGING
             // assert( soln->is_ground() );
-            if( Unifier::unifyPredicate(*lit, *soln,mgu) ) {
+            if( Unifier::unifyAtom(*lit, *soln,mgu) ) {
                 auto resolvent = std::unique_ptr<Clause>(nxt->clone());
                 resolvent->setSubstitution( nxt->getSubstitution() + mgu);
                 Query nxtQ(resolvent, query.cb,query.context,query.cache,query.suffix,query.random);
-                nxtQ.pool = query.pool;
-                if( query.pool ) //We are not trying to prove a negation
-                    query.pool->post([=] { compute(nxtQ,true);});
-                else    //We are in the middle of proving a negation
-                    compute(nxtQ,true);
+                compute(nxtQ,true);
             }
             ++it;
         }
     }
     
-    void Prover::compute(const Literal* lit,Query q, CallBack* cb,const bool lookup){
+    void Prover::compute(const Atom* lit,Query q, CallBack* cb,const bool lookup){
         if( cb->done or done ) 
             return; //Done stop searching
         bool isContxt = contextual(q.context, lit);
@@ -127,22 +128,18 @@ namespace ares
             if( gn ) 
             {
                 Query qn(gn, cbsptr, q.context,q.cache,renamer.gets(),q.random);
-                qn.pool = q.pool;
-                if( q.pool ) //We are not trying to prove a negation
-                    q.pool->post([=]{ compute(qn, false);});
-                else //We are in the middle of proving a negation
-                    compute(qn, false);
+                compute(qn, false);
             }
             ++(*it);
         }
         delete it;
     }
 
-    Clause* Prover::resolve(const Literal* lit, const Clause& c,SuffixRenamer& vr){
+    Clause* Prover::resolve(const Atom* lit, const Clause& c,SuffixRenamer& vr){
         auto* mgu = new Substitution();
         VarSet vset;
-        auto renamed = (const Literal*)(*c.getHead())(vr, vset);
-        if ( !Unifier::unifyPredicate(*lit, *renamed,*mgu) ){
+        auto renamed = (const Atom*)(*c.getHead())(vr, vset);
+        if ( !Unifier::unifyAtom(*lit, *renamed,*mgu) ){
             delete mgu;
             return nullptr;
         }
@@ -150,35 +147,46 @@ namespace ares
         c.renameBody(*renamedBody,vr);
         return new Clause( nullptr, renamedBody,mgu);
     }
+    void Prover::computeOr(Query& query){
+        const Body& disjuncts = ((const Or*)query->front())->getBody();
+        for (auto &&disjunct : disjuncts)
+        {
+            query->front() = disjunct;
+            std::unique_ptr<Clause> gn (query->clone(true));
+            Query nQ(gn,query.cb,query.context,query.cache,query.suffix,query.random);
+            compute(nQ,false);
+        }
+    }
     void Prover::computeNegation(Query& query){
-        //front has the form (not A1)
-        auto& front = query->front();
+
+        //front has the form (not α)
+        const auto& front = (const Not*)query->front();
         if( not front->is_ground() ){
             query->delayFront();
             compute(query, false);
             return;
         }
         
-        //Get A1 from memCache
-        PoolKey key{front->get_name(), new Body(front->getBody().begin(), front->getBody().end()), true};
-        const Literal* pstvLit = Ares::memCache->getLiteral(key);
+        //Get α from 
+        const Term* alpha = front->getArg(0);
 
-        //Prove <-A1
+        //Prove <-α 
         //Callback which stops all computations when one answer is computed
         std::atomic_bool done = false;
-        std::unique_ptr<Clause> g(nullptr);
-        Query q(g,query.cb,query.context,nullptr,0,query.random);//pstvLit is ground so we could restart the suffix
-        compute(pstvLit, q, new ClauseCBOne(done,nullptr));
-        if( done ) //Atleast one answer has been found, so <-A1 succedeed 
+        std::unique_ptr<Clause> g( new Clause(nullptr, new Body{alpha}, new Substitution()));
+        Query q(g,std::shared_ptr<CallBack>(new ClauseCBOne(done,nullptr)),query.context,nullptr,0,query.random);//pstvLit is ground so we could restart the suffix
+        compute(q,false);
+        // compute(pstvLit, q, new ClauseCBOne(done,nullptr));
+        if( done ) //Atleast one answer has been found, so <-α  succedeed 
             return;
 
-        //Failed to prove <-A1, therefore P |= <-(not)A1
+        //Failed to prove <- α, therefore P |= <-(not) α 
         query->pop_front();
-        //Continue proving <-A2,..,An
+        //Continue proving <-α2,..,αn
         compute(query, false);
     }
     void Prover::computeDistinct(Query& query){
-        auto& front = query->front();
+        const auto& front = (const Atom*) query->front();
         if( not front->is_ground() ){
             query->delayFront();
             compute(query, false);

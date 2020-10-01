@@ -1,11 +1,10 @@
 #include "reasoner/unifier.hh"
 namespace ares
 {
-    bool Unifier::unifyPredicate(const Literal& l1, const Literal& l2, Substitution& sub){
+    bool Unifier::unifyAtom(const Atom& l1, const Atom& l2, Substitution& sub){
         bool dtName = l1.get_name() != l2.get_name();
-        bool dtSign = ( (bool) l1 ) ^ (bool) l2;
         bool dtArity = (l1.arity() != l2.arity() );
-        if( dtName || dtSign || dtArity) 
+        if( dtName || dtArity) 
             return false; //Can't be unified
         
         for (size_t i = 0; i < l1.arity(); i++)

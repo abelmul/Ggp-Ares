@@ -22,7 +22,7 @@ namespace ares
     class Term
     {
     friend class MemCache;
-    public: enum Type {VAR,CONST,FN,LIT,OR};
+    public: enum Type {VAR,CONST,FN,LIT,NOT,OR};
     protected:
         ushort name; 
         Type type;        
@@ -85,7 +85,6 @@ namespace ares
     friend class visualizer;
     protected:
         mutable SpinLock slk;
-        mutable bool positive;
         const Body* body = nullptr;
         mutable struct { 
             std::atomic_bool value; std::atomic_bool valid; 
@@ -93,8 +92,8 @@ namespace ares
         }ground;
         
     public:
-        structured_term(ushort n, bool p,const Body* b,Type t)
-        :Term(n,t),positive(p),body(b),ground{false,false}
+        structured_term(ushort n,const Body* b,Type t)
+        :Term(n,t),body(b),ground{false,false}
         {
         }
 
@@ -108,9 +107,6 @@ namespace ares
         TR synchronized(T op) const {
             std::lock_guard<SpinLock> lk(slk);
             return op();
-        }
-        virtual explicit operator bool() const {
-            return positive;
         }
         virtual const Term*& getArg(uint i) const {
             if( i >= body->size() ) throw IndexOutOfRange("Structured Term GetArg. Size is " +std::to_string(body->size()) + ", index is " + std::to_string(i)) ;
@@ -128,7 +124,7 @@ namespace ares
         virtual bool equals(const Term& t,VarRenaming& renaming) const{
             if( type != t.get_type() || name != t.get_name()) return false;
             auto* st = (structured_term*)&t;
-            if( positive != st->positive || arity() != st->arity()) return false;
+            if( arity() != st->arity()) return false;
             for (size_t i = 0; i < body->size(); i++)
                 if ( not (*body)[i]->equals(*(*st->body)[i], renaming ) )
                     return false;
@@ -136,7 +132,6 @@ namespace ares
         }
         virtual std::size_t hash() const {
             std::size_t nHash = std::hash<ushort>()(name);
-            nHash ^= std::hash<bool>()(positive)+ 0x9e3779b9 + (nHash<<6) + (nHash>>2);
             for (auto& t : *body)
                 hash_combine(nHash,t);
             
@@ -147,7 +142,6 @@ namespace ares
          */
         virtual std::size_t hash(VarRenaming& renaming,ushort& nxt) const {
             std::size_t nHash = std::hash<ushort>()(name);
-            nHash ^= std::hash<bool>()(positive)+ 0x9e3779b9 + (nHash<<6) + (nHash>>2);
             for (auto& t : *body)
                 nHash ^= t->hash(renaming,nxt) + 0x9e3779b9 + (nHash<<6) + (nHash>>2);
 
@@ -166,12 +160,10 @@ namespace ares
         virtual std::string to_string() const {
             std::string s;
             if( body->size() ) s.append("(");
-            if(not positive) s.append("not ( ");
             s.append(Namer::name(name));
             for (auto &t : *body){
                 s.append(" " + t->to_string());
             }
-            if(not positive) s.append(" )");
             if( body->size() ) s.append(")");
             return s;
         }

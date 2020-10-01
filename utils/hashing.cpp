@@ -55,23 +55,23 @@ namespace ares
     }
 
     
-    std::size_t LiteralHasher::hash(const Literal* l) const{
+    std::size_t AtomHasher::hash(const Atom* l) const{
         VarRenaming renaming;
         ushort nxt=0;
         return l->hash(renaming, nxt);
     }
-    bool LiteralHasher::equal(const Literal* l1, const Literal* l2) const{
+    bool AtomHasher::equal(const Atom* l1, const Atom* l2) const{
         VarRenaming renaming;
         return l1->equals(*l2, renaming);
     }
     std::size_t PoolKeyHasher::hash (const PoolKey& k) const{
-        std::size_t nHash = std::hash<bool>()(k.p);
+        std::size_t nHash = 0;
         for (auto& t: *k.body)
             hash_combine(nHash, t);
         return nHash;
     }
     bool PoolKeyHasher::equal(const PoolKey& k1, const PoolKey& k2) const{
-        if( (k1.p != k2.p)  || (k1.body->size() != k2.body->size()) ) return false;
+        if( (k1.body->size() != k2.body->size()) ) return false;
         for (size_t i = 0; i < k1.body->size(); i++)
             if( (*k1.body)[i] != (*k2.body)[i])
                 return false;
@@ -79,7 +79,7 @@ namespace ares
     }
 
     bool PoolKeyEqual::operator()(const PoolKey& k1, const PoolKey& k2) const{
-        if( (k1.p != k2.p)  || (k1.body->size() != k2.body->size()) ) return false;
+        if(  (k1.body->size() != k2.body->size()) ) return false;
         for (size_t i = 0; i < k1.body->size(); i++)
             if( (*k1.body)[i] != (*k2.body)[i])
                 return false;

@@ -63,17 +63,22 @@ namespace ares
         /**
          *
          */
-        void compute(const Literal* lit,Query q,CallBack* cb,const bool lookup=false);
+        void compute(const Atom* lit,Query q,CallBack* cb,const bool lookup=false);
         /**
          * Iterate over all of the new solutions in `it` and resolve against lit
          * @param it a list of new solutions for lit
          */
-        void lookup(AnsIterator& it, Query& query,const Literal* lit);
+        void lookup(AnsIterator& it, Query& query,const Atom* lit);
         /**
          * Carry out a single (normal) SLD-Resolution Step
          * Where the selected literal in goal is positive.
          */
-        Clause* resolve(const Literal* lit, const Clause& c,SuffixRenamer&);
+        Clause* resolve(const Atom* lit, const Clause& c,SuffixRenamer&);
+
+        /**
+         * treat <-(or α1,...,αn),β1,..,βk as if its n clauses of the form <- αi,β1,..,βk
+         */
+        void computeOr(Query& query);
         /**
          * Carry out a single SLDNF-Resolution Step
          * Where the selected literal in goal is negative.
@@ -83,7 +88,7 @@ namespace ares
          * The distinct relation.
          */
         void computeDistinct(Query& query);
-        inline bool contextual(const State* context, const Literal* g) const{
+        inline bool contextual(const State* context, const Atom* g) const{
             return context and (  g->get_name() == Namer::DOES  or  g->get_name() == Namer::TRUE) ;
         }
 

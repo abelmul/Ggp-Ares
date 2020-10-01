@@ -1,0 +1,12 @@
+{
+    "http://games.ggp.org/base/games/chickentictactoe/v0/": "chickentictactoe.kif",
+    "http://games.ggp.org/base/games/gt_prisoner/v0/": "gt_prisoner.kif",
+    "http://games.ggp.org/base/games/breakthroughSmall/v0/": "breakthroughSmall.kif",
+    "http://games.ggp.org/base/games/escortLatch/v0/": "escortLatch.kif",
+    "http://games.ggp.org/base/games/knightThrough/v0/": "knightThrough.kif",
+    "http://games.ggp.org/base/games/cephalopodMicro/v0/": "cephalopodMicro.kif",
+    "http://games.ggp.org/base/games/chineseCheckers4/v1/": "chineseCheckers4.kif",
+    "http://games.ggp.org/base/games/sheepAndWolf/v0/": "sheepAndWolf.kif",
+    "http://games.ggp.org/base/games/pegEuro/v1/": "pegEuro.kif",
+    "http://games.ggp.org/base/games/sudokuGrade5/v0/": "sudoku.kif"
+}

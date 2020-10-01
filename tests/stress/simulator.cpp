@@ -17,15 +17,10 @@ std::ofstream perf(PERF_MD,std::ios::app);
 void profile(std::string gdl,ares::Ares& ares);
 uint doSimulation(ares::Ares& ares);
 
-void populate(std::vector<std::string>& games){
-    namespace fs = std::filesystem;
-    for (const auto & entry : fs::directory_iterator(GAMES_DIR))
-        games.push_back(entry.path());
-}
-
 // void doSimulation();
 /**
- * This test is inteded to 
+ * This test is inteded to do game simulations and reveal either conccurency problems
+ * or memory problems. As well as profile different implementaitons.
  */
 int main()
 {
@@ -40,7 +35,7 @@ int main()
 
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
-    Body::mempool = ClauseBody::mempool = &mempool;
+    Body::mempool = &mempool;
     SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares
@@ -49,12 +44,12 @@ int main()
 
 
     perf << "\n\n## Id " << cfg.impNo <<"\n\n";
-    perf << "|Game  | Nth1   	| Nth2  | Nth3  |   Nth4  |\n";
+    perf << "|Game  | Iter1   	| Iter2  | Iter3  |   Iter4  |\n";
     perf << "|-     |-          |-      |-      |-        | \n";
 
-    std::vector<std::string> games{/* "tests/stress/selectedGames/connect4.kif", */"tests/stress/selectedGames/chess.kif"/* ,
-    "tests/stress/selectedGames/bomberman2p.kif","tests/stress/selectedGames/chess.kif" */};
-    // populate(games);
+    std::vector<std::string> games{"tests/stress/selectedGames/connect4.kif","tests/stress/selectedGames/ticTacToe.kif",
+    "tests/stress/selectedGames/bomberman2p.kif","tests/stress/selectedGames/knightsTour.kif",
+    "tests/stress/selectedGames/cephalopodMicro.kif","tests/stress/selectedGames/chess.kif"};
     perf.setf(std::ios::unitbuf);
 
     for (size_t i = 0; i < games.size(); i++)
@@ -103,8 +98,8 @@ uint doSimulation(ares::Ares& ares){
         done = true;
         sims_end = sims.load();
     });
-    auto c = std::chrono::high_resolution_clock();
-    auto begin = c.now();
+    // auto c = std::chrono::high_resolution_clock();
+    // auto begin = c.now();
     while (not done)
     {
         const State* state = &init;
@@ -123,10 +118,10 @@ uint doSimulation(ares::Ares& ares){
             steps++;
         }
         sims++;
-        auto end = c.now();
-        std::cout << "steps " << steps << "\n";
-        auto dur = std::chrono::duration_cast<std::chrono::seconds>(end-begin);
-        std::cout << "Time for a simulation "<< sims <<" " << dur.count() << "seconds.\n";
+        // auto end = c.now();
+        // std::cout << "steps " << steps << "\n";
+        // auto dur = std::chrono::duration_cast<std::chrono::seconds>(end-begin);
+        // std::cout << "Time for a simulation "<< sims <<" " << dur.count() << "seconds.\n";
         if( state != &init ) delete state;
         total_steps+=steps;
     }

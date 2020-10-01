@@ -43,14 +43,14 @@ namespace ares
         key.body = nullptr;
         return fn;
     }
-    const Literal* MemCache::getLiteral(PoolKey& key){
+    const Atom* MemCache::getAtom(PoolKey& key){
         NameLitMap::const_accessor ac;
         nameLitPool.insert(ac,key.name);     //insert it if it doesn't exist
         LitPool* litPool= (LitPool*)&ac->second;
         LitPool::accessor litAc;
-        const Literal* lit;
+        const Atom* lit;
         if( litPool->insert(litAc, key) )//key didn't exist, insert it
-            litAc->second.reset( new Literal(key.name,key.p,key.body),[&](Literal* l){deleter(l);});
+            litAc->second.reset( new Atom(key.name,key.body),[&](Atom* l){deleter(l);});
         
         else //key  exists.
             delete key.body;
@@ -73,5 +73,19 @@ namespace ares
         orAc.release();
         key.body = nullptr;
         return or_;
+    }
+    const Not* MemCache::getNot(PoolKey& key){
+        NotPool::accessor notAc;
+        const Not* not_;
+        if( notPool.insert(notAc, key) )//key didn't exist, insert it
+            notAc->second.reset( new Not(key.body),[&](Not* l){deleter(l);});
+        
+        else //key  exists.
+            delete key.body;
+        
+        not_ = notAc->second.get();
+        notAc.release();
+        key.body = nullptr;
+        return not_;
     }
 } // namespace ares

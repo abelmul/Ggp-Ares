@@ -73,6 +73,7 @@ namespace ares
     public:
         const static ushort ROLE;
         const static ushort OR;
+        const static ushort NOT;
         const static ushort INIT;
         const static ushort LEGAL;
         const static ushort NEXT;

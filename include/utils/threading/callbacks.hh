@@ -38,7 +38,7 @@ namespace ares
      * Methods
      */
     public:
-        LiteralCB(const Literal* lit, unique_cb&& cb_,Cache* c)
+        LiteralCB(const Atom* lit, unique_cb&& cb_,Cache* c)
         : CallBack(cb_->done,c), lit(lit), cb(std::move(cb_))
         {
         }
@@ -49,7 +49,7 @@ namespace ares
      * Data
      */
     private:
-        const Literal* lit;
+        const Atom* lit;
         unique_cb cb;
         
     };

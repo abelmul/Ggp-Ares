@@ -18,12 +18,12 @@ namespace ares
         Ares::mempool->deallocate((structured_term*) p);
     }
     /**
-     * new and delete for class Literal
+     * new and delete for class Atom
      */
-    void* Literal::operator new(std::size_t){
+    void* Atom::operator new(std::size_t){
         return Ares::mempool->allocate(sterm_pool_t);
     }
-    void Literal::operator delete(void *p){
+    void Atom::operator delete(void *p){
         Ares::mempool->deallocate((structured_term*) p);
     }
 
@@ -31,6 +31,12 @@ namespace ares
         return Ares::mempool->allocate(sterm_pool_t);
     }
     void Or::operator delete(void *p){
+        Ares::mempool->deallocate((structured_term*) p);
+    }
+    void* Not::operator new(std::size_t){
+        return Ares::mempool->allocate(sterm_pool_t);
+    }
+    void Not::operator delete(void *p){
         Ares::mempool->deallocate((structured_term*) p);
     }
     /**
@@ -48,25 +54,25 @@ namespace ares
     Body* instantiate(const structured_term& expr,const Substitution &sub,VarSet& vSet);
 
     const Term* Function::operator()(const Substitution &sub,VarSet& vSet) const {
-        Body* body = instantiate(*this, sub, vSet);
-        if( !body ) return nullptr;
-        PoolKey key{name, body,true};
+        PoolKey key{name, instantiate(*this, sub, vSet)};
+        if( !key.body ) return nullptr;
         return Ares::memCache->getFn(key);
     }
 
-   const Term* Literal::operator()(const Substitution &sub,VarSet& vSet) const {
-
-        Body* body = instantiate(*this, sub, vSet);
-        if( !body ) return nullptr;
-        PoolKey key{name, body,this->positive};
-        return Ares::memCache->getLiteral(key);
+   const Term* Atom::operator()(const Substitution &sub,VarSet& vSet) const {
+        PoolKey key{name, instantiate(*this, sub, vSet)};
+        if( !key.body ) return nullptr;
+        return Ares::memCache->getAtom(key);
     }
     const Term* Or::operator()(const Substitution &sub,VarSet& vSet) const {
-
-        Body* body = instantiate(*this, sub, vSet);
-        if( !body ) return nullptr;
-        PoolKey key{name, body,true};
-        // return Ares::memCache->getLiteral(key);
+        PoolKey key{name, instantiate(*this, sub, vSet)};
+        if( !key.body ) return nullptr;
+        return Ares::memCache->getOr(key);
+    }
+    const Term* Not::operator()(const Substitution &sub,VarSet& vSet) const {
+        PoolKey key{name, instantiate(*this, sub, vSet)};
+        if( !key.body ) return nullptr;
+        return Ares::memCache->getNot(key);
     }
     Body* instantiate(const structured_term& expr, const Substitution &sub,VarSet& vSet){
         uint arity = expr.arity();
@@ -82,11 +88,6 @@ namespace ares
             }
             (*body)[i] = argInst;
         }
-        /**
-         * TODO:
-         * Creation and deletion of body could be avoided if Expression pool is 
-         * Responsible for the lifecycle of Function Bodies.
-         */
         return body;
     }
 } // namespace ares

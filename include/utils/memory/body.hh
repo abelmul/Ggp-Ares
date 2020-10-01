@@ -12,7 +12,7 @@ namespace ares
     /**
      * This is just a wrapper class for a std::vector<T*>.
      * This class provides an efficient and suitable enviroment 
-     * to reuse Literal, Function, and Clause Bodies (by using a MemoryPool).
+     * to reuse Atom, Function, and Clause Bodies (by using a MemoryPool).
      * This is to avoid calling operator new() each time a Body is created.
      */
     template<class T>

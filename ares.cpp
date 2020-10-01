@@ -19,7 +19,7 @@ int main()
 
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
-    Body::mempool = ClauseBody::mempool = &mempool;
+    Body::mempool =  &mempool;
     SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares

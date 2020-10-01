@@ -55,10 +55,10 @@ namespace ares
         /**
          * Just a wrapper function.
          */
-        inline const Literal* parseLiteral(vector<string>::iterator& start, const vector<string>::iterator& end,bool p=true){
-            auto crtr = [=](PoolKey& k){ return memCache->getLiteral(k);};
+        inline const Atom* parseAtom(vector<string>::iterator& start, const vector<string>::iterator& end,bool p=true){
+            auto crtr = [=](PoolKey& k){ return memCache->getAtom(k);};
             auto st = parseSterm(start, end, crtr,p);
-            return (const Literal*)st;
+            return (const Atom*)st;
         }
         inline const Function* parseFn(vector<string>::iterator& start, const vector<string>::iterator& end){
             auto crtr = [=](PoolKey& k){ return memCache->getFn(k);};
@@ -69,6 +69,7 @@ namespace ares
          * Parse rules of the form A<-A1,..,An
          */
         void parseRule(Clause* c,KnowledgeBase* base,vector<string>& tokens, vector<string>::iterator start,const vector<string>::iterator end);
+        void parseBody(vector<string>::iterator& begin,const vector<string>::iterator& end, Body& body);
         const structured_term* create(stack<pair<string,Body*>>& bodies,const Creator&,bool p=true);
         string removeComments(string gdl);
 
@@ -93,10 +94,10 @@ namespace ares
          * @param fn a string representing a function.
          * @returns a function object.
          */
-        inline const Literal* parseQuery(const char * query){
-            auto crtr = [=](PoolKey& k){ return memCache->getLiteral(k);};
+        inline const Atom* parseQuery(const char * query){
+            auto crtr = [=](PoolKey& k){ return memCache->getAtom(k);};
             auto st = parseSterm(query,crtr);
-            return (const Literal*)st;
+            return (const Atom*)st;
         }
         /**
          * Just a wrapper function for ease of use.

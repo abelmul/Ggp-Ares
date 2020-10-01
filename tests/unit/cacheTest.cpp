@@ -33,7 +33,7 @@ int main(int argc, char const *argv[])
  * Variant atoms should hash the same and also be equal.
  * let A1 be an atom and θ := {x0/0, ..., xn/n} where xi is the ith distict variable
  * to occur when counting from the left. The 
- * LiteralHasher::hash(A1) == A1(θ).hash() and also
+ * AtomHasher::hash(A1) == A1(θ).hash() and also
  * A1.equals( A1(θ) )
  */
 void Hashing_Correct(){
@@ -58,8 +58,8 @@ void Hashing_Correct(){
      * Positive tests, against the base renaming θ := {x0/0, ..., xn/n}
      */
     //Compare the hashes
-    assert_true( (LiteralHasher()(lit) == renamed->hash()) );
-    assert_true( (LiteralHasher()(*(cnst_lit_sptr*)&renamed) == LiteralHasher()(lit)) );
+    assert_true( (AtomHasher()(lit) == renamed->hash()) );
+    assert_true( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) );
     //Should be equal
     assert_true( (lit->equals(*renamed.get(),renaming)) );
     renaming.clear();
@@ -73,7 +73,7 @@ void Hashing_Correct(){
  * Variant atoms should hash the same and also be equal.
  * let A1 be an atom and θ := {x0/0, ..., xn/n} where xi is the ith distict variable
  * to occur when counting from the left. The 
- * LiteralHasher::hash(A1) == A1(θ).hash() and also
+ * AtomHasher::hash(A1) == A1(θ).hash() and also
  * A1.equals( A1(θ) )
  */
 void Hashing_Incorrect(){
@@ -111,9 +111,9 @@ void Hashing_Incorrect(){
     
     //Compare the hashes
     renaming.clear();
-    assert_false(( (LiteralHasher()(lit) == renamed->hash()) and lit->equals(*renamed.get(),renaming) )) ;
+    assert_false(( (AtomHasher()(lit) == renamed->hash()) and lit->equals(*renamed.get(),renaming) )) ;
     renaming.clear();
-    assert_false( ( (LiteralHasher()(*(cnst_lit_sptr*)&renamed) == LiteralHasher()(lit)) and lit->equals(*renamed.get(),renaming) ));
+    assert_false( ( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) and lit->equals(*renamed.get(),renaming) ));
     //Should not be equal
     renaming.clear();
     assert_false( (lit->equals(*renamed.get(),renaming)) );
@@ -124,7 +124,7 @@ void Hashing_Incorrect(){
 /**
  * Variant atoms should hash the same and also be equal.
  * let A1 be an atom and θ := {x0/y1, ..., xn/yn} then
- * LiteralHasher::hash(A1) == A1(θ).hash() and also
+ * AtomHasher::hash(A1) == A1(θ).hash() and also
  * A1.equals( A1(θ) )
  */
 void Hashing_Variants(){
@@ -149,8 +149,8 @@ void Hashing_Variants(){
     VarSet vset;
     cnst_term_sptr renamed = (*lit)(sigma,vset);
     //Compare the hashes
-    assert_true( (LiteralHasher()(lit) == LiteralHasher()(*(cnst_lit_sptr*)&renamed)) );
-    assert_true( (LiteralHasher()(*(cnst_lit_sptr*)&renamed) == LiteralHasher()(lit)) );
+    assert_true( (AtomHasher()(lit) == AtomHasher()(*(cnst_lit_sptr*)&renamed)) );
+    assert_true( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) );
     //Should be equal
     assert_true( (lit->equals(*renamed.get(),renaming)) );
     renaming.clear();

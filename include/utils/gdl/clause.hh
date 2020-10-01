@@ -1,7 +1,7 @@
 #ifndef CLAUSE_HH
 #define CLAUSE_HH
 
-#include "utils/gdl/literal.hh"
+#include "utils/gdl/atom.hh"
 #include "utils/gdl/function.hh"
 #include "reasoner/substitution.hh"
 #include "reasoner/suffixRenamer.hh"
@@ -21,12 +21,12 @@ namespace ares
         friend class visualizer;
         
     private:
-        const Literal* head = nullptr;
+        const Atom* head = nullptr;
         ClauseBody* body = nullptr;
         Substitution* theta = nullptr;
 
     public:
-        ClauseBody& getBody(){return *body;}
+        ClauseBody& getBody()const{return *body;}
         // clausebody_mem_pool
         /**
          * Protect against accidental copy assignment, pass by value,...
@@ -42,12 +42,12 @@ namespace ares
          * A <- A0 and ... and An
          * where A0...An are literals(the body), and A is the head
          */
-        Clause(const Literal* head,ClauseBody* _b)
+        Clause(const Atom* head,ClauseBody* _b)
         :head(head),body(_b),theta(nullptr)
         {
         };
 
-        Clause(const Literal* head,ClauseBody* _b,Substitution* t)
+        Clause(const Atom* head,ClauseBody* _b,Substitution* t)
         :head(head),body(_b),theta(t)
         {
         };
@@ -69,15 +69,18 @@ namespace ares
 
         static bool EMPTY_CLAUSE(const Clause& c) { return (c.body->size() == 0  and (not c.head) ); }
 
-        inline Clause* clone() const{
+        inline Clause* clone(bool ctheta=false) const{
             auto* c = new Clause(head, new ClauseBody(body->begin(), body->end()));
+            if( ctheta and theta)
+                c->setSubstitution(new Substitution(*theta));
+
             return c;
         }
         inline Clause* next() const{
             ushort n = body->size() == 0 ? 0 : 1;
             auto* c = new Clause(head, new ClauseBody(body->begin()+n, body->end()));
             if( theta )
-                c->setSubstitution(*theta + Substitution());
+                c->setSubstitution(new Substitution(*theta));
             return c;
         }
         /**
@@ -92,16 +95,16 @@ namespace ares
             for (uint i =0;i < body->size() ; i++){
                 auto& l = (*body)[i];
                 const Term* lr = (*l)(vr, vset);       //Apply renaming
-                renamedBody[i] = ((const Literal*)lr);
+                renamedBody[i] = ((const Atom*)lr);
             }
             return;
         }
 
         std::size_t size()const { return body->size(); }
 
-        void setHead(const Literal* h){head = h;}
+        void setHead(const Atom* h){head = h;}
         
-        const Literal* getHead() const { 
+        const Atom* getHead() const { 
             return head; 
         }
 
@@ -109,7 +112,7 @@ namespace ares
 
         void setSubstitution(Substitution* t){ theta = t;}
 
-        const Literal*& front() const { return (*body)[0];}
+        const Term*& front() const { return (*body)[0];}
 
         void pop_front() { body->pop_front();}
 
@@ -119,9 +122,8 @@ namespace ares
       
         std::string to_string()const{
             std::string s("");
-            if( body->size() > 0) s.append("(");
+            if( body->size() > 0) s.append("(<= ");
             if( head ) s.append( head->to_string() + " ");
-            if( body->size() > 0) s.append(" <= ");
 
             for (auto &l : *body)
                 s.append("\n" + l->to_string());

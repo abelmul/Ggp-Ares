@@ -36,7 +36,7 @@ namespace ares
         auto& it = stream.current();
         if( *it != "("){
             // A literal without a body
-            const Literal* l = parser->parseLiteral(it,stream.end(),true);
+            const Atom* l = parser->parseAtom(it,stream.end(),true);
             c->getBody().push_back(l);
             ++stream;       //Advances stream position to the next formula.
             return;
@@ -84,7 +84,7 @@ namespace ares
         else{
             //Should be a literal
 
-            const Literal* l = parser->parseLiteral(it,stream.end(),true);
+            const Atom* l = parser->parseAtom(it,stream.end(),true);
             c->getBody().push_back(l);
             ++stream;       //Advances stream position to the next formula.
         }
@@ -94,7 +94,7 @@ namespace ares
     void Transformer::transformNot(Clause* c, vector<string>::iterator& it, TokenStream& stream){
         if( *it != "("){
             // A literal without a body
-            const Literal* l = parser->parseLiteral(it,stream.end(),false);
+            const Atom* l = parser->parseAtom(it,stream.end(),false);
             it++;
             if( it >= stream.end() || *it != ")") throw SyntaxError( "GDLParser :: Error :: While parsing not.");
             c->getBody().push_back(l);
@@ -140,7 +140,7 @@ namespace ares
         }
         else{
             //Should be a literal
-            const Literal* l = parser->parseLiteral(it,stream.end(),false);
+            const Atom* l = parser->parseAtom(it,stream.end(),false);
             c->getBody().push_back(l);
             it++;           //next token
             if( (it >= stream.end())  || ((*it) != ")") ) throw SyntaxError("GdlParser :: Error :: While parsing '(not literal' Expecting ')' before end.");

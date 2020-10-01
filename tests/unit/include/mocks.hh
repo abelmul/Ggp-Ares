@@ -26,13 +26,11 @@ namespace ares
         }
         structured_term *st = (structured_term*)t;
         std::string s("(");
-        if(not (*st) ) s.append("not ( ");
         std::string name = is_fn(t) ? "F" : "P";
         s.append(name + std::to_string(st->get_name()));
         for (auto &t : st->getBody()){
-            s.append(" " + toString(t.get()));
+            s.append(" " + toString(t));
         }
-        if(not (*st) ) s.append(" )");
         s.append(")");
         return s;
     }
@@ -56,10 +54,6 @@ namespace ares
     
     std::unordered_map<ushort, std::string> Namer::idName;
     std::unordered_map<std::string, ushort> Namer::nameId;
-    
-    //Initialize static members of term
-    cnst_term_sptr     Term::null_term_sptr(nullptr);
-    cnst_lit_sptr     Term::null_literal_sptr(nullptr);
     
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;

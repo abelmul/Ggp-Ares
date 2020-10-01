@@ -13,8 +13,6 @@ void setup(){
     aresP.mempool = &MemoryPool::create(100,100,std::vector<std::pair<arity_t,uint>>());
     aresP.memCache = aresP.mempool->getCache();
     Body::mempool = ClauseBody::mempool = aresP.mempool;
-    Term::null_term_sptr = nullptr;
-    Term::null_literal_sptr = nullptr;
 }
 
 /**
@@ -32,13 +30,13 @@ namespace ares{
     std::binomial_distribution<int> bd(2,0.5);
 
     typedef UniqueVector<const Variable*> OrdrdVarSet;
-    typedef std::pair<cnst_lit_sptr,OrdrdVarSet> lit_var_pair;
-    typedef cnst_term_sptr(*RandFactory)(OrdrdVarSet&,ushort&,ushort);
+    typedef std::pair<const Atom*,OrdrdVarSet> lit_var_pair;
+    typedef const Term*(*RandFactory)(OrdrdVarSet&,ushort&,ushort);
 
     void extractVar(const structured_term* l,OrdrdVarSet&);
-    cnst_term_sptr getRandConst(OrdrdVarSet&,ushort&,ushort max_arity=0);
-    cnst_term_sptr getRandVar(OrdrdVarSet&,ushort&,ushort max_arity=0);
-    cnst_term_sptr getRandFn(OrdrdVarSet&,ushort&,ushort max_arity=0);
+    const Term* getRandConst(OrdrdVarSet&,ushort&,ushort max_arity=0);
+    const Term* getRandVar(OrdrdVarSet&,ushort&,ushort max_arity=0);
+    const Term* getRandFn(OrdrdVarSet&,ushort&,ushort max_arity=0);
 
     ushort getRandName(uint min, uint max){
         std::random_device rd; // obtain a random number from hardware
@@ -60,15 +58,15 @@ namespace ares{
         }
         return body;
     }
-    cnst_term_sptr getRandConst(OrdrdVarSet& vars,ushort&,ushort max_arity){
+    const Term* getRandConst(OrdrdVarSet&,ushort&,ushort){
         return Ares::memCache->getConst(getRandName(20,55));
     }
-    cnst_term_sptr getRandVar(OrdrdVarSet& vars,ushort&,ushort max_arity){
+    const Term* getRandVar(OrdrdVarSet& vars,ushort&,ushort){
         auto v =  Ares::memCache->getVar(getRandName(0,5));
-        vars.push_back(v.get());
+        vars.push_back(v);
         return v;
     }
-    cnst_term_sptr getRandFn(OrdrdVarSet& vars,ushort& depth,ushort max_arity){
+    const Term* getRandFn(OrdrdVarSet& vars,ushort& depth,ushort max_arity){
         PoolKey key;
         depth--;
         key.name = getRandName(60, 80);
@@ -82,7 +80,6 @@ namespace ares{
     }
     lit_var_pair getRandLiteral(ushort depth,ushort max_arity=3,ushort max_arity_sb=3){
         PoolKey key;
-        key.p = rand() % 2;
         key.name = getRandName(81, 100);
         ushort arity = (rand() % max_arity);
         if( litArityMap.find(key.name) == litArityMap.end() )
@@ -92,9 +89,9 @@ namespace ares{
         
         OrdrdVarSet vars;
         key.body = getRandBody(vars,arity,depth, max_arity_sb);
-        return lit_var_pair(Ares::memCache->getLiteral(key), vars);
+        return lit_var_pair(Ares::memCache->getAtom(key), vars);
     }
-    Substitution* getRandVariant(const Literal* l){
+    Substitution* getRandVariant(const Atom* l){
         ushort depth = (rand() % 2) +1;
         VariantSubstitution* sigma = new VariantSubstitution();
         OrdrdVarSet vars;
@@ -102,12 +99,12 @@ namespace ares{
         OrdrdVarSet varsnew;
         std::unordered_set<const Variable*> seen;
         for (auto &&v : vars){
-            cnst_term_sptr vp = getRandVar(varsnew,depth);
-            while (seen.find((Variable*)vp.get()) != seen.end()){
+            const Term* vp = getRandVar(varsnew,depth);
+            while (seen.find((Variable*)vp) != seen.end()){
                 vp = getRandVar(varsnew,depth);
             }
             sigma->bind(v, vp);
-            seen.insert((Variable*)vp.get());
+            seen.insert((Variable*)vp);
         }
         return sigma;
     }
@@ -125,8 +122,8 @@ namespace ares{
     void extractVar(const structured_term* l,OrdrdVarSet& v){
         for (auto &&i : l->getBody())
         {
-            if( is_var(i) )  v.push_back((Variable*)i.get());
-            else if( is_struct_term(i) ) extractVar((structured_term*)i.get(),v);
+            if( is_var(i) )  v.push_back((Variable*)i);
+            else if( is_struct_term(i) ) extractVar((structured_term*)i,v);
         }
     }
 };

@@ -2,8 +2,6 @@
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
 ares::Cfg ares::cfg;
-void takeIn(const ares::State* state,std::vector<ares::uMoves>*  moves,int& m);
-void takeIn(const ares::State* state,ares::Moves*  moves, ares::Moves* moves1,const ares::role_sptr& r0,const ares::role_sptr& r1, int& m0,int& m1);
 using namespace ares;
 int main(int argc, char const *argv[])
 {
@@ -18,7 +16,7 @@ int main(int argc, char const *argv[])
 
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
-    Body::mempool = ClauseBody::mempool = &mempool;
+    Body::mempool = &mempool;
     SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares
@@ -37,13 +35,13 @@ int main(int argc, char const *argv[])
     match.matchId = "test.0"; 
     match.strtClck = 2; 
     match.plyClck = 2; 
-    match.role = kb->getRoles()[0];
+    match.role = ares->roles()[0];
     cfg.delta_sec = 200;
     std::cout << "ares playing : "<<Namer::name(match.role->get_name()) << "\n";
     ares.startMatch(match,Namer::name(match.role->get_name()));
 
-    const role_sptr& r0 = ares->roles()[0];
-    const role_sptr& r1 = ares->roles()[1];
+    const Role* r0 = ares->roles()[0];
+    const Role* r1 = ares->roles()[1];
 
     std::cout << "-----Roles------\n\n";
     std::cout << *r0 << std::endl;
@@ -83,7 +81,6 @@ int main(int argc, char const *argv[])
             auto j = rand() % moves->size();
             auto i = rand() % moves1->size();
 
-            std::cout << "selecting " << (*moves1)[i]->to_string() << " randomly\n";
             assert( amove.first and (amove.second == seq) );
             prev = new Moves{amove.first , (*moves1)[i]};
             

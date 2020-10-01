@@ -5,9 +5,10 @@
 #include "variable.hh"
 #include "constant.hh"
 #include "function.hh"
-#include "literal.hh"
+#include "atom.hh"
 #include "clause.hh"
 #include "or.hh"
+#include "not.hh"
 
 namespace ares{
     class CallBack;
@@ -19,7 +20,7 @@ namespace ares{
         typedef std::unique_ptr<Clause> unique_clause;
         typedef std::shared_ptr<CallBack> shared_callback;
 
-        Query(unique_clause& g,shared_callback& cb,const State* s,Cache* c,ushort suff,bool rand)
+        Query(unique_clause& g,const shared_callback& cb,const State* s,Cache* c,ushort suff,bool rand)
         :context(s), cb(cb),goal( std::move( g)),pool(nullptr),
          cache(c),suffix(suff),id(nextId++),random(rand), ptr(0)
         {

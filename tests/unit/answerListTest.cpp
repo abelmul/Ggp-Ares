@@ -5,7 +5,6 @@
 #include <atomic>
 
 using namespace ares;
-void setup();
 void AnswerIterator();
 void AnsList();
 void RandIteratorTest();
@@ -72,12 +71,12 @@ void AnswerIterator(){
     }
 
     auto asserter = [&elements](AnsIterator& ansit,const uint& curr){
-        std::unordered_set<const Literal*> visited;
+        std::unordered_set<const Atom*> visited;
         while (ansit){
             const auto& l = *ansit;
             //Assert every element is visited exactly once.
-            assert_true( visited.find(l.get()) == visited.end());
-            visited.insert(l.get());
+            assert_true( visited.find(l) == visited.end());
+            visited.insert(l);
             ++ansit;
         }
         
@@ -86,10 +85,10 @@ void AnswerIterator(){
         for (auto &&l : elements)
         {
             if( i < curr){//Nothing below curr should be visted
-                assert_true( (visited.find(l.get()) == visited.end() ));
+                assert_true( (visited.find(l) == visited.end() ));
             }
             else//Everything above and including curr should be visted
-                assert_true( visited.find(l.get()) != visited.end());
+                assert_true( visited.find(l) != visited.end());
             i++;
         }
     };
@@ -161,13 +160,13 @@ void AnsList(){
 
     //insert new solutions
     uint size_soln = (rand() % 20);
-    UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> inserted;
-    typedef UniqueVector<cnst_lit_sptr,LiteralHasher,LiteralHasher> list;
+    UniqueVector<const Atom*,AtomHasher,AtomHasher> inserted;
+    typedef UniqueVector<const Atom*,AtomHasher,AtomHasher> list;
     auto insertSoln = [&](list* answers=nullptr){
         if( answers ){
             for (auto &&i : *answers)
             {
-                Substitution* variant = getRandVariant(i.get());
+                Substitution* variant = getRandVariant(i);
                 assert_false(ansList.addAnswer(i, *variant));
                 delete variant;
             }

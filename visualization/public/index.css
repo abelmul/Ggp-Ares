@@ -9,15 +9,15 @@ body{
 #svgContainer::-webkit-scrollbar {
   display: none;
 }
-svg{
-  background: rgb(0,0,0);
-  background: linear-gradient(90deg, rgba(0,0,0,1) 0%, rgba(88,94,97,1) 54%, rgba(1,17,29,1) 87%, rgba(2,5,9,1) 95%, rgba(0,0,0,1) 100%);
-}
 #svgContainer{
   overflow-x: scroll;
   height: 100%;
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
+  background: rgb(0,0,0);
+  background: radial-gradient(circle, rgba(5,5,5,0.94) 0%, rgba(10,11,11,0.97) 53%, rgba(15,15,15,1) 77%, rgba(17,17,17,0.99) 100%, rgba(0,0,0,0.99) 100%);
+  padding-top: 90px;
+  padding-bottom: 40px;
 }
 .node {
   fill: #fff;
@@ -34,7 +34,7 @@ svg{
 }
 .node circle {
   /* fill: #fff; */
-  stroke:#4682b4;
+  stroke:gray;
   stroke-width: 2px;
 }
 
@@ -64,19 +64,19 @@ the choice blocks
 }
 #choice_container{
   text-align: center;
-  color: #6a6a6a;
+  color: #9a9a9a;
   font: 14px helvetica;
   width: 100%;
   position: absolute;
 }
-/* #aresImg{
+#aresImg{
   width: 100%;
-  opacity: 0.56;
+  opacity: 0.6;
 }
 #aresImgCtr{
-  width: 8%;
+  width: 5%;
   margin: auto;
-} */
+}
 .state_choices{
   float: left;
   padding: 15px;
@@ -86,9 +86,10 @@ the choice blocks
   cursor: pointer;
 }
 #choice {
-  border-radius: 15px;
-  border-style: solid ;
-  border-color: #18191A;
+  border-radius: 11px;
+  /* border-style: solid ;
+  border-color: #a8a9aA; */
+  border: 2px #a8a9aA solid;
   width: fit-content;
   margin: auto;
   margin-top: 5px;

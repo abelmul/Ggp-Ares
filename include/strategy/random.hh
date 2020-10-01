@@ -8,10 +8,11 @@ namespace ares{
     class Random : public Strategy, public RegistrarBase<Random>
     {
     private:
-        /* data */
+        std::mutex lock;
     public:
         Random(){}
         virtual move_sptr_seq operator()(const Match& match,uint seq){
+            std::lock_guard<std::mutex> lk(lock);
             const State* state;
             if( current == nullptr ){
                 state = match.game->init();
@@ -30,6 +31,7 @@ namespace ares{
         }
         virtual void start(const Match&){}
         virtual void reset(){
+            std::lock_guard<std::mutex> lk(lock);
             if(current and current != INIT) delete current; 
             current= nullptr;
         }

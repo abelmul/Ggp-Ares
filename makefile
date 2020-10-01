@@ -133,7 +133,7 @@ run:
 TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
 VERIFIER_DEP =  ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o ../objs/reasoner/prover.o ../objs/reasoner/reasoner.o ../objs/reasoner/substitution.o ../objs/reasoner/suffixRenamer.o ../objs/reasoner/unifier.o
 MONTE_DEP =  $(VERIFIER_DEP)
-
+PARSER_DEP = $(VERIFIER_DEP)
 # Test_MemPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_MemPool.o $(TEST_OBJS)
 # 	$(CC) $(FLAGS)  -o $(UNIT_BIN)/MemPool_Test -Wl,--start-group $^ -Wl,--end-group 
 
@@ -145,6 +145,9 @@ cacheTest: $(OBJS_DIR)/$(TESTS_UNIT)/cacheTest.o $(TEST_OBJS)
 
 monteTest: $(OBJS_DIR)/$(TESTS_UNIT)/monteTest.o  $(OBJS_DIR)/$(TESTS_UNIT)/mock_reasoner.o $(MONTE_DEP)
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/monteTest -Wl,--start-group $^ -Wl,--end-group 
+parserTest: $(OBJS_DIR)/$(TESTS_UNIT)/parserTest.o $(PARSER_DEP)
+	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/parserTest -Wl,--start-group $^ -Wl,--end-group 
+
 
 $(OBJS_DIR)/$(TESTS_UNIT)/answerListTest.o: $(TESTS_UNIT)/answerListTest.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
@@ -163,6 +166,8 @@ $(OBJS_DIR)/$(TESTS_UNIT)/monteTest.o: $(TESTS_UNIT)/monteTest.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 $(OBJS_DIR)/$(TESTS_UNIT)/mock_reasoner.o: $(TESTS_UNIT)/mock_reasoner.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
+$(OBJS_DIR)/$(TESTS_UNIT)/parserTest.o: $(TESTS_UNIT)/parserTest.cpp
+	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
 #Tests involving Random simulation and verification of the reasoner
 verifier: $(OBJS_DIR)/$(TESTS_UNIT)/verifier.o $(VERIFIER_DEP)
@@ -171,7 +176,6 @@ simulator: $(OBJS_DIR)/$(TESTS_STRESS)/simulator.o $(VERIFIER_DEP)
 	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/simulator  -Wl,--start-group $^ -Wl,--end-group
 strategy_test:$(OBJS_DIR)/$(TESTS_STRESS)/strategy_test.o $(VERIFIER_DEP)  
 	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/strategy_test  -Wl,--start-group $^ -Wl,--end-group
-
 ## Run the tests
 run_verifier:
 	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(UNIT_BIN)/verifier $(game)
@@ -189,7 +193,8 @@ run_cacheTest:
 	$(UNIT_BIN)/cacheTest
 run_monteTest:
 	$(UNIT_BIN)/monteTest
-
+vis_server:
+	cd visualization && npm start
 .clean:	
 	find $(OBJS_DIR) -type f -name '*.o' -delete 
 	rm -f ares

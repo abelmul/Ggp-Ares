@@ -154,7 +154,7 @@ namespace ares
      * Data
      */
     public:
-        const Literal* const TRUE_LITERAL;
+        const Atom* const TRUE_LITERAL;
         const Variable* const x;   
         const Variable* const r;
     private:
@@ -205,7 +205,7 @@ namespace ares
         virtual void operator()(const Substitution& ans,ushort,bool){
             // isCurrent()
             VarSet vset;
-            auto true_ = (const Literal*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
+            auto true_ = (const Atom*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
             if(true_){
                 auto* cl = new Clause(true_, new ClauseBody(0) );
                 if ( not newState->add(Namer::TRUE, cl) )//This is thread safe

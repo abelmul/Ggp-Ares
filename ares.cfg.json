@@ -19,5 +19,5 @@
     "delta_sec":500,
     "port":8080,
     "stateDumpF":"./visualization/data.json",
-    "impNo":9
+    "impNo":13
 }

@@ -47,6 +47,7 @@ namespace ares
      */
     const ushort Namer::ROLE = Namer::registerName(std::string("role"));
     const ushort Namer::OR = Namer::registerName(std::string("or"));
+    const ushort Namer::NOT = Namer::registerName(std::string("not"));
     const ushort Namer::INIT = Namer::registerName(std::string("init"));
     const ushort Namer::LEGAL = Namer::registerName(std::string("legal"));
     const ushort Namer::NEXT = Namer::registerName(std::string("next"));

@@ -25,7 +25,7 @@ namespace ares
 
         //create an initialized function
         Function(ushort name,const Body* _b)
-        :structured_term(name,true,_b,FN)
+        :structured_term(name,_b,FN)
         {
         }
 

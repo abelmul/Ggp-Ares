@@ -40,7 +40,7 @@ namespace ares
             InitCb(Reasoner* r):CallBack(done_,nullptr),this_(r),init(new State()),done_(false){}
             virtual void operator()(const Substitution& ans,ushort,bool){
                 VarSet vset;
-                auto true_ = (const Literal*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
+                auto true_ = (const Atom*)(*this_->TRUE_LITERAL)(ans,vset);      //Instantiate
                 if( true_ ){
                     auto* cl = new Clause(true_, new ClauseBody(0) );
                     if ( not init->add(Namer::TRUE, cl) )//This is thread safe
@@ -86,10 +86,10 @@ namespace ares
         for (size_t i = 0; i < moves.size(); i++)
         {
             Body* body = new Body{roles[i], moves[i]};
-            key = PoolKey{Namer::DOES, body,true};
-            auto l = memCache.getLiteral(key);
+            key = PoolKey{Namer::DOES, body};
+            auto l = memCache.getAtom(key);
             context->add(Namer::DOES, new Clause(l,new ClauseBody(0)));           //This is thread safe
-        }
+        }   
         auto cb = std::shared_ptr<NxtCallBack>(new NxtCallBack(this, new State()));
         query(NEXT_GOAL, context, cb);
         
@@ -165,11 +165,11 @@ namespace ares
         /**
          * Template for (legal some_role ?x) and (goal some_role ?x)
          */
-        auto& template_body_legal = LEGAL_GOAL->front()->getBody();
-        auto& template_body_goal = GOAL_GOAL->front()->getBody();
+        auto& template_body_legal = ((Atom*)LEGAL_GOAL->front())->getBody();
+        auto& template_body_goal = ((Atom*)GOAL_GOAL->front())->getBody();
 
-        PoolKey key_legal{Namer::LEGAL, nullptr, true};
-        PoolKey key_goal{Namer::GOAL, nullptr, true};
+        PoolKey key_legal{Namer::LEGAL, nullptr};
+        PoolKey key_goal{Namer::GOAL, nullptr};
 
 
         for (auto &&r : roles)
@@ -177,13 +177,13 @@ namespace ares
             //Init legal query for role
             key_legal.body = new Body(template_body_legal.begin(), template_body_legal.end());
             (*(Body*)key_legal.body)[0] = r;
-            const Literal* legal_l = memCache.getLiteral(key_legal);
+            const Atom* legal_l = memCache.getAtom(key_legal);
             roleLegalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{legal_l}));
             
             //Init goal query for role
             key_goal.body = new Body(template_body_goal.begin(), template_body_goal.end());;
             (*(Body*)key_goal.body)[0] = r;
-            const Literal* goal_l = memCache.getLiteral(key_goal);
+            const Atom* goal_l = memCache.getAtom(key_goal);
             roleGoalMap[r->get_name()].reset(new Clause(nullptr, new ClauseBody{goal_l}));
         }
     }

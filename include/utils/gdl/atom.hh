@@ -8,15 +8,15 @@ namespace ares
 {
     class MemCache;
 
-    class Literal : public structured_term
+    class Atom : public structured_term
     {
     
     friend class MemCache;
     friend class visualizer;
 
     private:
-        Literal(ushort n,bool p,const Body* b)
-        :structured_term(n,p,b,LIT)
+        Atom(ushort n,const Body* b)
+        :structured_term(n,b,LIT)
         {
         }
         /**
@@ -25,17 +25,17 @@ namespace ares
         void* operator new(std::size_t s);
         void operator delete(void* p);
         
-        virtual ~Literal(){
+        virtual ~Atom(){
             if( body )
                 delete body;
             body = nullptr;
         }
 
     public:
-        Literal(const Literal&) = delete;
-        Literal(const Literal&&) = delete;
-        Literal& operator= (const Literal&) = delete;
-        Literal& operator= (const Literal&&) = delete;
+        Atom(const Atom&) = delete;
+        Atom(const Atom&&) = delete;
+        Atom& operator= (const Atom&) = delete;
+        Atom& operator= (const Atom&&) = delete;
 
         
         /**

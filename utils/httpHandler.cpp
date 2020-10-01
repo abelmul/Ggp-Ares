@@ -112,7 +112,6 @@ namespace ares
         log("[HttpHandler]") << "Message Sequence num : " << cseq << '\n';
         tokens.pop_back();
         tokens.erase(tokens.begin(), tokens.begin()+3);
-
         std::pair<Move*,uint> selectedMove;
         if( tokens[0] != "nil" ){
             //Parse the made moves
@@ -126,7 +125,7 @@ namespace ares
         bool valid =  selectedMove.second == seq and selectedMove.first ;
         if( not valid ){
             if(selectedMove.second != seq )
-                logerr("[HttpHandler]") << "Strategy returned invalid move.\n\tcurrent seq="<<seq << ", returned seq = " << selectedMove.first <<"\n";
+                logerr("[HttpHandler]") << "Strategy returned invalid move.\n\tcurrent seq="<<seq << ", returned seq = " << selectedMove.second <<"\n";
             else
                 logerr("[HttpHandler]") << "Strategy returned invalid move. Returned move is null.\n";
         }
