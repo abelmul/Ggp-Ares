@@ -34,7 +34,6 @@ namespace ares
                 delete ((term_container*)vp);
         
         delete EMPTY_CONTAINER;
-        log("[~MemoryPool]");
     }
     void MemoryPool::init_pools(
         std::size_t st_terms,

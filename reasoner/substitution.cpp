@@ -43,5 +43,4 @@ namespace ares
         s.append("}\n");
         return s;
     }
-
 } // namespace ares

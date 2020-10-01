@@ -5,7 +5,7 @@ void testBasic();
 void testOr();
 void testNot();
 void testNested();
-
+void testFile();
 using namespace std;
 using namespace ares;
 ares::Cfg ares::cfg;
@@ -16,13 +16,12 @@ int main()
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
     Body::mempool = &mempool;
-    SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares
-    Reasoner& reasoner(Reasoner::create(GdlParser::create(mempool.getCache()), Prover::create(), *mempool.getCache()));
+    Reasoner::create(GdlParser::create(mempool.getCache()), Prover::create(), *mempool.getCache());
     Runner runner;
     runner.iter = 1;
-
+    add_test(runner, testFile);
     add_test(runner, testBasic);
     add_test(runner, testOr);
     add_test(runner, testNot);
@@ -53,6 +52,11 @@ void assert_equal(string s1, string s2){
     s1 = boost::regex_replace(s1, re,"");
     s2 = boost::regex_replace(s2, re,"");
     assert_true( s1 == s2);
+}
+void testFile(){
+    Game* game = new Game();
+    std::string gdl("tests/ggp.org/games/pentago.kif");
+    parser.parse(game,gdl);
 }
 void testBasic(){
     vector<string> fact;

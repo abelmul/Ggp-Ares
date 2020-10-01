@@ -165,7 +165,12 @@ function update(source) {
 
 
   // Enter any new modes at the parent's previous position.
-  var nodeEnter = node.enter().append('g')
+  var nodeEnter = node.enter().insert('g', (d,i,nss) => {
+    // if( i!= 0 && d.data.root) return nss[0];
+    if( d.data.root  )
+      return nss[i].firstChild;  
+      return null;
+    })
       .attr('class',function(d){
         return d.data.root ? 'node nodeRoot' : 'node nodeNonRoot'
       })

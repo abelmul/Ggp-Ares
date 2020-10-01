@@ -2,6 +2,7 @@
 #include "static.hh"
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
+#include "strategy/montecarlo_seq.hh"
 #include <filesystem>
 #include <iostream>
 #include <random>
@@ -36,7 +37,6 @@ int main()
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
     Body::mempool = &mempool;
-    SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares
     Reasoner& reasoner(Reasoner::create(GdlParser::create(mempool.getCache()), Prover::create(), *mempool.getCache()));
@@ -68,13 +68,6 @@ void profile(std::string gdl,ares::Ares& ares){
     ares.parser.parse(kb,gdl);
     ares->reset(nullptr);
     ares->reset(kb);
-    std::cout << "roles\n";
-    for (auto &&r : ares->roles())
-        std::cout << r->to_string() << "\n";
-    std::cout << "roles\n";
-    
-    std::cout << ares->init().toString() << "\n";
-    
     srand(time(NULL));
 
     size_t start_pos = gdl.find(".kif");

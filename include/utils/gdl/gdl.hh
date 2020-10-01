@@ -21,14 +21,14 @@ namespace ares{
         typedef std::shared_ptr<CallBack> shared_callback;
 
         Query(unique_clause& g,const shared_callback& cb,const State* s,Cache* c,ushort suff,bool rand)
-        :context(s), cb(cb),goal( std::move( g)),pool(nullptr),
+        :context(s), cb(cb),goal( std::move( g)),
          cache(c),suffix(suff),id(nextId++),random(rand), ptr(0)
         {
         }
 
         Query(const Query& q)
         :context(q.context), cb(q.cb), goal( std::move( *(unique_clause*)&q.goal)),
-        pool(q.pool),cache(q.cache),suffix(q.suffix),id(q.id), random(q.random),ptr(q.ptr)
+        cache(q.cache),suffix(q.suffix),id(q.id), random(q.random),ptr(q.ptr)
         {
         }
         inline static void resetid(){nextId = 0;}
@@ -37,7 +37,6 @@ namespace ares{
         const State* context;
         std::shared_ptr<CallBack> cb;
         unique_clause goal;
-        ThreadPool* pool;
         Cache* cache;
         const ushort suffix;
         const uint id;      //The id is just to make some tests easier

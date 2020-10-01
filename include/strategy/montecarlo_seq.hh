@@ -1,5 +1,5 @@
-#ifndef MONTE_HH
-#define MONTE_HH
+#ifndef MONTE_SEQ_HH
+#define MONTE_SEQ_HH
 #include <algorithm>
 #include <future>
 #include <condition_variable>
@@ -12,7 +12,7 @@
 
 
 namespace ares{
-    class Montecarlo : public Strategy, public RegistrarBase<Montecarlo>
+    class MontecarloSeq : public Strategy, public RegistrarBase<MontecarloSeq>
     {
 
     public:
@@ -26,17 +26,7 @@ namespace ares{
             {
             }
             /*methods*/
-            void add(Node *child){
-                std::lock_guard<std::mutex> lk(lock); children.push_back(child);
-                if( observers ) {cv.notify_all();}
-            }
-            std::unique_lock<std::mutex> waitUntilChildren(){
-                std::unique_lock<std::mutex> lk(lock);
-                observers++;
-                cv.wait(lk,[&]{ return children.size() > 0;});
-                observers--;
-                return lk;
-            }
+            void add(Node *child){ std::lock_guard<std::mutex> lk(lock); children.push_back(child);}
             void erase();                               //Delete the subtree rooted at this node
             /*data*/
             uint n;                                     //#Simulations through this node
@@ -47,16 +37,13 @@ namespace ares{
             std::vector<Node*> children;    
             ucAction action;                            //The action that was taken from the parents state
             std::mutex lock;
-            private:
-                std::condition_variable cv;
-                uint observers;
         };
 
     /**
      * Methods
      */
     public:
-        Montecarlo()
+        MontecarloSeq()
         :tree(*this),timer(*this),selPolicy(nullptr),simPolicy(nullptr)
         {}
         virtual void init(Reasoner*);
@@ -82,8 +69,8 @@ namespace ares{
             tree.reset();
         }
 
-        virtual std::string name(){return "Montecarlo";}
-        static Montecarlo* create(){ static Montecarlo monte; return &monte;}
+        virtual std::string name(){return "MontecarloSeq";}
+        static MontecarloSeq* create(){ static MontecarloSeq monte; return &monte;}
 
         inline void setPolicies(ISelectionPolicy* s,ISimPolicy* sim_){
             if(selPolicy) delete selPolicy;
@@ -102,11 +89,12 @@ namespace ares{
          * @param def the default value to use for unexplored nodes.
          */
         inline static Node* bestChild(Node& n,ushort c,float def=0){
-            auto lock = n.waitUntilChildren();
+            std::unique_lock<std::mutex> lk;
+            if( !n.parent )lk= std::unique_lock<std::mutex>( n.lock);  //There is only conccurecy at the root node
             return *std::max_element(n.children.begin(),n.children.end(),
-                                    [&](auto& n1, auto& m) {return uct(*n1,c,def) < uct(*m,c,def);});
+                                    [&](auto& n, auto& m) {return uct(*n,c,def) < uct(*m,c,def);});
         }
-        virtual ~Montecarlo();
+        virtual ~MontecarloSeq();
 
     private:
         /**
@@ -120,13 +108,11 @@ namespace ares{
             };
             while (v )
             {
-                if( v->parent){//The parent depends on its children's  value for selecting best child.
-                    std::lock_guard<std::mutex> lk(v->parent->lock);
+                if( v->parent == tree.root){//timer might go off and try to select best child of root
+                    std::lock_guard<std::mutex> lk(tree.root->lock);
                     update_(val);
                     continue;
                 }
-                //Its the root, so make sure the tree doesn't change
-                std::lock_guard<std::mutex> lk(tree.lock);  
                 update_(val);
             }
         }
@@ -137,12 +123,12 @@ namespace ares{
     private:    
         //The tree
         struct Tree{
-            Tree(Montecarlo& m):mc(m),root(nullptr),origRoot(nullptr){}
+            Tree(MontecarloSeq& m):mc(m),root(nullptr),origRoot(nullptr){}
             void select(const Action* action);
-            void reset(Montecarlo::Node* root_=nullptr);
+            void reset(MontecarloSeq::Node* root_=nullptr);
             ~Tree(){ reset(); }
             /*Data*/
-            Montecarlo& mc;
+            MontecarloSeq& mc;
             std::mutex lock;
             Node* root;    // Keep track of current state. This dynamically changes on every step.
             Node* origRoot;  //For debugging and visualization purposes don't delete the original tree.
@@ -152,7 +138,7 @@ namespace ares{
          */
         class Timer{
             public: 
-                Timer(Montecarlo& mc):mct(mc),seq(0),done(nullptr){}
+                Timer(MontecarloSeq& mc):mct(mc),seq(0),done(nullptr){}
                 std::future<const Term*> reset(std::atomic_bool& done_,const Match& match);
                 /**
                  * Cancel any scheduled timers;
@@ -163,7 +149,7 @@ namespace ares{
                  */
                 void cancel(std::atomic_bool* done_);
             private: 
-                Montecarlo& mct;
+                MontecarloSeq& mct;
                 std::atomic_uint seq;
                 std::atomic_bool* done;
                 std::mutex lock;
@@ -189,11 +175,10 @@ namespace ares{
         std::mutex lock;
         ISelectionPolicy* selPolicy; ISimPolicy* simPolicy;
         std::atomic_bool stoped;
-        ThreadPool* pool;
         
-
+    public:
     friend class Timer;
     friend class MonteTester;
-    };//End Class Montecarlo
+    };//End Class MontecarloSeq
 }//namespace ares
 #endif

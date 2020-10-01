@@ -199,7 +199,7 @@ namespace ares
         const State* state;
         std::vector<uAction>* actions;
         Reasoner* reasoner;
-
+        std::mutex lock;
     public:
         typedef std::unique_ptr<const Action> UniqueAction;
         ActionIterator(const State* s,Reasoner* r):i(0),state(s),actions(nullptr),reasoner(r){}
@@ -210,6 +210,9 @@ namespace ares
         ActionIterator& operator=(const ActionIterator&&)=delete;
 
         void init();
+        /**
+         * This not thread safe
+         */
         inline virtual operator bool(){
             if( not actions ) init();
             return i < actions->size();
@@ -217,6 +220,7 @@ namespace ares
 
         inline virtual void operator++(){ ++i; }
         /**
+         * This not thread safe
          * This functions releases ownership of the current Action*.
          * Thus calling it twice is invalid.
          * @returns the current Action.
@@ -224,6 +228,20 @@ namespace ares
         inline virtual Action* operator*(){
             if( not actions ) init();
             return (*actions)[i].release();
+        }
+        /**
+         * ThreadSafe way of iterating the actions
+         */
+        Action* next(){
+            Action* action = nullptr;
+            {
+                std::lock_guard<std::mutex> lk(lock);
+                if( *this ){                            //Check if non empty
+                    action = (*actions)[i].release();       //Dereferencing
+                    ++i;                                    //Incrementing
+                }
+            }
+            return action;
         }
         virtual ~ActionIterator() {
             if( actions ) delete actions;

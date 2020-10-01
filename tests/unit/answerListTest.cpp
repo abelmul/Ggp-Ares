@@ -12,7 +12,7 @@ void RandIteratorTest();
 namespace ares{
     std::atomic<int> Query::nextId = 0;
 }
-int main(int argc, char const *argv[])
+int main()
 {
     setup();
     Runner runner;
@@ -66,7 +66,7 @@ void AnswerIterator(){
         ushort max_arity = (rand() % 10) + 10;
         
         //Get a random literal, and the variables that occur within it ordered by place of first occurence. 
-        auto [lit, vars] = getRandLiteral(depth,max_arity,3);
+        auto [lit, vars] = getRandAtom(depth,max_arity,3);
         elements.push_back(lit);
     }
 
@@ -176,7 +176,7 @@ void AnsList(){
         {
             ushort depth = (rand() % 2) +1;
             ushort max_arity = (rand() % 10) + 10;
-            auto l = getRandLiteral(depth,max_arity).first;
+            auto l = getRandAtom(depth,max_arity).first;
             if( ansList.addAnswer(l, Substitution())){
                 inserted.push_back(l);
             }

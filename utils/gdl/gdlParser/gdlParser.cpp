@@ -157,7 +157,7 @@ namespace ares
         //Control should not reach here!
         throw  UnbalancedParentheses("GdlParser :: Error :: Unbalanced parantheses while parsing literal " + name);
     }
-    const structured_term* GdlParser::create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool p) {
+    const structured_term* GdlParser::create(stack<pair<string,Body*>>& bodies,const Creator& crtr,bool) {
         auto name = bodies.top().first;
         Body* body = bodies.top().second;
         
@@ -172,7 +172,7 @@ namespace ares
         bodies.top().second->push_back(fn);
         return nullptr;
     }
-    void GdlParser::parseRule(Clause* c, KnowledgeBase* base,vector<string>& tokens,vector<string>::iterator start,const vector<string>::iterator end ){
+    void GdlParser::parseRule(Clause* c, KnowledgeBase* base,vector<string>&,vector<string>::iterator start,const vector<string>::iterator end ){
         //*start == "(" , *end == ")" and *(start+1) == "<=" checked in parse(...) above
         start += 2;
         //Get the head

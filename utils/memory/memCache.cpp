@@ -3,9 +3,7 @@
 
 namespace ares
 {
-    MemCache::~MemCache(){
-        log("[~MemCache()]");
-    }
+    MemCache::~MemCache(){}
 
     const Variable* MemCache::getVar(ushort n){
         VarPool::accessor ac;

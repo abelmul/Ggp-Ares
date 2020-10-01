@@ -16,9 +16,7 @@ namespace ares
         g->setSubstitution(new Substitution());
         auto cache = std::unique_ptr<Cache>( new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ ));
         Query query(g, cb,context,cache.get(),0,rand);
-        // query.pool = ThreadPoolFactroy::get(cfg.proverThreads);
         prover.compute(query);
-        // ThreadPoolFactroy::deallocate(query.pool);
     }
     void printCacheStat(const Clause* goal, Cache* cache){
         std::cout << "------- Cache Statistics "<< goal->to_string() << "------- \n" ;

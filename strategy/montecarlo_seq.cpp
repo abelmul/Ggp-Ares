@@ -1,16 +1,15 @@
-#include "strategy/montecarlo.hh"
+#include "strategy/montecarlo_seq.hh"
 #include "utils/game/visualizer.hh"
 #include "strategy/policies.hh"
 
 namespace ares{
-    void Montecarlo::init(Reasoner* r){
+    void MontecarloSeq::init(Reasoner* r){
         Strategy::init(r);
-        pool= ThreadPoolFactroy::get(cfg.mct_threads);
-        selPolicy = new SelectionPolicy(*reasoner);
-        simPolicy = new SimPolicy(*reasoner);
+        selPolicy = new SelectionPolicySeq(*reasoner);
+        simPolicy = new SimPolicySeq(*reasoner);
     }
     
-    void Montecarlo::start(const Match& match){
+    void MontecarloSeq::start(const Match& match){
         timer.cancel();
         {
             std::lock_guard<std::mutex> lk(lock);
@@ -22,8 +21,8 @@ namespace ares{
         }
         // std::thread([match,this]{(*this)(match,-1);}).detach();
     }
-    std::pair<Move*,uint> Montecarlo::operator()(const Match& match,uint seq){
-        log("[Montecarlo]") << "Selecting a move\n";
+    std::pair<Move*,uint> MontecarloSeq::operator()(const Match& match,uint seq){
+        log("[MontecarloSeq]") << "Selecting a move\n";
         std::atomic_bool done=false;
         std::future<const Term*> future = timer.reset(done,match);
         
@@ -33,62 +32,48 @@ namespace ares{
             tree.select(match.takenAction); //change the root according to made moves
             current = tree.root->state.get();
         }
-        struct search
+        while (not done)
         {
-            search(std::atomic_bool& d,ushort mas, Montecarlo& m, ushort i)
-            :done(d),id(mas),mc(m),indx(i)
-            {}
-            void operator()(){
-                while (not done)
-                {
-                    auto* v = (*mc.selPolicy)(mc.tree.root,done);
-                    if (id==0 and cfg.debug ) mc.dump();
-                    auto value = (*mc.simPolicy)(v,indx,done);
-                    mc.update(v,value);
-                }
-            }
-            std::atomic_bool& done;
-            ushort id;
-            Montecarlo& mc;
-            ushort indx;
-        };
-        auto indx = reasoner->roleIndex(match.role->get_name());
-        for (size_t i = 0; i < cfg.mct_threads; i++)    
-            pool->post(search(done,i,*this,indx));
-        
-        pool->wait();
+            auto* v = (*selPolicy)(tree.root,done);
+            dump();
+            if( done ) break;
+            auto value = (*simPolicy)(v,reasoner->roleIndex(match.role->get_name()),done);
+            update(v,value);
+        }
         timer.cancel(&done);
         return std::pair<Move*,uint>(future.get(), seq);
     }
 
-    Montecarlo::Node* SelectionPolicy::operator()(Montecarlo::Node* n,const std::atomic_bool& done)const{
+    MontecarloSeq::Node* SelectionPolicySeq::operator()(MontecarloSeq::Node* n,const std::atomic_bool& done)const{
         while ( (not done )and not reasoner.terminal(*n->state))
         {   
-            if( auto* a = n->actions.next() ){ //is there an unvisited state reachable from here?
+            if( n->actions ){ //is there an unvisited state reachable from here?
                 //expand the node
-                auto* child = new Montecarlo::Node(reasoner.next(*n->state,*a),a);
+                const auto* a = *n->actions;
+                ++n->actions;
+                auto* child = new MontecarloSeq::Node(reasoner.next(*n->state,*a),a);
                 n->add( child );
                 child->parent = n;
                 return child;
             }
             else
-                n = Montecarlo::bestChild(*n,cfg.uct_c,INFINITY);
+                n = MontecarloSeq::bestChild(*n,cfg.uct_c,INFINITY);
         }
         return n;
     }
-    float SimPolicy::operator()(Montecarlo::Node* n,ushort indx,std::atomic_bool& done)const{
+    float SimPolicySeq::operator()(MontecarloSeq::Node* n,ushort indx,std::atomic_bool& done)const{
 
-        auto* selected = n;
+        auto* root = n;
         while ( (not done) and not reasoner.terminal(*n->state))
         {
             auto a = reasoner.randAction(*n->state);
             auto* nxt = reasoner.next(*n->state,*a);
             delete a;
-            if( n != selected ) delete n;   //then n is not part of the tree.
-            n = new Montecarlo::Node(nxt,nullptr);
+            if( n != root ) delete n;   //then n is not part of the tree.
+            n = new MontecarloSeq::Node(nxt,nullptr);
         }
         auto r = reasoner.reward(*reasoner.roles()[indx],n->state.get());
-        if( n != selected ) delete n;
+        if( n != root ) delete n;
         return r;
     }
 
@@ -102,7 +87,7 @@ namespace ares{
     /**
      * Delete the subtree rooted here.(except this node.)
      */
-    inline void Montecarlo::Node::erase(){   //depth first traversal + deletion.
+    inline void MontecarloSeq::Node::erase(){   //depth first traversal + deletion.
         for (auto &&child : children)
         {
             child->erase();
@@ -116,8 +101,8 @@ namespace ares{
     /**
      * Reset the game tree
      */
-    inline void Montecarlo::Tree::reset(Montecarlo::Node* root_){
-        log("[Montecarlo]") << "Reseting tree\n";
+    inline void MontecarloSeq::Tree::reset(MontecarloSeq::Node* root_){
+        log("[MontecarloSeq]") << "Reseting tree\n";
         if( origRoot ){
             origRoot->erase();          //delete the (sub)tree rooted here
             delete origRoot;
@@ -128,9 +113,9 @@ namespace ares{
      * make the node that is a child of root and whose action == action the new root.
      * @param action the action taken from the root to one of the children
      */
-    inline void Montecarlo::Tree::select(const Action* action){
+    inline void MontecarloSeq::Tree::select(const Action* action){
         std::lock_guard<std::mutex> lk(lock);
-        log("[Montecarlo]") << "Changing root to child node with action ";
+        log("[MontecarloSeq]") << "Changing root to child node with action ";
         std::string sep("");
         for (auto &&a : *action)
         {
@@ -155,12 +140,12 @@ namespace ares{
             if( found ) selected = n;
         }
         if( not selected) {
-            log("[Montecarlo]") << "Action Not found. Constructing new root.\n" ;
+            log("[MontecarloSeq]") << "Action Not found. Constructing new root.\n" ;
             //need to construct a new tree with root having state = next(root.state, action);
             selected = new Node(mc.reasoner->next(*root->state,*action),nullptr);
             root->add(selected);
         }
-        log("[Montecarlo]") << " New root is \n";
+        log("[MontecarloSeq]") << " New root is \n";
         // delete root; for debuggin/visualization
         selected->parent = nullptr;
         selected->action.reset();
@@ -170,15 +155,15 @@ namespace ares{
     /**
      * Timer methods
      */
-    inline std::future<const Term*> Montecarlo::Timer::reset(std::atomic_bool& done_,const Match& match){
+    inline std::future<const Term*> MontecarloSeq::Timer::reset(std::atomic_bool& done_,const Match& match){
         std::lock_guard<std::mutex> lk(lock);
         auto duration = (match.plyClck * 1000) - cfg.delta_sec;
         uint cseq = ++seq;
         if( done ) {
-            logerr("[Montecarlo::Timer]") << " reset during simulation. Reseting previous simulation.\n";
+            logerr("[MontecarloSeq::Timer]") << " reset during simulation. Reseting previous simulation.\n";
             *done = true;
         }
-        log("[Montecarlo::Timer]") << "Reseting timer to " << duration << " milliseconds\n";
+        log("[MontecarloSeq::Timer]") << "Reseting timer to " << duration << " milliseconds\n";
         done = &done_;
         cv.notify_all();        //Cancel previous searches (if any)
         auto cb = [cseq,this,&done_,role(match.role->get_name()),duration]()->const Term *{
@@ -187,7 +172,7 @@ namespace ares{
                 cv.wait_for(lk,std::chrono::milliseconds(duration),[&]{return (bool)done_;});
             }
             done_ = true;           //If time has expired cancel the search
-            log("[Montecarlo::Timer]") << "Waking up for sequence number " << cseq << "\n";
+            log("[MontecarloSeq::Timer]") << "Waking up for sequence number " << cseq << "\n";
             if( cseq != seq ) return nullptr;
             Node* node;
             {
@@ -202,7 +187,7 @@ namespace ares{
         };
         return std::async( std::launch::async, cb);
     }
-    void Montecarlo::Timer::cancel(){
+    void MontecarloSeq::Timer::cancel(){
         std::lock_guard<std::mutex> lk(lock);
         if( not done ) return ;
 
@@ -211,26 +196,25 @@ namespace ares{
         done = nullptr;
     }
 
-    void Montecarlo::Timer::cancel(std::atomic_bool* done_){
+    void MontecarloSeq::Timer::cancel(std::atomic_bool* done_){
         std::lock_guard<std::mutex> lk(lock);
         if( done != done_ ) return;
         if( done ) *done = true;
         done = nullptr;
     }
-    Montecarlo::~Montecarlo(){
+    MontecarloSeq::~MontecarloSeq(){
         setPolicies(nullptr,nullptr);
     }
 
     /**
      * Utilities
      */
-    inline void dump_(Montecarlo::Node* root,Montecarlo::Node* n, std::string& treeSt){
-        std::lock_guard<std::mutex> lk(n->lock);
+    inline void dump_(MontecarloSeq::Node* root,MontecarloSeq::Node* n, std::string& treeSt){
         string isRoot = ( n==root ? "true" : "false");
         treeSt += R"#({ "state": ")#" + n->state->toStringHtml() + "\",";
         treeSt += R"#(   "root": )#" + isRoot + ",";
         treeSt += R"#(   "visited": )#" + to_string(n->n) + ",";
-        float uctv = (!n->parent) ? 0 : Montecarlo::uct(*n,cfg.uct_c,INFINITY);
+        float uctv = (!n->parent) ? 0 : MontecarloSeq::uct(*n,cfg.uct_c,INFINITY);
         treeSt += R"#(   "uct": ")#" + to_string(uctv) + "\",";
         treeSt += R"#("children" : [)#";
         std::string sep="";
@@ -242,7 +226,7 @@ namespace ares{
         treeSt += "]}";
     }
     
-    void Montecarlo::dump(std::string){
+    void MontecarloSeq::dump(std::string){
         std::string treeSt;
         if(tree.root ) dump_(tree.root, tree.origRoot, treeSt);
         else treeSt = "{}";

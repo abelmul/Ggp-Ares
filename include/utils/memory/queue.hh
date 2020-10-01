@@ -12,49 +12,6 @@
 namespace ares
 {
     typedef u_char byte;
-
-    template<class T>
-    struct DeletionQueue{
-        // enum types {queue, lock};
-        typedef std::function<void(T)> op_t;
-        DeletionQueue(){
-            queues[0].reserve(cfg.deletionQueueSize);
-            queues[1].reserve(cfg.deletionQueueSize);
-            i=0;
-        }
-
-        inline void enqueue(T st){
-            std::lock_guard<SpinLock> lk(lock);
-            queues[i].push_back(st);
-        }
-        
-        inline void apply(op_t op){
-            byte j;
-            {
-                std::lock_guard<SpinLock> lk(lock);
-                j = i;
-                i = 1-i;
-            }
-            for (auto &&st : queues[j])
-                op(st);
-            
-            // const auto& r = tbb::blocked_range(queues[j].begin(), queues[j].end());
-            // tbb::parallel_for(r, [&](auto& pr){
-            //     for (auto &&st : pr)
-            //         op(st);   
-            // });
-            queues[j].clear();
-        }
-
-        inline bool empty(){
-            std::lock_guard<SpinLock> lk(lock);
-            return queues[i].size() == 0;
-        }
-        // private:
-            std::vector<T> queues[2];
-            SpinLock lock;
-            byte i;
-    };
     // template<ushort _Nm=BUCKET_SIZE>
     struct JobQueue
     {

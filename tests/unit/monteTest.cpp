@@ -20,15 +20,14 @@ void setup(){
 
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
-    Body::mempool = ClauseBody::mempool = &mempool;
-    SuffixRenamer::setPool(mempool.getCache());
+    Body::mempool = &mempool;
 
     //Create Ares with the MockReasoner
     reasoner = new MockReasoner(GdlParser::create(mempool.getCache()),Prover::create(), *mempool.getCache());
-    Ares& ares( Ares::create(Registrar::get(cfg.strategy.c_str()),*reasoner));
+    Ares::create(Registrar::get(cfg.strategy.c_str()),*reasoner);
 }
 void uct_test();
-int main(int argc, char const *argv[])
+int main()
 {
     setup();
     uct_test();
@@ -73,8 +72,8 @@ namespace ares
         using McRNode = MockReasoner::Node;
         using Node    = Montecarlo::Node;
 
-        std::set<MockReasoner::Node*> origState;
-        std::set<MockReasoner::Node*> selectedStates;
+        std::set<McRNode*> origState;
+        std::set<McRNode*> selectedStates;
         std::vector<Node*> children(node->children.begin(), node->children.end());
         for (auto &&[action, child] : mcRNode.get()){
             bool found =false;
@@ -87,10 +86,10 @@ namespace ares
                 origState.insert( child.get() );
         }   
         std::atomic_bool d=false;
-        for (auto &&i : origState)
+        for (auto &&_ : origState)
         {
             Node* v = (*monte.selPolicy)(node,d);
-            MockReasoner::Node* vMc = &game[v->state.get()];
+            McRNode* vMc = &game[v->state.get()];
             //Every state should be visited only once during expansion.
             assert_true( selectedStates.find(vMc) == selectedStates.end() );
             selectedStates.insert(vMc);
@@ -166,13 +165,12 @@ namespace ares
         reasoner.initGameTree();
         auto& game = reasoner.game;
         Node* root = new Node(&reasoner.init(),nullptr);
-        MockReasoner::Node& rootNode = game[root->state.get()];
+        McRNode& rootNode = game[root->state.get()];
         auto children = TestExpansion(game,root,rootNode);
         assert_true( children == root->children );
         if( children.size()){
             uint i = rand() % children.size() ;
             auto* selected = children[i];
-            auto& mcNode = game[selected->state.get()];
             float val = (*monte.simPolicy)(selected,0,d);
             auto prev = std::pair<float, uint>(selected->value, selected->n);
             auto prevR = std::pair<float, uint>(root->value, root->n);

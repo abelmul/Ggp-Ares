@@ -55,6 +55,9 @@ namespace ares
     std::unordered_map<ushort, std::string> Namer::idName;
     std::unordered_map<std::string, ushort> Namer::nameId;
     
+    const ushort Namer::OR = Namer::registerName(std::string("or"));
+    const ushort Namer::NOT = Namer::registerName(std::string("not"));
+    
     template<class T>
     MemoryPool* _Body<T>::mempool =nullptr;
 }; // namespace ares

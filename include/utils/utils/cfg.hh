@@ -40,7 +40,7 @@ namespace ares
             url = pt.get<std::string>("url");
             stateDumpF = pt.get<std::string>("stateDumpF");
             strategy = pt.get<std::string>("strategy");
-            proverThreads     = pt.get<uint>("prover_threads");
+            mct_threads     = pt.get<uint>("mct_threads");
             debug             = pt.get<bool>("debug");
             random             = pt.get<bool>("random");
             simulations        = pt.get<uint>("simulations");
@@ -50,10 +50,7 @@ namespace ares
             delta_sec           = pt.get<ushort>("delta_sec");
             uct_c           = pt.get<float>("uct_c");
             bucket        = pt.get<uint>("bucket");
-            deletionPeriodFn    = pt.get<uint>("deletionPeriodFn");
-            deletionPeriod    = pt.get<uint>("deletionPeriod");
-            deletionPeriodLit    = pt.get<uint>("deletionPeriodLit");
-            deletionQueueSize = pt.get<uint>("deletionQueueSize");
+
             // jobQueue          = pt.get<uint>("jobQueue");
             if( not pt.get<bool>("file") ) return;
 
@@ -66,9 +63,7 @@ namespace ares
         std::string str()const{
             // std::string s = boost::format().str();
             auto strf = boost::format("%|-20| : %|-5|\n") % "Strategy" % strategy;
-            auto pbf = boost::format("%|-20| : %|-5|\n") % "proverThreads" % proverThreads;
-            auto dqf = boost::format("%|-20| : %|-5|\n") % "deletionQueueSize" % deletionQueueSize;
-            auto dpf = boost::format("%|-20| : %|-5|\n") % "deletionPeriod" % deletionPeriodFn;
+            auto pbf = boost::format("%|-20| : %|-5|\n") % "mct_threads" % mct_threads;
             auto gf = boost::format("%|-20| : %|-5|\n") % "gdl" % gdlFile;
             auto urlf = boost::format("%|-20| : %|-5|\n") % "url" % url;
             auto sf = boost::format("%|-20| : %|-5|\n") % "simulations" % simulations;
@@ -79,7 +74,7 @@ namespace ares
             auto bf = boost::format("%|-20| : %|-5|\n") % "Buckets" % bucket;
             auto df = boost::format("%|-20| : %|-5|\n") % "debug" % debug;
             auto rf = boost::format("%|-20| : %|-5|\n") % "random   " % random ;
-            return  strf.str() + urlf.str()+ pbf.str()+ dqf.str() + dpf.str() + gf.str()+ sf.str()+ stf.str()+ df.str()+
+            return  strf.str() + urlf.str()+ pbf.str()+  gf.str()+ sf.str()+ stf.str()+ df.str()+
              rf.str() + bf.str() + dltf.str() + ansf.str()+ ansf.str()+ uctf.str();
         }
         std::string strategy;
@@ -87,11 +82,7 @@ namespace ares
         std::string url;
         std::string stateDumpF;
         std::string gdlFile;
-        uint proverThreads;
-        uint deletionPeriodFn;
-        uint deletionPeriod;
-        uint deletionPeriodLit;
-        uint deletionQueueSize;
+        uint mct_threads;
         uint stTerms;
         uint clauses;
         ushort ansSample;

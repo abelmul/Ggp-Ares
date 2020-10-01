@@ -49,7 +49,7 @@ namespace ares{
     /**
      * What are the legal moves in the state @param state
      */
-    Moves* MockReasoner::moves(const State& state,const Role& role,bool rand){
+    Moves* MockReasoner::moves(const State&,const Role&,bool){
         throw "NOT IMPLEMENTED YET! (NOT NECCESSARY FOR MONTE CARLO TESTS!)";
         return nullptr; //so the compiler doesn't complain
     }
@@ -63,7 +63,7 @@ namespace ares{
     /**
      * @returns the reward associated with this role in the @param state.
      */
-    float MockReasoner::reward(Role& role, const State* state){
+    float MockReasoner::reward(Role&, const State* state){
         return game[state].value;
     }
     
@@ -72,13 +72,13 @@ namespace ares{
      * Some helper functions.
      */
     
-    ushort MockReasoner::roleIndex(ushort name)const{
+    ushort MockReasoner::roleIndex(ushort)const{
         return 0;
     }
         /**
      * Get a random move.
      */
-    move_sptr MockReasoner::randMove(const State& state,const Role& role){
+    Move* MockReasoner::randMove(const State&,const Role&){
         throw "NOT IMPLEMENTED YET! (NOT NECCESSARY FOR MONTE CARLO TESTS!)";
         return nullptr; //so the compiler doesn't complain   
     }
@@ -115,6 +115,6 @@ namespace ares{
         return as;
     }
     
-    void MockReasoner::reset(Game* kb){
+    void MockReasoner::reset(Game*){
     }
 };

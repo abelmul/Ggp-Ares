@@ -13,7 +13,6 @@ namespace ares
         }
         Cache* cache = query.cache;
         auto* proverPool = ThreadPoolFactroy::get(1);
-        query.pool = nullptr;
         //First stage
         proverPool->post( [&](){compute(query,false);} );
         proverPool->wait();

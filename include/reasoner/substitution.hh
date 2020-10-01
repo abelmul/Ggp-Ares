@@ -51,8 +51,8 @@ namespace ares
          * Compose this with sub.But this is shallow composition nd need to traverse "chain"
          * to get bound value.
          */
-        bool isEmpty() const { return mapping.size() == 0;}
         Substitution* operator +(const Substitution& sub);
+        bool isEmpty() const { return mapping.size() == 0;}
         Mapping getMapping(){return mapping;}
         std::string to_string() const ;
 

@@ -13,14 +13,11 @@ namespace ares
      */
     class SuffixRenamer : public Substitution
     {
-    private:
-        static MemCache* pool;               
+    private:            
         const ushort suffix;                    
 
     public:
         SuffixRenamer(ushort s):suffix(s+1){}
-        
-        static void setPool(MemCache* p) {pool = p;}
         /**
          * delete copy/move constructor/assignment.
          */

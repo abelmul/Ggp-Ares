@@ -41,7 +41,6 @@ namespace ares{
         static Random* create(){ static Random random; return &random;}
 
         ~Random() {
-            log("[~Random]");
             reset();
         }
     };

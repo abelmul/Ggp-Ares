@@ -2,6 +2,7 @@
 #include "utils/utils/httpHandler.hh"
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
+#include "strategy/montecarlo_seq.hh"
 using namespace ares;
 ares::Cfg ares::cfg;
 
@@ -20,7 +21,6 @@ int main()
     //Setup some static elements
     ClauseCB::prover = &Prover::create();
     Body::mempool =  &mempool;
-    SuffixRenamer::setPool(mempool.getCache());
 
     //Create Ares
     Reasoner& reasoner(Reasoner::create(GdlParser::create(mempool.getCache()), Prover::create(), *mempool.getCache()));

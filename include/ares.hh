@@ -92,9 +92,7 @@ namespace ares
             mempool = mem;
             memCache = mem->getCache();
         }
-        ~Ares(){
-            log("[~Ares]");
-        }
+        ~Ares(){}
 
         static MemoryPool* mempool;
         static MemCache* memCache;

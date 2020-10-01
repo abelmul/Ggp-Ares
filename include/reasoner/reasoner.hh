@@ -55,11 +55,11 @@ namespace ares
         /**
          * infer the initial state
          */
-        const State& init();
+        virtual const State& init();
         /**
          * infer the roles
          */
-        const Roles& roles();
+        virtual const Roles& roles();
         /**
          * @param state the current state
          * @param action an ordered (by role order) list of moves taken by roles. 
@@ -121,7 +121,6 @@ namespace ares
                 delete c;
             
             if( game ) delete game;
-            log("[~Reasoner]");
         }
     
     private:

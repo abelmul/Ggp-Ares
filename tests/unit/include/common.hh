@@ -12,7 +12,7 @@ void setup(){
     srand(time(NULL));
     aresP.mempool = &MemoryPool::create(100,100,std::vector<std::pair<arity_t,uint>>());
     aresP.memCache = aresP.mempool->getCache();
-    Body::mempool = ClauseBody::mempool = aresP.mempool;
+    Body::mempool = aresP.mempool;
 }
 
 /**
@@ -78,7 +78,7 @@ namespace ares{
         key.body = getRandBody(vars,arity, depth, max_arity);
         return Ares::memCache->getFn(key);
     }
-    lit_var_pair getRandLiteral(ushort depth,ushort max_arity=3,ushort max_arity_sb=3){
+    lit_var_pair getRandAtom(ushort depth,ushort max_arity=3,ushort max_arity_sb=3){
         PoolKey key;
         key.name = getRandName(81, 100);
         ushort arity = (rand() % max_arity);
@@ -115,7 +115,7 @@ namespace ares{
         {
             ushort depth = (rand() % 2) +1;
             ushort max_arity = (rand() % 5) + 2;
-            (*body)[i] = getRandLiteral(depth, max_arity).first;
+            (*body)[i] = getRandAtom(depth, max_arity).first;
         }
         return std::unique_ptr<Clause>(new Clause(nullptr, body));
     }

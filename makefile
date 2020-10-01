@@ -38,11 +38,11 @@ FLAGS =
 ifdef DEBUG_ARES
 FLAGS+= -ggdb
 else
-FLAGS+= -ggdb -O3
+FLAGS+= -Ofast -march=native
 endif
 
 
-FLAGS += -fno-strict-aliasing -Wall -Wextra -std=c++17 -I$(IDIR) -I$(CPPREST_INC)
+FLAGS +=  -Wall -Wextra -std=c++17 -I$(IDIR) -I$(CPPREST_INC)
 LIBS =  -L$(CPPREST_SO) -lboost_regex -lboost_thread -lboost_chrono -lpthread -ltbb  -lboost_system -lcrypto -lssl -lcpprest
 
 
@@ -85,57 +85,26 @@ $(OBJS_DIR)/%.o : %.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -o $@ $< 
 run:
 	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && ./ares
-# ares:  $(OBJS) 
-# 	$(CC) $(FLAGS) $(LIBS) -o $@ -Wl,--start-group $^ -Wl,--end-group 
+vis_server:
+	cd visualization && npm start
 
-# $(OBJS_DIR)/ares.o: ares.cpp $(INCLS)
-# 	$(CC) -c $(FLAGS) -o $@ $< 
-
-# $(OBJS_DIR)/$(THREADING)/threading.o: $(THREADING)/threading.cpp $(THREADING_INCS) $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $< 
-
-# $(OBJS_DIR)/$(UTILS_DIR)/hashing.o : $(UTILS_DIR)/hashing.cpp $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $< 
-# $(OBJS_DIR)/$(GAME)/visualizer.o : $(GAME)/visualizer.cpp $(GAME_INCS) $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o : $(MEMORY_DIR)/memCache.cpp  $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o : $(MEMORY_DIR)/memoryPool.cpp  $(COMMON_INCS) $(THREADING_IDIR)/locks.hh
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o : $(GDL_DIR)/structuredTerm.cpp $(INCLS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(GDLP_DIR)/transformer.o : $(GDLP_DIR)/transformer.cpp $(GDLP_INCS)  $(GAME_INCS) $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(GDLP_DIR)/gdlParser.o : $(GDLP_DIR)/gdlParser.cpp $(GDLP_INCS)  $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(RESNR_DIR)/prover.o :$(RESNR_DIR)/prover.cpp $(INCLS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(RESNR_DIR)/reasoner.o: $(RESNR_DIR)/reasoner.cpp $(INCLS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(RESNR_DIR)/substitution.o: $(RESNR_DIR)/substitution.cpp  $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(RESNR_DIR)/suffixRenamer.o:$(RESNR_DIR)/suffixRenamer.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-
-# $(OBJS_DIR)/$(RESNR_DIR)/unifier.o:$(RESNR_DIR)/unifier.cpp $(REASONER_IDIR)/substitution.hh $(COMMON_INCS)
-# 	$(CC) -c $(FLAGS) -o $@ $<
-# $(OBJS_DIR)/$(UTILS_DIR)/httpHandler.o:$(UTILS_DIR)/httpHandler.cpp 
-# 	$(CC) -c $(FLAGS) -o $@ $<
-
-#Compile any object file like objs/reasoner/reasoner.o from 
-#reasoner/reasoner.cpp
-# $(OBJS_DIR)/%.o : %.cpp $(INCLS)
-# 	$(CC) -c $(FLAGS) -o $@ $< 
-
-
-
+#######################################################################################################
+#######################################################################################################
+#												TESTS											      #
+#######################################################################################################
+#######################################################################################################
 #These are to make and run tests
-TEST_OBJS = $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
-VERIFIER_DEP =  ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o ../objs/reasoner/prover.o ../objs/reasoner/reasoner.o ../objs/reasoner/substitution.o ../objs/reasoner/suffixRenamer.o ../objs/reasoner/unifier.o
+TEST_OBJS = $(OBJS_DIR)/$(RESNR_DIR)/renamers.o $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
+VERIFIER_DEP =  ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/$(STRATEGY_DIR)/montecarlo_seq.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o $(OBJS_DIR)/$(RESNR_DIR)/prover.o $(OBJS_DIR)/$(RESNR_DIR)/reasoner.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(RESNR_DIR)/renamers.o $(OBJS_DIR)/$(RESNR_DIR)/unifier.o
 MONTE_DEP =  $(VERIFIER_DEP)
 PARSER_DEP = $(VERIFIER_DEP)
+
+
 # Test_MemPool: $(OBJS_DIR)/$(TESTS_UNIT)/Test_MemPool.o $(TEST_OBJS)
 # 	$(CC) $(FLAGS)  -o $(UNIT_BIN)/MemPool_Test -Wl,--start-group $^ -Wl,--end-group 
+
+unit_tests: answerListTest cacheTest monteTest parserTest verifier
+
 
 answerListTest: $(OBJS_DIR)/$(TESTS_UNIT)/answerListTest.o $(TEST_OBJS)
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/answerListTest -Wl,--start-group $^ -Wl,--end-group 
@@ -147,7 +116,39 @@ monteTest: $(OBJS_DIR)/$(TESTS_UNIT)/monteTest.o  $(OBJS_DIR)/$(TESTS_UNIT)/mock
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/monteTest -Wl,--start-group $^ -Wl,--end-group 
 parserTest: $(OBJS_DIR)/$(TESTS_UNIT)/parserTest.o $(PARSER_DEP)
 	$(CC) $(FLAGS) $(LIBS)  -I $(TESTS_UNIT_INC) -o $(UNIT_BIN)/parserTest -Wl,--start-group $^ -Wl,--end-group 
+verifier: $(OBJS_DIR)/$(TESTS_UNIT)/verifier.o $(VERIFIER_DEP)
+	$(CC) $(FLAGS) $(LIBS) -o $(UNIT_BIN)/verifier  -Wl,--start-group $^ -Wl,--end-group
 
+# run_memPool_test:
+# 	$(UNIT_BIN)/Test_MemPool
+run_unit_tests: run_answerListTest run_cacheTest run_monteTest run_parserTest
+
+run_verifier:
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(UNIT_BIN)/verifier $(game)
+run_answerListTest:
+	$(UNIT_BIN)/answerListTest
+run_cacheTest:
+	$(UNIT_BIN)/cacheTest
+run_monteTest:
+	$(UNIT_BIN)/monteTest
+run_parserTest:
+	$(UNIT_BIN)/parserTest
+
+#Tests involving Random simulation and verification of the reasoner
+
+stress_tests: simulator strategy_test
+
+simulator: $(OBJS_DIR)/$(TESTS_STRESS)/simulator.o $(VERIFIER_DEP)
+	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/simulator  -Wl,--start-group $^ -Wl,--end-group
+strategy_test:$(OBJS_DIR)/$(TESTS_STRESS)/strategy_test.o $(VERIFIER_DEP)  
+	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/strategy_test  -Wl,--start-group $^ -Wl,--end-group
+## Run the tests
+
+run_stress_tests:run_simulator run_strategy_test
+run_simulator:
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(STRESS_BIN)/simulator $(game)
+run_strategy_test:
+	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(STRESS_BIN)/strategy_test 
 
 $(OBJS_DIR)/$(TESTS_UNIT)/answerListTest.o: $(TESTS_UNIT)/answerListTest.cpp $(INCLS)
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
@@ -169,32 +170,6 @@ $(OBJS_DIR)/$(TESTS_UNIT)/mock_reasoner.o: $(TESTS_UNIT)/mock_reasoner.cpp $(INC
 $(OBJS_DIR)/$(TESTS_UNIT)/parserTest.o: $(TESTS_UNIT)/parserTest.cpp
 	$(CC) -c $(FLAGS) -I $(TESTS_UNIT_INC) -o $@ $<
 
-#Tests involving Random simulation and verification of the reasoner
-verifier: $(OBJS_DIR)/$(TESTS_UNIT)/verifier.o $(VERIFIER_DEP)
-	$(CC) $(FLAGS) $(LIBS) -o $(UNIT_BIN)/verifier  -Wl,--start-group $^ -Wl,--end-group
-simulator: $(OBJS_DIR)/$(TESTS_STRESS)/simulator.o $(VERIFIER_DEP)
-	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/simulator  -Wl,--start-group $^ -Wl,--end-group
-strategy_test:$(OBJS_DIR)/$(TESTS_STRESS)/strategy_test.o $(VERIFIER_DEP)  
-	$(CC) $(FLAGS) $(LIBS) -o $(STRESS_BIN)/strategy_test  -Wl,--start-group $^ -Wl,--end-group
-## Run the tests
-run_verifier:
-	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(UNIT_BIN)/verifier $(game)
-run_simulator:
-	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(STRESS_BIN)/simulator $(game)
-run_strategy_test:
-	export LD_LIBRARY_PATH=$(CPPREST_SO)${LD_LIBRARY_PATH:+:$LD_LIBRARY_PATH} && $(STRESS_BIN)/strategy_test 
-
-
-# run_memPool_test:
-# 	$(UNIT_BIN)/Test_MemPool
-run_answerListTest:
-	$(UNIT_BIN)/answerListTest
-run_cacheTest:
-	$(UNIT_BIN)/cacheTest
-run_monteTest:
-	$(UNIT_BIN)/monteTest
-vis_server:
-	cd visualization && npm start
 .clean:	
 	find $(OBJS_DIR) -type f -name '*.o' -delete 
 	rm -f ares

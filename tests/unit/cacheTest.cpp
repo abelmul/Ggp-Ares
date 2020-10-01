@@ -16,7 +16,7 @@ namespace ares{
     std::atomic<int> Query::nextId = 0;
     AnsIterator Cache::NOT_CACHED(nullptr,-1,nullptr);
 }
-int main(int argc, char const *argv[])
+int main()
 {
     setup();
     Runner runner;
@@ -40,8 +40,8 @@ void Hashing_Correct(){
     ushort depth = (rand() % 2) +1;
     ushort max_arity = (rand() % 10) + 10;
     
-    //Get a random literal, and the variables that occur within it ordered by place of first occurence. 
-    auto [lit, vars] = getRandLiteral(depth,max_arity,3);
+    //Get a random atom, and the variables that occur within it ordered by place of first occurence. 
+    auto [atom, vars] = getRandAtom(depth,max_arity,3);
 
     //Create a renaming, θ := {x0/0, ..., xn/n}
     VariantSubstitution theta;
@@ -49,25 +49,25 @@ void Hashing_Correct(){
 
     uint i=0;
     for (auto &&v : vars)
-        theta.bind(v, cnst_term_sptr( Ares::memCache->getVar(i++)) );
+        theta.bind(v,  Ares::memCache->getVar(i++) );
 
     VarSet vset;
-    cnst_term_sptr renamed = (*lit)(theta,vset);
+    const auto renamed = (const Atom*)(*atom)(theta,vset);
 
     /**
      * Positive tests, against the base renaming θ := {x0/0, ..., xn/n}
      */
     //Compare the hashes
-    assert_true( (AtomHasher()(lit) == renamed->hash()) );
-    assert_true( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) );
+    assert_true( (AtomHasher()(atom) == renamed->hash()) );
+    assert_true( (AtomHasher()(renamed) == AtomHasher()(atom)) );
     //Should be equal
-    assert_true( (lit->equals(*renamed.get(),renaming)) );
+    assert_true( (atom->equals(*renamed,renaming)) );
     renaming.clear();
-    assert_true( (lit->equals(*lit.get(),renaming)) );
+    assert_true( (atom->equals(*atom,renaming)) );
     renaming.clear();
-    assert_true( (renamed->equals(*lit.get(),renaming)) );
+    assert_true( (renamed->equals(*atom,renaming)) );
     renaming.clear();
-    assert_true( (renamed->equals(*renamed.get(),renaming)) );
+    assert_true( (renamed->equals(*renamed,renaming)) );
 }
 /**
  * Variant atoms should hash the same and also be equal.
@@ -85,13 +85,13 @@ void Hashing_Incorrect(){
     
     VariantSubstitution sigma;
     uint i=0;
-    cnst_lit_sptr lit;
+    const Atom* atom;
     OrdrdVarSet vars;
     do
     {
-        auto [l, v] = getRandLiteral(depth,max_arity,3);
-        lit = l; vars = v;
-    } while (lit->is_ground());
+        auto [l, v] = getRandAtom(depth,max_arity,3);
+        atom = l; vars = v;
+    } while (atom->is_ground());
     
     VarRenaming renaming;
 
@@ -101,24 +101,24 @@ void Hashing_Incorrect(){
     
     for (auto &&v : vars){
         if( i == change ){
-            sigma.bind(v, cnst_term_sptr( getRandConst(vars,depth) ));
+            sigma.bind(v,  getRandConst(vars,depth ));
             continue;
         } 
-        sigma.bind(v, cnst_term_sptr( Ares::memCache->getVar(i++)) );
+        sigma.bind(v,  Ares::memCache->getVar(i++) );
     }
     VarSet vset;
-    cnst_term_sptr renamed = (*lit)(sigma,vset);
+    const auto* renamed = (const Atom*)(*atom)(sigma,vset);
     
     //Compare the hashes
     renaming.clear();
-    assert_false(( (AtomHasher()(lit) == renamed->hash()) and lit->equals(*renamed.get(),renaming) )) ;
+    assert_false(( (AtomHasher()(atom) == renamed->hash()) and atom->equals(*renamed,renaming) )) ;
     renaming.clear();
-    assert_false( ( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) and lit->equals(*renamed.get(),renaming) ));
+    assert_false( ( (AtomHasher()(renamed) == AtomHasher()(atom)) and atom->equals(*renamed,renaming) ));
     //Should not be equal
     renaming.clear();
-    assert_false( (lit->equals(*renamed.get(),renaming)) );
+    assert_false( (atom->equals(*renamed,renaming)) );
     renaming.clear();
-    assert_false( (renamed->equals(*lit.get(),renaming)) );
+    assert_false( (renamed->equals(*atom,renaming)) );
     
 }
 /**
@@ -132,29 +132,29 @@ void Hashing_Variants(){
     ushort max_arity = (rand() % 10) + 10;
     
     VariantSubstitution sigma;
-    auto [lit, vars] = getRandLiteral(depth,max_arity,3);
+    auto [atom, vars] = getRandAtom(depth,max_arity,3);
     VarRenaming renaming;
     //Create a random renaming   
     OrdrdVarSet varsnew;
     std::unordered_set<const Variable*> seen;
     for (auto &&v : vars){
-        cnst_term_sptr vp = getRandVar(varsnew,depth);
-        while (seen.find((Variable*)vp.get()) != seen.end()){
+        auto* vp = getRandVar(varsnew,depth);
+        while (seen.find((Variable*)vp) != seen.end()){
             vp = getRandVar(varsnew,depth);
         }
         sigma.bind(v, vp);
-        seen.insert((Variable*)vp.get());
+        seen.insert((Variable*)vp);
     }
     
     VarSet vset;
-    cnst_term_sptr renamed = (*lit)(sigma,vset);
+    auto* renamed = (const Atom*)(*atom)(sigma,vset);
     //Compare the hashes
-    assert_true( (AtomHasher()(lit) == AtomHasher()(*(cnst_lit_sptr*)&renamed)) );
-    assert_true( (AtomHasher()(*(cnst_lit_sptr*)&renamed) == AtomHasher()(lit)) );
+    assert_true( (AtomHasher()(atom) == AtomHasher()(renamed)) );
+    assert_true( (AtomHasher()(renamed) == AtomHasher()(atom)) );
     //Should be equal
-    assert_true( (lit->equals(*renamed.get(),renaming)) );
+    assert_true( (atom->equals(*renamed,renaming)) );
     renaming.clear();
-    assert_true( (renamed->equals(*lit.get(),renaming)) );
+    assert_true( (renamed->equals(*atom,renaming)) );
 }
 
 void SeqCacheTest(){
@@ -177,10 +177,10 @@ void CacheTest(Cache& cache){
         assert( std::find(queries.begin(),queries.end(),q.id ) != queries.end() );
     };
     //Create a solution node
-    auto [lit, vars] = getRandLiteral(3,15);
-    while (lit->is_ground()){
-        auto [l,v] = getRandLiteral(3,15);
-        lit = l; vars =v;
+    auto [atom, vars] = getRandAtom(3,15);
+    while (atom->is_ground()){
+        auto [l,v] = getRandAtom(3,15);
+        atom = l; vars =v;
     }
     auto clause = getRandClause();
     while( clause->size() == 0)
@@ -189,7 +189,7 @@ void CacheTest(Cache& cache){
     std::atomic_bool done;
     std::shared_ptr<CallBack> cb(new ClauseCBOne(done,nullptr));
     Query q(clause,cb,nullptr,0,0,false);
-    q->front() = lit;
+    q->front() = atom;
 
     assert_true( cache[q].null() );
     
@@ -199,7 +199,7 @@ void CacheTest(Cache& cache){
     OrdrdVarSet dummy;
     ushort d;
 
-    auto addAns = [&,lit(lit),vars(vars)](){
+    auto addAns = [&,atom(atom),vars(vars)](){
         for (size_t i = 0; i < nSoln; i++)
         {
             //just bind the first variable to 
@@ -211,12 +211,12 @@ void CacheTest(Cache& cache){
                     c = getRandConst(dummy,d);
                 Substitution theta;
                 theta.bind( *vars.begin(), c);
-                added = cache.addAns(lit, theta);
+                added = cache.addAns(atom, theta);
             } while (!added);   
             assert_true( cache.hasChanged() );
         }
     };
-    auto addQueries = [&,lit(lit)](const uint&& soln){
+    auto addQueries = [&,atom(atom)](const uint&& soln){
         uint nQ = (rand() % 10)+3;
         for (size_t i = 0; i < nQ; i++)
         {
@@ -226,7 +226,7 @@ void CacheTest(Cache& cache){
 
             Query q2(uC2,cb,nullptr,0,0,false);
             queries.push_back(q2.id);
-            q2->front() = lit;
+            q2->front() = atom;
             auto it = cache[q2];
             newQueries.push_back(q2);
             assert_false( it.null() );
@@ -245,7 +245,7 @@ void CacheTest(Cache& cache){
     
     //newQueries
     uint nQ = (rand() % newQueries.size());
-    auto restart = [&,lit(lit)](const uint& solnExpected){
+    auto restart = [&,atom(atom)](const uint& solnExpected){
         queries.clear();
         for (size_t i = 0; i < nQ; i++)
         {
@@ -253,7 +253,7 @@ void CacheTest(Cache& cache){
             while(newQueries[i]->size() == 0)
                 newQueries[i].goal = getRandClause();
             
-            newQueries[i]->front() = lit;
+            newQueries[i]->front() = atom;
             auto it = cache[newQueries[i]];
             queries.push_back(newQueries[i].id);
 

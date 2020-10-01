@@ -15,7 +15,7 @@ body{
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
   background: rgb(0,0,0);
-  background: radial-gradient(circle, rgba(5,5,5,0.94) 0%, rgba(10,11,11,0.97) 53%, rgba(15,15,15,1) 77%, rgba(17,17,17,0.99) 100%, rgba(0,0,0,0.99) 100%);
+background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(29,27,27,1) 20%, rgba(15,15,15,1) 84%, rgba(0,0,0,1) 100%);
   padding-top: 90px;
   padding-bottom: 40px;
 }

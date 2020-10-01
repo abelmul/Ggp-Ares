@@ -143,7 +143,6 @@ namespace ares
         }
         ~GdlParser(){
             ThreadPoolFactroy::deallocate(pool);
-            log("[~GdlParser]");
         }
 
     /**
@@ -159,7 +158,8 @@ namespace ares
     };
     
     inline void checkValid(string& s){
-        if( !isalnum( s[0] ) or (s =="or") or (s == "not")) 
+        //for debugging purposes
+        if(s.find('(') != s.npos or s.find(')') != s.npos or (s =="or") or (s == "not")) 
             throw SyntaxError("[*] GdlParser ::Error:: A literal/term Name should only consist of Alpha Numeric characters.");
     }
 } // namespace AresAresAres

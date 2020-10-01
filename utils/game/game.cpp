@@ -11,6 +11,5 @@ namespace ares{
         }
         if( init_ )
             delete init_;   
-        log("[~Game]");
     }
 };

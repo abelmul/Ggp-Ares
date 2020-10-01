@@ -2,6 +2,7 @@
 #define MOCK_REASONER
 #include "reasoner/reasoner.hh"
 #include "strategy/montecarlo.hh"
+#include "strategy/montecarlo_seq.hh"
 namespace ares
 {
     class MockReasoner : public Reasoner
@@ -12,11 +13,14 @@ namespace ares
         {initGameTree();}
         void initGameTree();
 
-        virtual const Roles& roles();
         /**
          * @returns the initial state
          */
         virtual const State& init();
+        /**
+         * infer the roles
+         */
+        virtual const Roles& roles();
         /**
          * @param state the current state
          * @param action an ordered (by role order) list of moves taken by roles. 
@@ -47,7 +51,7 @@ namespace ares
             /**
          * Get a random move.
          */
-        virtual move_sptr randMove(const State& state,const Role& role);
+        virtual Move* randMove(const State& state,const Role& role);
         /**
          * Get a random action, i.e <move_1,...,move_n> , where move_i is taken by role i.
          */

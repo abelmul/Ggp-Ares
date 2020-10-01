@@ -44,7 +44,6 @@ void setup(){
     Ares::setMem(&mempool);
 
     Body::mempool =  &mempool;
-    SuffixRenamer::setPool(Ares::memCache);
 }
 
 std::ofstream out;
@@ -61,7 +60,6 @@ void verifyMatches(std::vector<const char*> matchFiles){
     ptree mappings;
     read_json(MAPPINGS, mappings);
 
-    cfg.proverThreads =1;
     Prover& prover = Prover::create();
     ClauseCB::prover = &prover;
 
