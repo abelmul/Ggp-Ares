@@ -11,6 +11,7 @@ body{
 }
 #svgContainer{
   overflow-x: scroll;
+  overflow-y: scroll;
   height: 100%;
   -ms-overflow-style: none;  /* IE and Edge */
   scrollbar-width: none;  /* Firefox */
@@ -21,6 +22,7 @@ background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(29,27,27,1) 20%, rgba
 }
 .node {
   fill: #fff;
+  z-index: 3;
 }
 .nodeRoot .aresCount{
   font: 11px sans-serif;
@@ -36,6 +38,8 @@ background: radial-gradient(circle, rgba(0,0,0,1) 0%, rgba(29,27,27,1) 20%, rgba
   /* fill: #fff; */
   stroke:gray;
   stroke-width: 2px;
+  z-index: 3;
+
 }
 
 .node:hover .aresState{
@@ -67,7 +71,8 @@ the choice blocks
   color: #9a9a9a;
   font: 14px helvetica;
   width: 100%;
-  position: absolute;
+  position: fixed;
+  /* margin-left: 40%; */
 }
 #aresImg{
   width: 100%;

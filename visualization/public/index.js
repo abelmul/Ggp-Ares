@@ -4,7 +4,7 @@ let wholeSS = document.getElementById("whole_state")
 // Set the dimensions and margins of the diagram
 var margin = {top: 20, right: 90, bottom: 30, left: 130},
     width = 2800 - margin.left - margin.right,
-    height = 900 - margin.top - margin.bottom;
+    height = 1000 - margin.top - margin.bottom;
 
 // append the svg object to the body of the page
 // appends a 'group' element to 'svg'
@@ -205,10 +205,16 @@ function update(source) {
         var x = d3.select(this).attr("x");//get the x position of the text
         var y = d3.select(this).attr("dy");//get the y position of the text
         let yn = parseFloat(String(y).replace("em",""))
-        let t = "<tspan class='ucts' x="+x+" dy="+(+yn+.4)+"em>"+ "uct : " + d.data.uct +"</tspan>";
+        let t="";
+        let ucts = d.data.ucts.length;
+        //Get the ucts
+        for (let i = 0; i < ucts; i++) {
+          t += "<tspan class='ucts' x="+x+" dy="+(+yn+( (i+1)*.4))+"em>"+ "uct"+ i +" : " + d.data.ucts[i] +"</tspan>"; 
+        }
+        ucts++;
         let arrS = d.data.state.split("<br/>")
         for (let i = 0; i < arrS.length; i++) {
-          t += "<tspan x="+x+" dy="+(+yn+((i+2)*.4))+"em>"+arrS[i]+"</tspan>";
+          t += "<tspan x="+x+" dy="+(+yn+((i+ucts)*(.4)))+"em>"+arrS[i]+"</tspan>";
         }
         return  t;//appending it to the html
       });
