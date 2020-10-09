@@ -3,8 +3,8 @@
 #include "strategy/policies.hh"
 
 namespace ares{
-    void Montecarlo::init(Reasoner* r){
-        Strategy::init(r);
+    void Montecarlo::init(Reasoner* r,GameAnalyzer* a){
+        Strategy::init(r,a);
         pool= ThreadPoolFactroy::get(cfg.mct_threads);
         selPolicy = new SelectionPolicy(*reasoner);
         simPolicy = new SimPolicy(*reasoner);
@@ -18,6 +18,8 @@ namespace ares{
             //Build a new game tree,with the root node beign match.game.init
             stoped = false;
             tree.reset(new Node(match.game->init()->clone(),nullptr));
+            order = analyzer->isAZSG(match.game,match.strtClck);
+            player = 0;
             current = tree.root->state.get();
         }
         // std::thread([match,this]{(*this)(match,-1);}).detach();
@@ -41,9 +43,9 @@ namespace ares{
             void operator()(){
                 while (not done)
                 {
-                    auto* v = (*mc.selPolicy)(mc.tree.root,done);
+                    auto* v = (*mc.selPolicy)(mc.tree.root,done,mc.player,indx);
                     if (id==0 and cfg.debug ) mc.dump();
-                    auto value = (*mc.simPolicy)(v,indx,done);
+                    auto value = (*mc.simPolicy)(v->state.get(),done);
                     mc.update(v,value);
                 }
             }
@@ -58,12 +60,14 @@ namespace ares{
         
         pool->wait();
         timer.cancel(&done);
+        player = (player+1) % ( order.size() ? order.size() : 1);  //switch player according to thier turn
         return std::pair<Move*,uint>(future.get(), seq);
     }
 
-    Montecarlo::Node* SelectionPolicy::operator()(Montecarlo::Node* n,const std::atomic_bool& done)const{
+    Montecarlo::Node* SelectionPolicy::operator()(Montecarlo::Node* n,const std::atomic_bool& done,Montecarlo::Ptype p,ushort indx)const{
         while ( (not done )and not reasoner.terminal(*n->state))
         {   
+            // log("[Montecarlo]") << "Current node is " << "player " << p  <<"s.\n" ;
             if( auto* a = n->actions.next() ){ //is there an unvisited state reachable from here?
                 //expand the node
                 auto* child = new Montecarlo::Node(reasoner.next(*n->state,*a),a);
@@ -72,24 +76,32 @@ namespace ares{
                 return child;
             }
             else
-                n = Montecarlo::bestChild(*n,cfg.uct_c,INFINITY);
+                n = Montecarlo::bestChild(*n,cfg.uct_c,Montecarlo::plyr(p,indx),INFINITY);
+                
         }
         return n;
     }
-    float SimPolicy::operator()(Montecarlo::Node* n,ushort indx,std::atomic_bool& done)const{
-
-        auto* selected = n;
-        while ( (not done) and not reasoner.terminal(*n->state))
+    std::vector<float> SimPolicy::operator()(const State* state,std::atomic_bool& done)const{
+        auto* selectetd = state;
+        while ( (not done) and not reasoner.terminal(*state))
         {
-            auto a = reasoner.randAction(*n->state);
-            auto* nxt = reasoner.next(*n->state,*a);
+            auto a = reasoner.randAction(*state);
+            auto* nxt = reasoner.next(*state,*a);
             delete a;
-            if( n != selected ) delete n;   //then n is not part of the tree.
-            n = new Montecarlo::Node(nxt,nullptr);
+            if( state != selectetd ) delete state;
+            state = nxt;
         }
-        auto r = reasoner.reward(*reasoner.roles()[indx],n->state.get());
-        if( n != selected ) delete n;
-        return r;
+        const auto& roles = reasoner.roles();
+        std::vector<float> rewards;
+        for (auto&& role : roles)
+            rewards.push_back( reasoner.reward( *role, state));
+        
+        // log("[Montecarlo]") << "Terminal state reached\n";
+        // log("[Montecarlo ]\n" + n->state->toString() + "\n");
+        // log("[Montecarlo ] Frst player reward\n" + to_string(rewards[Ptype::FRST]) + "\n");
+        // log("[Montecarlo ] Scnd player reward\n" + to_string(rewards[Ptype::SCND]) + "\n");
+        if( state != selectetd ) delete state;
+        return rewards;
     }
 
     
@@ -160,7 +172,6 @@ namespace ares{
             selected = new Node(mc.reasoner->next(*root->state,*action),nullptr);
             root->add(selected);
         }
-        log("[Montecarlo]") << " New root is \n";
         // delete root; for debuggin/visualization
         selected->parent = nullptr;
         selected->action.reset();
@@ -172,7 +183,7 @@ namespace ares{
      */
     inline std::future<const Term*> Montecarlo::Timer::reset(std::atomic_bool& done_,const Match& match){
         std::lock_guard<std::mutex> lk(lock);
-        auto duration = (match.plyClck * 1000) - cfg.delta_sec;
+        auto duration = (match.plyClck * 1000) - cfg.delta_milli;
         uint cseq = ++seq;
         if( done ) {
             logerr("[Montecarlo::Timer]") << " reset during simulation. Reseting previous simulation.\n";
@@ -190,14 +201,14 @@ namespace ares{
             log("[Montecarlo::Timer]") << "Waking up for sequence number " << cseq << "\n";
             if( cseq != seq ) return nullptr;
             Node* node;
+            auto i = mct.reasoner->roleIndex(role);
             {
                 std::lock_guard<std::mutex> lk(mct.tree.lock);
                 auto* root =mct.tree.root ;
                 if( not root ) return nullptr;
-                node = root->children.size() ?  mct.bestChild(*root,0) : nullptr;
+                node = root->children.size() ?  mct.bestChild(*root,0,(Montecarlo::Ptype)i,0) : nullptr;
             }
             if( !node ) return nullptr;
-            auto i = mct.reasoner->roleIndex(role);
             return (*node->action)[i];
         };
         return std::async( std::launch::async, cb);
@@ -230,10 +241,26 @@ namespace ares{
         treeSt += R"#({ "state": ")#" + n->state->toStringHtml() + "\",";
         treeSt += R"#(   "root": )#" + isRoot + ",";
         treeSt += R"#(   "visited": )#" + to_string(n->n) + ",";
-        float uctv = (!n->parent) ? 0 : Montecarlo::uct(*n,cfg.uct_c,INFINITY);
-        treeSt += R"#(   "uct": ")#" + to_string(uctv) + "\",";
-        treeSt += R"#("children" : [)#";
+        treeSt += R"#(   "values": [)#";
         std::string sep="";
+        for (auto &&val: n->values)
+        {
+            treeSt+= sep + to_string( val);
+            sep =",";
+        }
+        treeSt += R"#(], "ucts":[)#";
+        sep="";
+        for (uint i=0; i < n->values.size(); i++){
+            float uctv = (!n->parent) ? 0 : Montecarlo::uct(*n,cfg.uct_c,(Montecarlo::Ptype)i,INFINITY);
+            treeSt += sep +"\"" +to_string(uctv) + "\"";
+            sep = ",";
+        }
+        treeSt += "],";
+        // float uctv1 = (!n->parent) ? 0 : Montecarlo::uct(*n,cfg.uct_c,(Montecarlo::Ptype)1,INFINITY);
+        // treeSt += R"#(   "uct0": ")#" + to_string(uctv0) + "\",";
+        // treeSt += R"#(   "uct1": ")#" + to_string(uctv1) + "\",";
+        treeSt += R"#("children" : [)#";
+        sep="";
         for (auto &&child : n->children){
             dump_(root, child,treeSt );
             treeSt += ",";

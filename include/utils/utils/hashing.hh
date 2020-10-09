@@ -137,6 +137,16 @@ namespace ares
                 
                 return true;
             }
+            /**
+             * Equivalent to operator== except this considers orders of elements.
+             */
+            bool equal(const UniqueVector& other){
+                if( elements.size() != other.elements.size()) return false;
+                for (size_t i = 0; i < elements.size(); i++)
+                    if( elements[i] != other.elements[i] ) return false;
+                
+                return true;
+            }
             bool operator!=(const UniqueVector& other){ return not ((*this) == other);}
             const T& operator[](uint i) const { return elements.at(i);}
             inline std::size_t size()const { return elements.size();}

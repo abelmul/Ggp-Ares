@@ -79,7 +79,7 @@ namespace ares
         /**
          * The roles are static wihin a game no need to compute them.
          */
-        const Roles& roles(){return roles_;}
+        const Roles& roles()const{return roles_;}
         void addRole(const Role* r){roles_.push_back(r);}
         /**
          * set the initial state
@@ -88,7 +88,7 @@ namespace ares
         /**
          * get the initial state
          */
-        const State* init(){ return init_;}
+        const State* init()const{ return init_;}
 
         std::string toString(){
             std::string s;

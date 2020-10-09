@@ -2,6 +2,7 @@
 #define STRATEGY_HH
 #include "utils/game/match.hh"
 #include "reasoner/reasoner.hh"
+#include "gameAnalyzer/gameAnalyzer.hh"
 namespace ares
 {
     class Registrar;
@@ -23,7 +24,7 @@ namespace ares
          * Makes a move based on the current state of the match
          */
         virtual move_sptr_seq operator()(const Match& match,uint) = 0;
-        virtual void init(Reasoner* r){reasoner = r;};
+        virtual void init(Reasoner* r,GameAnalyzer* a){reasoner = r; analyzer = a;};
         virtual void start(const Match& match) = 0;
         virtual void reset() = 0;
         virtual void dump(std::string str="{}"){
@@ -37,13 +38,12 @@ namespace ares
         static std::string name(Strategy* s){ return s->name();}
         virtual ~Strategy(){}
     
-    protected:
-        const State* current;
-
     /**
      * DATA
      */
     protected:
+        const State* current;
+        GameAnalyzer* analyzer;
         static Reasoner* reasoner;
     };
 
@@ -70,9 +70,9 @@ namespace ares
             Strategy& st = *strategies[name];
             return st;
         }
-        inline static void init(Reasoner* r){
+        inline static void init(Reasoner* r,GameAnalyzer* a){
             for (auto &&[name,strategy] : strategies)
-                if( initd.find(name) == initd.end()){ strategy->init(r); initd.insert(name);}
+                if( initd.find(name) == initd.end()){ strategy->init(r,a); initd.insert(name);}
         }
         template <class T>
         friend class RegistrarBase;

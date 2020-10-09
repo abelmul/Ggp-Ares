@@ -11,6 +11,7 @@
 #include "utils/memory/memoryPool.hh"
 #include "utils/memory/namer.hh"
 #include "strategy/strategy.hh"
+#include "gameAnalyzer/gameAnalyzer.hh"
 #include <thread>
 #include <chrono> 
 #include <fstream>  
@@ -27,8 +28,9 @@ namespace ares
         :parser(GdlParser::create(memCache))
         ,reasoner(reasoner_)
         ,strategy(strategy_)
+        ,analyzer(reasoner_)
         {
-            Registrar::init(&reasoner);
+            Registrar::init(&reasoner,&analyzer);
         }
 
     public:
@@ -56,6 +58,7 @@ namespace ares
             strategy.reset();
             match.reset();
             reasoner.reset(nullptr);
+            memCache->clear();
             return true;
         }
 
@@ -82,6 +85,7 @@ namespace ares
             match.reset();
             strategy.reset();
             reasoner.reset(nullptr);
+            memCache->clear();
         }
         static Ares& create(Strategy& strategy,Reasoner& reasoner_){
             static Ares ares(strategy,reasoner_);
@@ -102,6 +106,7 @@ namespace ares
         Reasoner& reasoner;
         Strategy& strategy;
         Match match;
+        GameAnalyzer analyzer;
     };
 } // namespace ares
 

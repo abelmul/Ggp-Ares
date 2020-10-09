@@ -75,6 +75,7 @@ namespace ares
         std::atomic_bool playing;
         std::atomic_uint seq;
         std::mutex lock;
+        std::mutex abrtlock;
         
         const ushort INFO=0;
         const ushort START=1;

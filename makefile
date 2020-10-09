@@ -95,7 +95,7 @@ vis_server:
 #######################################################################################################
 #These are to make and run tests
 TEST_OBJS = $(OBJS_DIR)/$(RESNR_DIR)/renamers.o $(OBJS_DIR)/$(GDL_DIR)/structuredTerm.o $(OBJS_DIR)/$(MEMORY_DIR)/memoryPool.o $(OBJS_DIR)/$(UTILS_DIR)/hashing.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(MEMORY_DIR)/memCache.o
-VERIFIER_DEP =  ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/$(STRATEGY_DIR)/montecarlo_seq.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o $(OBJS_DIR)/$(RESNR_DIR)/prover.o $(OBJS_DIR)/$(RESNR_DIR)/reasoner.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(RESNR_DIR)/renamers.o $(OBJS_DIR)/$(RESNR_DIR)/unifier.o
+VERIFIER_DEP = ../objs/gameAnalyzer/gameAnalyzer.o ../objs/utils/utils/iterators.o ../objs/$(STRATEGY_DIR)/montecarlo.o ../objs/utils/game/game.o ../objs/utils/threading/threading.o ../objs/utils/hashing.o ../objs/utils/game/visualizer.o ../objs/utils/memory/memCache.o ../objs/utils/memory/memoryPool.o ../objs/utils/gdl/structuredTerm.o ../objs/utils/gdl/gdlParser/transformer.o ../objs/utils/gdl/gdlParser/gdlParser.o ../objs/utils/httpHandler.o $(OBJS_DIR)/$(RESNR_DIR)/prover.o $(OBJS_DIR)/$(RESNR_DIR)/reasoner.o $(OBJS_DIR)/$(RESNR_DIR)/substitution.o $(OBJS_DIR)/$(RESNR_DIR)/renamers.o $(OBJS_DIR)/$(RESNR_DIR)/unifier.o
 MONTE_DEP =  $(VERIFIER_DEP)
 PARSER_DEP = $(VERIFIER_DEP)
 

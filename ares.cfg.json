@@ -1,6 +1,6 @@
 {
-    "strategy":"MontecarloSeq",
-    "mct_threads":1,
+    "strategy":"Montecarlo",
+    "mct_threads":3,
     "url":"http://127.0.0.1:8080",
     "gdl":"tests/ggp.org/games/ticTacToe.kif",
     "debug":true,
@@ -11,8 +11,8 @@
     "bucket":600,
     "steps":201,
     "ansSample":3,
-    "uct_c":50,
-    "delta_sec":500,
+    "uct_c":40,
+    "delta_milli":500,
     "port":8080,
     "stateDumpF":"./visualization/data.json",
     "impNo":14
