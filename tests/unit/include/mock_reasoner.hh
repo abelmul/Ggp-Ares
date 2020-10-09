@@ -2,14 +2,16 @@
 #define MOCK_REASONER
 #include "reasoner/reasoner.hh"
 #include "strategy/montecarlo.hh"
-#include "strategy/montecarlo_seq.hh"
 namespace ares
 {
     class MockReasoner : public Reasoner
     {
+    private:
+        MemCache& memcache;
+        std::unordered_map<ushort, ushort> rolesIndex;
     public:
         MockReasoner(GdlParser& p, Prover& prover_,MemCache& mem)
-        :Reasoner(p,prover_,mem)
+        :Reasoner(p,prover_,mem),memcache(mem)
         {initGameTree();}
         void initGameTree();
 
@@ -73,7 +75,7 @@ namespace ares
             typedef std::unique_ptr<Node> uNode;
             typedef std::unordered_map<Action*, uNode> Transition;
 
-            Node(State* s):value(0),self(s){}
+            Node(State* s):values(3),self(s){}
 
             Node(const Node&) = delete;
             Node& operator=(const Node&) = delete;
@@ -104,7 +106,7 @@ namespace ares
                 return self;
             }
             
-            float value;
+            std::vector<float> values;
         private:
                 Transition delta;
                 std::unordered_map<const Action*,Action*> original;

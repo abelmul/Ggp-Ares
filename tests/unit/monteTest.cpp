@@ -48,18 +48,24 @@ void uct_test(){
     Node* node = new Node(nullptr, nullptr);
 
     node->n = (rand() % 9 ) +1;
-    node->value = (rand() % 100 ) +200;
+    node->values[0] = rand() % 100;
+    node->values[1] = rand() % (100-(int)node->values[0]);
+    node->values[2] = 100-(node->values[0] + node->values[1]);
+
     node->parent = parent;
     parent->n = (rand() % node->n) + ((rand() % 5)+1);
     uint c = rand() % 50;
-    float expectedUct = (node->value / node->n ) +  c* sqrt( (2*log(parent->n))/node->n);
-    assert_true( uct(*node,c,0) == expectedUct );
+    uint i =0;
+    for(auto &&value : node->values){
+        float expectedUct = (value / node->n ) +  c* sqrt( (2*log(parent->n))/node->n);
+        assert_true( uct(*node,c,i++,0) == expectedUct );
+    }
 
     //Test default values
     node->n = 0;
-    assert_true( uct(*node,c,0) == 0 );
-    assert_true( uct(*node,c,0) == 0 );
-    assert_true( uct(*node,c,INFINITY) == INFINITY );
+    assert_true( uct(*node,c,0,0) == 0 );
+    assert_true( uct(*node,c,0,0) == 0 );
+    assert_true( uct(*node,c,0,INFINITY) == INFINITY );
 }
 
 
@@ -88,7 +94,7 @@ namespace ares
         std::atomic_bool d=false;
         for (auto &&_ : origState)
         {
-            Node* v = (*monte.selPolicy)(node,d);
+            Node* v = (*monte.selPolicy)(node,d,0,0);
             McRNode* vMc = &game[v->state.get()];
             //Every state should be visited only once during expansion.
             assert_true( selectedStates.find(vMc) == selectedStates.end() );
@@ -119,12 +125,15 @@ namespace ares
             Node* best = nullptr;
             std::vector<Node*> zeros;
             float max = -INFINITY;
+            auto i = rand() % 3;
             for (auto &&child : children)
             {
-                child->value = dist(e2);
+                child->values[0] = rand() % 100;
+                child->values[1] = rand() % (100-(int)child->values[0]);
+                child->values[2] = 100-(child->values[0] + child->values[1]);
                 child->n = (rand() % 10);
               
-                float uctv = child->n == 0 ? INFINITY : (child->value/child->n) + c * sqrt( (2 * std::log(parent->n))/child->n );
+                float uctv = child->n == 0 ? INFINITY : (child->values[i]/child->n) + c * sqrt( (2 * std::log(parent->n))/child->n );
                 if( max < uctv ){
                     best = child;
                     max = uctv;
@@ -132,7 +141,7 @@ namespace ares
             }
 
             //Assuming Everything in parent is expanded 
-            Node* selected = (*monte.selPolicy)(parent,d);
+            Node* selected = (*monte.selPolicy)(parent,d,i,i);
             auto isT = (reasoner.terminal(*best->state));
             assert_true( (isT and( selected == best)) or ((!isT) and (selected->parent == best)));
         };
@@ -171,13 +180,17 @@ namespace ares
         if( children.size()){
             uint i = rand() % children.size() ;
             auto* selected = children[i];
-            float val = (*monte.simPolicy)(selected,0,d);
-            auto prev = std::pair<float, uint>(selected->value, selected->n);
-            auto prevR = std::pair<float, uint>(root->value, root->n);
+            auto val = (*monte.simPolicy)(selected->state.get(),d);
+            auto prev = std::pair<std::vector<float>, uint>(selected->values, selected->n);
+            auto prevR = std::pair<std::vector<float>, uint>(root->values, root->n);
             monte.update(selected,val);
-            assert_true( fabs(selected->value - (prev.first + val)) < 0.001);
+            for (size_t i = 0; i < reasoner.roles().size(); i++)
+            {
+                assert_true( fabs(selected->values[i] - (prev.first[i] + val[i])) < 0.001);
+                assert_true( fabs(root->values[i] - (prevR.first[i] + val[i])) < 0.001 );
+            }
+            
             assert_true( selected->n == prev.second + 1 );
-            assert_true( fabs(root->value - (prevR.first + val)) < 0.001 );
             assert_true( root->n == prevR.second + 1 );
         }
     }

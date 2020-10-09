@@ -13,7 +13,13 @@ namespace ares{
             game.addNode(&node);
             uint bf = (rand() % game.max_branching );
             //Assign terminal states a value;
-            if( depth == 0 || bf==0){ node.value = (rand() % 2) * 100; return;}
+            if( depth == 0 || bf==0){
+                // auto val2 = 100 - (val + val1);
+                node.values[0] = rand() % 100;
+                node.values[1] = rand() % (100-(int)node.values[0]);
+                node.values[2] = 100-(node.values[0] + node.values[1]);
+                return;
+            }
             //Create the transition table
             for (size_t i = 0; i < bf; i++)
                 node.add(new Action(),new Node(new State));
@@ -25,7 +31,19 @@ namespace ares{
     }
 
     const Roles& MockReasoner::roles(){
-        static Roles roles{0};
+        static Roles roles;
+        if( not roles.size() ){
+            for (size_t i = 0; i < 3; i++)
+            {
+                ushort name = Namer::registerName("role" + to_string(i));
+                roles.push_back(memcache.getConst(name));
+                rolesIndex[name] = i;
+            }
+            
+            roles.push_back(memcache.getConst(Namer::registerName("role1")));
+            roles.push_back(memcache.getConst(Namer::registerName("role2")));
+            roles.push_back(memcache.getConst(Namer::registerName("role3")));
+        }
         return roles;
     }
     /**
@@ -63,8 +81,8 @@ namespace ares{
     /**
      * @returns the reward associated with this role in the @param state.
      */
-    float MockReasoner::reward(Role&, const State* state){
-        return game[state].value;
+    float MockReasoner::reward(Role& r, const State* state){
+        return game[state].values[ rolesIndex[r.get_name()]];
     }
     
 

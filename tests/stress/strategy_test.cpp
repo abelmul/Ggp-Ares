@@ -1,7 +1,6 @@
 #include "static.hh"
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
-#include "strategy/montecarlo_seq.hh"
 ares::Cfg ares::cfg;
 using namespace ares;
 void simulate(Ares& ares);
@@ -39,14 +38,14 @@ void simulate(Ares& ares){
     Game* kb(new Game());
    
     //Parse the gdl
-    std::string gdl("tests/ggp.org/games/ticTacToe.kif");
+    std::string gdl("tests/stress/selectedGames/ticTacToe.kif");
     ares.parser.parse(kb,gdl);
     Match match;
     match.game = kb; 
     match.matchId = "test.0"; 
-    match.strtClck = 2; 
-    match.plyClck = 2; 
-    cfg.delta_sec = 200;
+    match.strtClck = 5; 
+    match.plyClck = 5; 
+    cfg.delta_milli = 200;
     ares.startMatch(match,"xplayer");
     std::cout << "ares playing : "<<"xplayer" << "\n";
 

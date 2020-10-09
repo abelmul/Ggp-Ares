@@ -2,7 +2,6 @@
 #include "static.hh"
 #include "strategy/random.hh"
 #include "strategy/montecarlo.hh"
-#include "strategy/montecarlo_seq.hh"
 #include <filesystem>
 #include <iostream>
 #include <random>
