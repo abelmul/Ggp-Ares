@@ -11,7 +11,7 @@ namespace ares
     
 
     typedef std::shared_ptr<CallBack> SharedCB;
-    void Reasoner::query(const Clause* goal,const State* context,SharedCB cb,bool rand){
+    void Reasoner::query(uClause& goal,const State* context,SharedCB cb,bool rand){
         auto g = std::unique_ptr<Clause>(goal->clone());
         g->setSubstitution(new Substitution());
         auto cache = std::unique_ptr<Cache>( new Cache( rand ? AnsIterator::RAND : AnsIterator::SEQ ));
@@ -103,7 +103,7 @@ namespace ares
     }
 
     Moves* Reasoner::moves(const State& state,const Role& role,bool rand){
-        const auto& legal = roleLegalMap[role.get_name()].get();        //Get the legal query specific to this role 
+        auto& legal = roleLegalMap[role.get_name()];        //Get the legal query specific to this role 
         auto cb = std::shared_ptr<LegalCallBack>(new LegalCallBack(this,rand));
         query(legal, &state, cb,rand);
         return cb->moves;
@@ -116,7 +116,7 @@ namespace ares
     }
     
     float Reasoner::reward(Role& role, const State* state){
-        const auto& goal = roleGoalMap[role.get_name()].get();        //Get the query specific to this role
+        auto& goal = roleGoalMap[role.get_name()];        //Get the query specific to this role
         auto cb = std::shared_ptr<RewardCallBack>(new RewardCallBack(this));
         query(goal, state, cb);
         return cb->reward;
@@ -128,7 +128,7 @@ namespace ares
     Move* Reasoner::randMove(const State& state,const Role& role){
         auto* legals = moves(state, role);
         uint i = rand() % legals->size();
-        auto selected = (*legals)[i];
+        auto selected = (*legals)[i];        
         delete legals;
         return selected;
     }
@@ -152,7 +152,12 @@ namespace ares
         getCombos(legals, 0,partials,*combos);
         return combos;
     }
-
+    std::vector<uAction>* Reasoner::actions(std::vector<uMoves>& legals){
+        Moves partials;
+        std::vector<uAction>* combos= new std::vector<uAction>();
+        getCombos(legals, 0,partials,*combos);
+        return combos;
+    }
     void Reasoner::initMapping(){
         auto& roles = game->roles();
         if( roleLegalMap.size() > 0) return;

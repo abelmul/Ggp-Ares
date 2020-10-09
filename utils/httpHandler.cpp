@@ -22,16 +22,13 @@ namespace ares
             return startHandler(s); 
         };
         hooks[PLAY] = [this](std::vector<std::string>& s){ return playHandler(s); };
-        hooks[STOP] = [this](std::vector<std::string>& s){
-            std::unique_lock<std::mutex> lk(lock);
-            return stopHandler(s); 
-        };
+        hooks[STOP] = [this](std::vector<std::string>& s){ return stopHandler(s); };
         hooks[ABORT] =[this](std::vector<std::string>& s){ 
-            std::unique_lock<std::mutex> lk(lock);
+            std::unique_lock<std::mutex> lk(abrtlock);
             if( !ares.abortMatch(s[2]) ) return "";
             playing = false; 
             seq = 0;
-            return "DONE";
+            return "";
         };
 
         //Start up the server
@@ -58,7 +55,9 @@ namespace ares
             //One of the info, start, play, or stop messages; handle them accordingly.
             auto& hook = hooks[t];
             auto reply = hook(tokens);
-            if( cfg.debug or t != INFO ) log("[HttpHandler]") << "HttpReply : " << reply << "\n";
+            if( (cfg.debug or t != INFO) and reply.size() ) log("[HttpHandler]") << "HttpReply : " << reply << "\n";
+            else if( not reply.size()) logerr("[HttpHandler::Handler]") << "Empty HttpReply.""\n";
+
             if( reply.size() ) msg.reply(status_codes::OK, reply);
         }).wait();
     }
@@ -85,6 +84,7 @@ namespace ares
         tokens.erase(tokens.end()-3, tokens.end());
 
         match.game = new Game();
+        Namer::reset();
         ares.parser.parse(match.game, tokens);
 
         log("[HttpHandler]") << "Starting a new match\n";
@@ -135,6 +135,8 @@ namespace ares
      *(STOP <MATCHID> (<A1> <A2> ... <An>))
      */
     std::string HttpHandler::stopHandler(std::vector<std::string>& tokens){
+        static std::mutex stLock;
+        std::lock_guard<std::mutex> lk(stLock);
         if( tokens[2] != ares.currentMatch() )
             return "WRONG MATCH";
         

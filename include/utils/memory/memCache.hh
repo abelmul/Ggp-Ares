@@ -28,12 +28,12 @@ namespace ares
         typedef tbb::concurrent_hash_map<ushort, sConstant> ConstPool;
 
         typedef tbb::concurrent_hash_map<PoolKey, sFunction,PoolKeyHasher> FnPool;
-        typedef tbb::concurrent_hash_map<PoolKey, sLiteral,PoolKeyHasher> LitPool;
+        typedef tbb::concurrent_hash_map<PoolKey, sLiteral,PoolKeyHasher> AtomPool;
         typedef tbb::concurrent_hash_map<PoolKey, sOr,PoolKeyHasher> OrPool;
         typedef tbb::concurrent_hash_map<PoolKey, sNot,PoolKeyHasher> NotPool;
 
         typedef tbb::concurrent_hash_map<ushort, FnPool> NameFnMap;
-        typedef tbb::concurrent_hash_map<ushort, LitPool> NameLitMap;
+        typedef tbb::concurrent_hash_map<ushort, AtomPool> NameAtomMap;
 
         typedef std::chrono::seconds seconds;
 
@@ -78,7 +78,7 @@ namespace ares
         const Atom* getAtom(PoolKey& key);
         const Or* getOr(PoolKey& key);
         const Not* getNot(PoolKey& key);
-
+        void clear();
         template<class T> void deleter(T* t){ delete t;}
         ~MemCache();
         
@@ -90,9 +90,10 @@ namespace ares
         VarPool varPool;
         ConstPool constPool;
         NameFnMap nameFnPool;
-        NameLitMap nameLitPool;
+        NameAtomMap nameAtomPool;
         OrPool orPool;
         NotPool notPool;
+
     };
 } // namespace ares
 

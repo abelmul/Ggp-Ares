@@ -5,6 +5,14 @@ namespace ares
 {
     MemCache::~MemCache(){}
 
+    void MemCache::clear(){
+        varPool.clear();
+        constPool.clear();
+        nameFnPool.clear();
+        nameAtomPool.clear();
+        orPool.clear();
+        notPool.clear();
+    }
     const Variable* MemCache::getVar(ushort n){
         VarPool::accessor ac;
         if( varPool.insert(ac,n) ) //This thread inserted the key
@@ -42,21 +50,21 @@ namespace ares
         return fn;
     }
     const Atom* MemCache::getAtom(PoolKey& key){
-        NameLitMap::const_accessor ac;
-        nameLitPool.insert(ac,key.name);     //insert it if it doesn't exist
-        LitPool* litPool= (LitPool*)&ac->second;
-        LitPool::accessor litAc;
-        const Atom* lit;
-        if( litPool->insert(litAc, key) )//key didn't exist, insert it
-            litAc->second.reset( new Atom(key.name,key.body),[&](Atom* l){deleter(l);});
+        NameAtomMap::const_accessor ac;
+        nameAtomPool.insert(ac,key.name);     //insert it if it doesn't exist
+        AtomPool* atomPool= (AtomPool*)&ac->second;
+        AtomPool::accessor atomAc;
+        const Atom* atom;
+        if( atomPool->insert(atomAc, key) )//key didn't exist, insert it
+            atomAc->second.reset( new Atom(key.name,key.body),[&](Atom* l){deleter(l);});
         
         else //key  exists.
             delete key.body;
         
-        lit = litAc->second.get();
-        litAc.release();
+        atom = atomAc->second.get();
+        atomAc.release();
         key.body = nullptr;
-        return lit;
+        return atom;
     }
     const Or* MemCache::getOr(PoolKey& key){
         OrPool::accessor orAc;

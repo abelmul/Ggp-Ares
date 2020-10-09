@@ -47,8 +47,8 @@ namespace ares
             impNo        = pt.get<uint>("impNo");
             steps           = pt.get<uint>("steps");
             ansSample           = pt.get<ushort>("ansSample");
-            delta_sec           = pt.get<ushort>("delta_sec");
-            uct_c           = pt.get<float>("uct_c");
+            delta_milli           = pt.get<ushort>("delta_milli");
+            uct_c           = pt.get<ushort>("uct_c");
             bucket        = pt.get<uint>("bucket");
 
             // jobQueue          = pt.get<uint>("jobQueue");
@@ -68,7 +68,7 @@ namespace ares
             auto urlf = boost::format("%|-20| : %|-5|\n") % "url" % url;
             auto sf = boost::format("%|-20| : %|-5|\n") % "simulations" % simulations;
             auto stf = boost::format("%|-20| : %|-5|\n") % "steps" % steps;
-            auto dltf = boost::format("%|-20| : %|-5|\n") % "delta secods" % delta_sec;
+            auto dltf = boost::format("%|-20| : %|-5|\n") % "delta milli secods" % delta_milli;
             auto ansf = boost::format("%|-20| : %|-5|\n") % "Answer sample" % ansSample;
             auto uctf = boost::format("%|-20| : %|-5|\n") % "uct C" % uct_c;
             auto bf = boost::format("%|-20| : %|-5|\n") % "Buckets" % bucket;
@@ -86,8 +86,8 @@ namespace ares
         uint stTerms;
         uint clauses;
         ushort ansSample;
-        float uct_c;
-        ushort delta_sec;
+        ushort uct_c;
+        ushort delta_milli;
         std::vector<std::pair<uint,uint>> arities;
         // uint jobQueue;
         uint simulations;

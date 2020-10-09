@@ -14,21 +14,8 @@ namespace ares
          * Ctor
          */
         Reasoner( GdlParser& p, Prover& prover_,MemCache& mem)
-        :TRUE_LITERAL(p.parseQuery(TRUE_QUERY))
-        ,x(mem.getVar(Namer::X))
-        ,r(mem.getVar(Namer::R))
-        ,game(nullptr)
-        ,parser(p)
-        ,prover(prover_)
-        ,memCache(mem)
-        ,INIT_GOAL(makeGoal(p,INIT_QUERY))
-        ,LEGAL_GOAL(makeGoal(p,LEGAL_QUERY))
-        ,NEXT_GOAL(makeGoal(p,NEXT_QUERY))
-        ,TERMINAL_GOAL( makeGoal(p,TERMINAL_QUERY) )
-        ,GOAL_GOAL( makeGoal(p,GOAL_QUERY))
-        ,ROLE_GOAL(makeGoal(p,ROLE_QUERY))
+        :game(nullptr),parser(p),prover(prover_),memCache(mem)
         {
-            goals = std::vector<const Clause*>{INIT_GOAL,LEGAL_GOAL,NEXT_GOAL,TERMINAL_GOAL,GOAL_GOAL,ROLE_GOAL};
         }
 
 
@@ -102,6 +89,7 @@ namespace ares
          * an action = <move_1,...,move_n> , where move_i is taken by role i.
          */
         virtual std::vector<uAction>* actions(const State& state);
+        virtual std::vector<uAction>* actions(std::vector<uMoves>&);
         
         virtual inline void reset(Game* kb){
             roleLegalMap.clear();
@@ -111,23 +99,33 @@ namespace ares
             if( game ) delete game;
             game = kb;
             if( game ){
+                initQueries();
                 init();
                 roles();
                 initMapping();
             }
         }
-        virtual ~Reasoner(){
-            for (auto &&c : goals)
-                delete c;
-            
+        virtual inline void initQueries(){
+            x = memCache.getVar(Namer::X);
+            r = memCache.getVar(Namer::R);
+            TRUE_LITERAL = parser.parseQuery(TRUE_QUERY);
+            INIT_GOAL.reset( makeGoal(parser,INIT_QUERY));
+            LEGAL_GOAL.reset( makeGoal(parser,LEGAL_QUERY));
+            NEXT_GOAL.reset( makeGoal(parser,NEXT_QUERY));
+            TERMINAL_GOAL.reset(  makeGoal(parser,TERMINAL_QUERY) );
+            GOAL_GOAL.reset( makeGoal(parser,GOAL_QUERY));
+            ROLE_GOAL.reset( makeGoal(parser,ROLE_QUERY));
+        }
+        virtual ~Reasoner(){            
             if( game ) delete game;
         }
     
     private:
+        typedef std::unique_ptr<const Clause> uClause;
         /**
          * Just a wrapper method.
          */
-        void query(const Clause* goal,const State* context,SharedCB cb,bool rand=false);
+        void query(uClause& goal,const State* context,SharedCB cb,bool rand=false);
 
         /**
          * For ease of access to legal and goal queries of the form (legal some_role ?x)/(goal some_role ?x).
@@ -153,9 +151,9 @@ namespace ares
      * Data
      */
     public:
-        const Atom* const TRUE_LITERAL;
-        const Variable* const x;   
-        const Variable* const r;
+        const Atom*  TRUE_LITERAL;
+        const Variable*  x;   
+        const Variable*  r;
     private:
         Game* game;
         GdlParser& parser;
@@ -163,22 +161,21 @@ namespace ares
         MemCache& memCache;
 
         //Just to "pre-create" and hold the legal query, (legal some_role ?x)
-        std::unordered_map<ushort, std::unique_ptr<Clause>> roleLegalMap;
+        std::unordered_map<ushort, std::unique_ptr<const Clause>> roleLegalMap;
         //Just to "pre-create" and hold the goal query, (goal some_role ?x)
-        std::unordered_map<ushort, std::unique_ptr<Clause>> roleGoalMap;
+        std::unordered_map<ushort, std::unique_ptr<const Clause>> roleGoalMap;
         //role name to index mapping
         std::unordered_map<ushort, ushort> rolesIndex;
 
         
-        const Clause* INIT_GOAL;
-        const Clause* LEGAL_GOAL;
-        const Clause* NEXT_GOAL;
-        const Clause* TERMINAL_GOAL;
-        const Clause* GOAL_GOAL;
-        const Clause* ROLE_GOAL;
+        uClause INIT_GOAL;
+        uClause LEGAL_GOAL;
+        uClause NEXT_GOAL;
+        uClause TERMINAL_GOAL;
+        uClause GOAL_GOAL;
+        uClause ROLE_GOAL;
         
-        //Define the queries these don't change through out the lifetime of the player
-        std::vector<const Clause* > goals;
+        //Define the queries these don't change through out the lifetime of the 
 
         static const char* ROLE_QUERY    ;
         static const char* INIT_QUERY    ;

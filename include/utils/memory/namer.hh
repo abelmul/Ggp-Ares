@@ -15,21 +15,42 @@ namespace ares
          * Register names, and assign unique nums to them.
          */
         static inline ushort registerVname(const std::string& s){
-            static ushort id=0;
             if( vNameId.find(s) != vNameId.end() ) return vNameId[s];
             const auto& sLower = boost::to_lower_copy(s);
-            vNameId[sLower] = id;
-            vIdName[id] = sLower;
-            return id++;
+            vNameId[sLower] = vid_;
+            vIdName[vid_] = sLower;
+            return vid_++;
         }
 
         static inline ushort registerName(const std::string& s){
-            static ushort id=60536;
             if( nameId.find(s) != nameId.end() ) return nameId[s];
             const auto& sLower = boost::to_lower_copy(s);
-            nameId[sLower] = id;
-            idName[id] = sLower;
-            return id++;
+            nameId[sLower] = id_;
+            idName[id_] = sLower;
+            return id_++;
+        }
+        static inline void reset(){
+            id_=60536;
+            vid_=0;
+            vIdName.clear();
+            vNameId.clear();
+            idName.clear();
+            nameId.clear(); 
+            ROLE = registerName(std::string("role"));
+            OR = registerName(std::string("or"));
+            NOT = registerName(std::string("not"));
+            INIT = registerName(std::string("init"));
+            LEGAL = registerName(std::string("legal"));
+            NEXT = registerName(std::string("next"));
+            TRUE = registerName(std::string("true"));
+            DOES = registerName(std::string("does"));
+            DISTINCT = registerName(std::string("distinct"));
+            GOAL = registerName(std::string("goal"));
+            TERMINAL = registerName(std::string("terminal"));
+            INPUT = registerName(std::string("input"));
+            BASE = registerName(std::string("base"));
+            X = registerVname(std::string("?x"));
+            R = registerVname(std::string("?r"));
         }
         /**
          * Change the variable id @param id to its corresponding string anme
@@ -69,23 +90,25 @@ namespace ares
 
         static std::unordered_map<ushort, std::string> idName;
         static std::unordered_map<std::string, ushort> nameId;
+        static ushort vid_;
+        static ushort id_;
     
     public:
-        const static ushort ROLE;
-        const static ushort OR;
-        const static ushort NOT;
-        const static ushort INIT;
-        const static ushort LEGAL;
-        const static ushort NEXT;
-        const static ushort TRUE;
-        const static ushort DOES;
-        const static ushort DISTINCT;
-        const static ushort GOAL;
-        const static ushort TERMINAL;
-        const static ushort INPUT;
-        const static ushort BASE;
-        const static ushort X;
-        const static ushort R;
+        static ushort ROLE;
+        static ushort OR;
+        static ushort NOT;
+        static ushort INIT;
+        static ushort LEGAL;
+        static ushort NEXT;
+        static ushort TRUE;
+        static ushort DOES;
+        static ushort DISTINCT;
+        static ushort GOAL;
+        static ushort TERMINAL;
+        static ushort INPUT;
+        static ushort BASE;
+        static ushort X;
+        static ushort R;
    };
 } // namespace ares
 
