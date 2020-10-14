@@ -1,11 +1,16 @@
-add_library(utils STATIC httpHandler.cpp
-                         hashing.cpp
-                         gdl/gdlParser/transformer.cpp
-                         gdl/gdlParser/gdlParser.cpp
-                         gdl/structuredTerm.cpp
-                         game/game.cpp
-                         game/visualizer.cpp
-                         threading/threading.cpp
-                         memory/memCache.cpp
-                         memory/memoryPool.cpp
-                         utils/iterators.cpp)
+add_library(game        STATIC game/game.cpp 
+                               game/visualizer.cpp)
+
+add_library(gdl         STATIC gdl/gdlParser/transformer.cpp
+                               gdl/gdlParser/gdlParser.cpp
+                               gdl/structuredTerm.cpp)
+
+add_library(thread      STATIC threading/threading.cpp)
+
+add_library(memory      STATIC memory/memCache.cpp 
+                               memory/memoryPool.cpp)
+
+add_library(iterator    STATIC utils/iterators.cpp)
+
+add_library(httphandler STATIC httpHandler.cpp)
+add_library(hash        STATIC hashing.cpp)

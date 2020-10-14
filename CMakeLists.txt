@@ -37,7 +37,7 @@ include_directories(include)
 
 add_subdirectory(reasoner)
 add_subdirectory(strategy)
-add_subdirectory(tests)
+#add_subdirectory(tests)
 add_subdirectory(utils)
 
 if(BUILD_LPOCKET_TESTS)
@@ -47,4 +47,4 @@ else()
 endif()
 
 add_executable(ares ares.cpp)
-target_link_libraries(ares PRIVATE ${BOOST_LIBS} cpprest tbb utils reasoner strategy)
+target_link_libraries(ares PRIVATE ${BOOST_LIBS} cpprest tbb reasoner strategy game gdl thread memory iterator httphandler hash)
