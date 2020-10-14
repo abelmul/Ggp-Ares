@@ -1,5 +1,7 @@
 - [Ares](#ares)
-  - [Launch](#launch)
+  - [Build and Launch](#build-and-launch)
+    - [Build](#build)
+    - [Launch](#launch)
   - [The config file](#the-config-file)
   - [Modules](#modules)
     - [Gdl Parser](#gdl-parser)
@@ -18,30 +20,48 @@ Ares is a general game playing agent,that is capable of playing any game given
 to it in a formal description (specifically GDL).
 
 
-## Launch
+## Build and Launch
 
+### Build
 (make sure boost is installed.)
 ~~~
 make setup
 make ares
-./ares
 ~~~
+
+### Launch
+~~~
+make run
+~~~
+
 ## The config file
 
 This section briefly explains the options one might tweak with ares.
 
 ~~~
 {
-    "strategy": string, could be one of Montecarlo or Random, or any other class that inherits from strategy and RegistrarBase<T>.  
+    "strategy": string, could be one of Montecarlo or Random, or any other class
+    that inherits from strategy and RegistrarBase<T>.  
+
     "mct_threads": int, the number of threads to use for the montecarlo tree search.
+    
     "url":string, the http address ares will listen on.
+    
     "gdl":string, some tests might depend on this.
+
     "simulations":int, number of simulations a game to run during stress tests.
+
     "steps":int, number of steps of a game to run during stress tests.
+
     "ansSample":int, how many answers to sample if proving randomly.
+
     "uct_c":int, the C parameter of montecarlo uct
-    "delta_milli":int, the amount milliseconds to deduct from start and play clock, so that http replies get to the game manager on time.
-    "stateDumpF":"./visualization/data.json", strategies dump thier state for visualization and debugging purposes. Don't change this.
+
+    "delta_milli":int, the amount milliseconds to deduct from start and play clock,
+    so that http replies get to the game manager on time.
+    
+    "stateDumpF":"./visualization/data.json", strategies dump thier state for visualization
+     and debugging purposes. Don't change this.
 }
 
 ~~~
