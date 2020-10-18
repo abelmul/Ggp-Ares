@@ -73,8 +73,7 @@ COMMON_INCS := $(GDL_INCS) $(UTILS_UTILS_INCS) $(MEMORY_INCS)
 OBJ_SUBDIRS := $(shell mkdir -p `dirname $(OBJS)`)
 OBJ_TEST_DIRS := $(shell mkdir -p `dirname $(OBJS_TESTS)`)
 setup:
-	git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git lib/cpprestsdk 
-	mkdir lib/cpprestsdk/build.debug
+	mkdir -p lib/cpprestsdk/build.debug
 	cd lib/cpprestsdk/build.debug && cmake -G Ninja .. -DCMAKE_BUILD_TYPE=Debug && ninja
 
 all: ares
