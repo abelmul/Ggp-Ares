@@ -24,6 +24,7 @@ to it in a formal description (specifically GDL).
 
 ### Build
 (make sure boost is installed.)
+#### Using make
 ~~~
 make setup
 make ares
@@ -33,6 +34,19 @@ make ares
 ~~~
 make run
 ~~~
+
+#### Using cmake
+1. create a build directory and cd to it
+    ~~~
+    mkdir build && cd build
+    ~~~
+2. create the make file (for eg. using ninja). Read about the varibles [here](https://cmake.org/cmake/help/latest/manual/cmake-variables.7.html). For some reason only gcc works as compiler
+    ~~~
+    cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc $SOURCE_DIR
+    ~~~
+3. Invoke make
+4. Copy the config from the source to the build directory 
+5. run ./ares
 
 ## The config file
 
