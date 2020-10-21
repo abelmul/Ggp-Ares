@@ -1,7 +1,5 @@
 include_directories(include)
 
-file(COPY selectedGames DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
 add_executable(answerListTest answerListTest.cpp)
 target_link_libraries(answerListTest PRIVATE ${BOOST_LIBS} cpprest tbb  reasoner gdl memory hash)
 
@@ -17,8 +15,8 @@ target_link_libraries(parserTest PRIVATE ${BOOST_LIBS} cpprest tbb httphandler r
 add_executable(verifier verifier.cpp)
 target_link_libraries(verifier PRIVATE ${BOOST_LIBS} cpprest tbb httphandler reasoner strategy gameAnalyzer game gdl thread memory iterator hash)
 
-add_test(NAME answerListTest COMMAND answerListTest)
-add_test(NAME cacheTest      COMMAND cacheTest)
-add_test(NAME monteTest      COMMAND monteTest)
-add_test(NAME parserTest     COMMAND parserTest)
-add_test(NAME verifier       COMMAND verifier)
+add_test(NAME answerListTest COMMAND answerListTest WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME cacheTest      COMMAND cacheTest WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME monteTest      COMMAND monteTest WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME parserTest     COMMAND parserTest WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})
+add_test(NAME verifier       COMMAND verifier WORKING_DIRECTORY ${CMAKE_SOURCE_DIR})

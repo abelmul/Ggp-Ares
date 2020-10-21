@@ -10,8 +10,8 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
-SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} -Wall -Wextra")
-SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
+#SET(CMAKE_CXX_FLAGS  "${CMAKE_CXX_FLAGS} ")
+#SET(CMAKE_C_FLAGS "${CMAKE_C_FLAGS} -Wall -Wextra")
 
 
 # Boost
@@ -26,10 +26,17 @@ else()
     message(FATAL_ERROR "Boost not found")
 endif()
 
+#######################
 # Cpprestsdk
+set(EVENT__DISABLE_TESTS ON)
 add_subdirectory(lib/cpprestsdk)
 include_directories(lib/cpprestsdk/Release/include)
+set(EVENT__DISABLE_TESTS OFF)
 
+#######################
+
+## add compile options for own source
+add_compile_options(-Wall -Wextra -Ofast -march=native)
 # tests
 option(BUILD_ARES_TESTS "Make tests set to off if you don't want to test" ON)
 
@@ -49,3 +56,8 @@ endif()
 
 add_executable(ares ares.cpp)
 target_link_libraries(ares PRIVATE ${BOOST_LIBS} cpprest tbb httphandler reasoner strategy gameAnalyzer game gdl thread memory iterator hash)
+
+##Create a symlink of ares.cfg.json
+
+add_custom_target(symlink ALL
+    ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/ares.cfg.json ${CMAKE_BINARY_DIR}/ares.cfg.json)
