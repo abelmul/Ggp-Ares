@@ -2,6 +2,7 @@
 #define CALLBACKS_HH
 #include "threadPool.hh"
 #include "utils/gdl/gdl.hh"
+
 #include <atomic>
 
 namespace ares
@@ -9,72 +10,70 @@ namespace ares
     class Cache;
     class CallBack
     {
-    public:
-        CallBack(std::atomic<bool>& d,Cache* c)
-        :done(d),cache(c)
-        {
-        } 
+     public:
+        CallBack(std::atomic<bool>& d, Cache* c) : done(d), cache(c) {}
         CallBack(const CallBack&) = delete;
         CallBack(const CallBack&&) = delete;
         CallBack& operator=(const CallBack&) = delete;
         CallBack& operator=(const CallBack&&) = delete;
 
-        virtual void operator()(const Substitution&, ushort, bool isLookup=false) = 0;
+        virtual void operator()(const Substitution&, ushort,
+                                bool isLookup = false) = 0;
         virtual ~CallBack() {}
-    /**
-     * Data
-     */
-    public:
+        /**
+         * Data
+         */
+     public:
         std::atomic<bool>& done;
-        
-    protected:
+
+     protected:
         Cache* cache;
     };
-    
+
     class LiteralCB : public CallBack
     {
         typedef std::unique_ptr<CallBack> unique_cb;
-    /**
-     * Methods
-     */
-    public:
-        LiteralCB(const Atom* lit, unique_cb&& cb_,Cache* c)
-        : CallBack(cb_->done,c), lit(lit), cb(std::move(cb_))
+        /**
+         * Methods
+         */
+     public:
+        LiteralCB(const Atom* lit, unique_cb&& cb_, Cache* c)
+            : CallBack(cb_->done, c), lit(lit), cb(std::move(cb_))
         {
         }
-        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup);
-        virtual ~LiteralCB(){}
-    
-    /**
-     * Data
-     */
-    private:
+        virtual void operator()(const Substitution& sub, ushort suffix,
+                                bool isLookup);
+        virtual ~LiteralCB() {}
+
+        /**
+         * Data
+         */
+     private:
         const Atom* lit;
         unique_cb cb;
-        
     };
     class Prover;
     class ClauseCB : public CallBack
     {
-    
-    /**
-     * Methods
-     */
+        /**
+         * Methods
+         */
         typedef std::unique_ptr<Clause> unique_clause;
-    public:
+
+     public:
         ClauseCB(Query&& query);
-        virtual void operator()(const Substitution& sub, ushort suffix, bool isLookup);
+        virtual void operator()(const Substitution& sub, ushort suffix,
+                                bool isLookup);
         virtual ~ClauseCB() {}
 
-    /**
-     * Data
-     */
-    protected:
+        /**
+         * Data
+         */
+     protected:
         Query nxt;
 
-    public:
+     public:
         static Prover* prover;
-
     };
 
     /**
@@ -82,15 +81,13 @@ namespace ares
      */
     class ClauseCBOne : public CallBack
     {
-    public:
-        ClauseCBOne(std::atomic_bool& done_,Cache* c)
-        : CallBack(done_,c)
+     public:
+        ClauseCBOne(std::atomic_bool& done_, Cache* c) : CallBack(done_, c) {}
+        virtual void operator()(const Substitution&, ushort, bool)
         {
-        }
-        virtual void operator()(const Substitution&,ushort, bool){
             done = true;
         }
-    };   
-} // namespace ares
+    };
+}  // namespace ares
 
 #endif

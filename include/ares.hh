@@ -1,60 +1,70 @@
 #ifndef ARES_HH
 #define ARES_HH
 
-#include "utils/game/visualizer.hh"
-#include "reasoner/suffixRenamer.hh"
+#include "gameAnalyzer/gameAnalyzer.hh"
 #include "reasoner/reasoner.hh"
-#include "utils/gdl/gdlParser/gdlParser.hh"
+#include "reasoner/suffixRenamer.hh"
+#include "strategy/strategy.hh"
 #include "utils/game/game.hh"
 #include "utils/game/match.hh"
-#include "utils/utils/cfg.hh"
+#include "utils/game/visualizer.hh"
+#include "utils/gdl/gdlParser/gdlParser.hh"
 #include "utils/memory/memoryPool.hh"
 #include "utils/memory/namer.hh"
-#include "strategy/strategy.hh"
-#include "gameAnalyzer/gameAnalyzer.hh"
-#include <thread>
-#include <chrono> 
-#include <fstream>  
-#include <iostream>
+#include "utils/utils/cfg.hh"
+
 #include <unistd.h>
+
+#include <chrono>
+#include <fstream>
+#include <iostream>
 #include <random>
+#include <thread>
 namespace ares
 {
     class Ares
     {
-    private:
+     private:
         /* data */
-        Ares(Strategy& strategy_,Reasoner& reasoner_)
-        :parser(GdlParser::create(memCache))
-        ,reasoner(reasoner_)
-        ,strategy(strategy_)
-        ,analyzer(reasoner_)
+        Ares(Strategy& strategy_, Reasoner& reasoner_)
+            : parser(GdlParser::create(memCache)),
+              reasoner(reasoner_),
+              strategy(strategy_),
+              analyzer(reasoner_)
         {
-            Registrar::init(&reasoner,&analyzer);
+            Registrar::init(&reasoner, &analyzer);
         }
 
-    public:
-        Reasoner* operator->(){ return &reasoner;}
+     public:
+        Reasoner* operator->() { return &reasoner; }
 
-        inline void startMatch(Match& m,const std::string& role){
+        inline void startMatch(Match& m, const std::string& role)
+        {
             match = m;
-            match.role =  memCache->getConst(Namer::id(role));
+            match.role = memCache->getConst(Namer::id(role));
             reasoner.reset(m.game);
             strategy.start(match);
         }
-        
-        inline std::pair<Move*,uint> makeMove(uint seq,Moves* moves=nullptr){
-            if( match.takenAction ) delete match.takenAction;
+
+        inline std::pair<Move*, uint> makeMove(uint seq, Moves* moves = nullptr)
+        {
+            if (match.takenAction)
+                delete match.takenAction;
             match.takenAction = moves;
-            auto move = strategy(match,seq);
+            auto move = strategy(match, seq);
             return move;
         }
 
-        inline const std::string& currentMatch() { return match.matchId;}
-        
-        inline bool abortMatch(const std::string& id){
-            if( match.matchId != id ) return false;
-            if( match.takenAction  ) {delete match.takenAction; match.takenAction=nullptr;}
+        inline const std::string& currentMatch() { return match.matchId; }
+
+        inline bool abortMatch(const std::string& id)
+        {
+            if (match.matchId != id)
+                return false;
+            if (match.takenAction) {
+                delete match.takenAction;
+                match.takenAction = nullptr;
+            }
             strategy.reset();
             match.reset();
             reasoner.reset(nullptr);
@@ -62,18 +72,21 @@ namespace ares
             return true;
         }
 
-        inline void stopMatch(Moves* moves){
-            //Compute the current state
-            if( match.takenAction  ) {delete match.takenAction; match.takenAction=nullptr;}
-            auto* current = reasoner.next(strategy.matchState(),*moves);
+        inline void stopMatch(Moves* moves)
+        {
+            // Compute the current state
+            if (match.takenAction) {
+                delete match.takenAction;
+                match.takenAction = nullptr;
+            }
+            auto* current = reasoner.next(strategy.matchState(), *moves);
 
-            //Just display the rewards, if its a terminal state
-            if( reasoner.terminal(*current) ){
+            // Just display the rewards, if its a terminal state
+            if (reasoner.terminal(*current)) {
                 log("[Ares] Rewards: ");
                 std::string sep("");
-                for (auto &&role : reasoner.roles() )
-                {
-                    std::cout << sep ;
+                for (auto&& role : reasoner.roles()) {
+                    std::cout << sep;
                     log(Namer::name(role->get_name())) << ", ";
                     log(to_string(reasoner.reward(*role, current)));
                     sep = " | ";
@@ -87,27 +100,29 @@ namespace ares
             reasoner.reset(nullptr);
             memCache->clear();
         }
-        static Ares& create(Strategy& strategy,Reasoner& reasoner_){
-            static Ares ares(strategy,reasoner_);
+        static Ares& create(Strategy& strategy, Reasoner& reasoner_)
+        {
+            static Ares ares(strategy, reasoner_);
             return ares;
         }
 
-        static void setMem(MemoryPool* mem){
+        static void setMem(MemoryPool* mem)
+        {
             mempool = mem;
             memCache = mem->getCache();
         }
-        ~Ares(){}
+        ~Ares() {}
 
         static MemoryPool* mempool;
         static MemCache* memCache;
         GdlParser& parser;
 
-    private:
+     private:
         Reasoner& reasoner;
         Strategy& strategy;
         Match match;
         GameAnalyzer analyzer;
     };
-} // namespace ares
+}  // namespace ares
 
-#endif  
+#endif

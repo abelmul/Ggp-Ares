@@ -3,59 +3,57 @@
 
 #include "utils/gdl/term.hh"
 
-
 namespace ares
 {
     /**
-     * TODO: Create A pool of FunctionBodies and create a user level cache of bodies
-     * managed by MemCache, maybe rename it to MemoryPool.
+     * TODO: Create A pool of FunctionBodies and create a user level cache of
+     * bodies managed by MemCache, maybe rename it to MemoryPool.
      */
 
-    //This represents gdl functions
-    class Function:public structured_term
+    // This represents gdl functions
+    class Function : public structured_term
     {
-    
-    friend class MemCache;
-    friend class ExpressionPoolTest;
-    private:
+        friend class MemCache;
+        friend class ExpressionPoolTest;
+
+     private:
         Function(const Function&) = delete;
         Function(const Function&&) = delete;
         Function& operator=(Function&&) = delete;
-        Function& operator = (const Function&) = delete;
+        Function& operator=(const Function&) = delete;
 
-        //create an initialized function
-        Function(ushort name,const Body* _b)
-        :structured_term(name,_b,FN)
-        {
-        }
+        // create an initialized function
+        Function(ushort name, const Body* _b) : structured_term(name, _b, FN) {}
 
         /**
-         * Only MemCache could create terms, to ensure only one instance exists 
+         * Only MemCache could create terms, to ensure only one instance exists
          */
         void* operator new(std::size_t s);
         void operator delete(void* p);
 
-        virtual ~Function(){
+        virtual ~Function()
+        {
             /**
              * Remove the nulling after testing
              * this will be usefull to debug issues related to memory
              * when a structured_term is reused you won't mistakenely
              * use the prev value when its allocated again, it will segfault.
              */
-            if(body)
+            if (body)
                 delete body;
             body = nullptr;
         }
-    public:
+
+     public:
         /**
          * Apply the Substitution sub on this term, creating an instance.
-         * This is done by traversing the "chain" present within the substitution,
-         * Varset is used to detect any loops. if a variable is encountered more than once on a 
-         * single dfs path then there is a loop.
+         * This is done by traversing the "chain" present within the
+         * substitution, Varset is used to detect any loops. if a variable is
+         * encountered more than once on a single dfs path then there is a loop.
          */
-        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
+        virtual const Term* operator()(const Substitution& sub,
+                                       VarSet& vSet) const;
     };
-} // namespace ares
-
+}  // namespace ares
 
 #endif

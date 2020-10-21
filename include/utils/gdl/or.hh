@@ -6,25 +6,26 @@ namespace ares
     class Or : public structured_term
     {
         friend class MemCache;
-    public:
-        Or(const Body* body)
-        :structured_term(Namer::OR,body,Term::OR)
-        {}
 
-        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
+     public:
+        Or(const Body* body) : structured_term(Namer::OR, body, Term::OR) {}
 
-    private:
+        virtual const Term* operator()(const Substitution& sub,
+                                       VarSet& vSet) const;
+
+     private:
         /**
-         * Only MemCache could create terms, to ensure only one instance exists 
+         * Only MemCache could create terms, to ensure only one instance exists
          */
         void* operator new(std::size_t s);
         void operator delete(void* p);
-        ~Or() {
-            if(body)
+        ~Or()
+        {
+            if (body)
                 delete body;
             body = nullptr;
         }
     };
-} // namespace ares
+}  // namespace ares
 
 #endif

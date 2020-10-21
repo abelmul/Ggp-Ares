@@ -23,7 +23,7 @@
 //         /* data */
 //     public:
 //         MemCache(/* args */) {}
-        
+
 //         cnst_var_sptr getVar(const char* name ){
 //             return cnst_var_sptr(new Variable(name));
 //         }
@@ -40,8 +40,9 @@
 //             return l;
 //         }
 //         bool remove(structured_term* st){
-//             auto it = std::find_if(pool.begin(), pool.end(),[&](cnst_lit_sptr& _s){return _s.get() == st;});
-//             if( it != pool.end()){
+//             auto it = std::find_if(pool.begin(),
+//             pool.end(),[&](cnst_lit_sptr& _s){return _s.get() == st;}); if(
+//             it != pool.end()){
 //                 pool.erase(it);
 //             }
 //             return true;
@@ -62,7 +63,7 @@
 //     };
 //     MemCache* Ares::memCache = nullptr;
 //     MemoryPool* Ares::mempool = nullptr;
-        
+
 //     //Initialize static members of term
 //     CharpHasher Term::nameHasher;
 //     std::shared_ptr<const Term>     Term::null_term_sptr(nullptr);
@@ -77,25 +78,23 @@
 //     /**
 //      * number of terms pre allocated for
 //      */
-//     uint term_num;                      
+//     uint term_num;
 //     /**
 //      * number of clauses pre allocated for
 //      */
-//     uint clause_num;                    
+//     uint clause_num;
 //     /**
 //      * distinct term arities
 //      */
-//     uint dis_arites;      
-//     uint body_num;              
+//     uint dis_arites;
+//     uint body_num;
 //     /**
-//      * the random arrities of terms     
-//      */ 
+//      * the random arrities of terms
+//      */
 //     std::vector<std::pair<arity_t, uint>> arities;
 
 //     MemoryPool* mempool ;
 // };
-
-
 
 // rand_pool_info createPool(){
 //     srand(time(NULL));
@@ -109,14 +108,15 @@
 //         auto i = (rand() % 20 ) + 1;
 //         auto per_arity = (rand() % 40) + 10;
 
-//         if( std::find_if(rpi.arities.begin(), rpi.arities.end(), [&](std::pair<arity_t, uint>& p){return p.first == i;}) == rpi.arities.end() )
+//         if( std::find_if(rpi.arities.begin(), rpi.arities.end(),
+//         [&](std::pair<arity_t, uint>& p){return p.first == i;}) ==
+//         rpi.arities.end() )
 //             rpi.arities[j] = std::make_pair(i,per_arity );
 //         else  j--;
 //     }
-//     MemoryPool* mempool = new MemoryPool(rpi.term_num,rpi.clause_num,rpi.arities);
-//     rpi.mempool = mempool;
-//     Body::mempool = mempool;
-//     ClauseBody::mempool = mempool;
+//     MemoryPool* mempool = new
+//     MemoryPool(rpi.term_num,rpi.clause_num,rpi.arities); rpi.mempool =
+//     mempool; Body::mempool = mempool; ClauseBody::mempool = mempool;
 //     Ares::mempool = mempool;
 //     MemCache* exppool = new MemCache();
 //     Ares::memCache = exppool;
@@ -133,7 +133,7 @@
 //         if(find( except.begin() , except.end() , types[i]) == except.end())
 //             assert_true( mempool->capacity(types[i]) == nums[i]);
 //     }
-    
+
 // }
 
 // #include "../utils/gdl/structuredTerm.cpp"

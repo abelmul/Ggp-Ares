@@ -9,13 +9,16 @@ namespace ares
 {
     class Unifier
     {
-    private:
+     private:
         Unifier(/* args */){};
-    public:
-        static bool unifyAtom(const Atom& l1,const Atom& l2,Substitution& sub);
-        static bool unifyTerm(const Term* t1,const Term* t2,Substitution& sub);
-        ~Unifier(){}
+
+     public:
+        static bool unifyAtom(const Atom& l1, const Atom& l2,
+                              Substitution& sub);
+        static bool unifyTerm(const Term* t1, const Term* t2,
+                              Substitution& sub);
+        ~Unifier() {}
     };
-} // namespace ares
+}  // namespace ares
 
 #endif

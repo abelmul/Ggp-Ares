@@ -4,28 +4,28 @@
 #include "term.hh"
 namespace ares
 {
-    class Not :public structured_term
+    class Not : public structured_term
     {
-    public:
-        Not(const Body* body)
-        :structured_term(Namer::NOT,body,Term::NOT) 
-        {}
-        virtual const Term* operator ()(const Substitution &sub,VarSet& vSet) const;
+     public:
+        Not(const Body* body) : structured_term(Namer::NOT, body, Term::NOT) {}
+        virtual const Term* operator()(const Substitution& sub,
+                                       VarSet& vSet) const;
 
-    private:
-            /**
-         * Only MemCache could create terms, to ensure only one instance exists 
+     private:
+        /**
+         * Only MemCache could create terms, to ensure only one instance exists
          */
         void* operator new(std::size_t s);
         void operator delete(void* p);
-        ~Not() {
-            if(body)
+        ~Not()
+        {
+            if (body)
                 delete body;
             body = nullptr;
         }
 
-    friend class MemCache;
+        friend class MemCache;
     };
-} // namespace ares
+}  // namespace ares
 
 #endif
