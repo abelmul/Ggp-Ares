@@ -10,9 +10,10 @@
     - [Strategy](#strategy)
     - [HttpHandler](#httphandler)
   - [Dependencies](#dependencies)
+    - [Boost](#boost)
+    - [cpprestsdk](#cpprestsdk)
   - [Tests](#tests)
-    - [Run Unit Tests](#run-unit-tests)
-    - [Run Stress Tests](#run-stress-tests)
+    - [Run Tests](#run-tests)
 
 # Ares
 
@@ -23,30 +24,21 @@ to it in a formal description (specifically GDL).
 ## Build and Launch
 
 ### Build
-(make sure boost is installed.)
-#### Using make
+
+(make sure boost is installed. see [Dependencies Section](#boost) )
+(make sure cpprestsdk is setup. see [Dependencies Section](#cpprestsdk) )
+
 ~~~
-make setup
-make ares
+mkdir build && cd build
+cmake -G Ninja  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ..
+ninja all
 ~~~
 
 ### Launch
-~~~
-make run
-~~~
 
-#### Using cmake
-1. create a build directory and cd to it
-    ~~~
-    mkdir build && cd build
-    ~~~
-2. create the make file (for eg. using ninja). Read about the varibles [here](https://cmake.org/cmake/help/latest/manual/cmake-variables.7.html). For some reason only gcc works as compiler
-    ~~~
-    cmake -G Ninja -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc $SOURCE_DIR
-    ~~~
-3. Invoke make
-4. Copy the config from the source to the build directory 
-5. run ./ares
+~~~
+./ares
+~~~
 
 ## The config file
 
@@ -104,7 +96,7 @@ Handles the HTTP communication with a game manager inorder to play games.
 
 ## Dependencies
 
-1. Boost, install using:
+### Boost
    
    On debian based systems.
 
@@ -116,22 +108,17 @@ Handles the HTTP communication with a game manager inorder to play games.
 
    Or follow the instructions on the official site [here](http://www.boost.org/doc/libs/1_42_0/more/getting_started/unix-variants.html#easy-build-and-install)
    
-2. cpprestsdk is installed during `make setup`
+### cpprestsdk
+
+`git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git lib/cpprestsdk`
 
 ## Tests
 
 There are two directories found in the `test` directory, named `stress` and `unit` containing stress and unit tests. The directories contain several tests. 
 
-### Run Unit Tests
-~~~
-make unit_tests
-make run_unit_tests
-~~~
-
-### Run Stress Tests
+### Run Tests
 
 ~~~
-make stress_tests
-make run_stress_tests
+./run_tests
 ~~~
 
