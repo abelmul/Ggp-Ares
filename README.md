@@ -26,6 +26,7 @@ to it in a formal description (specifically GDL).
 ### Build
 
 (make sure boost is installed. see [Dependencies Section](#boost) )
+
 (make sure cpprestsdk is setup. see [Dependencies Section](#cpprestsdk) )
 
 ~~~
