@@ -75,5 +75,5 @@ target_link_libraries(ares PRIVATE ${SYSTEM_LIBS} httphandler reasoner strategy 
 
 #Create a symlink of ares.cfg.json
 
-#add_custom_target(symlink ALL
-    #${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/ares.cfg.json ${CMAKE_BINARY_DIR}/ares.cfg.json)
+add_custom_target(symlink ALL
+    ${CMAKE_COMMAND} -E create_symlink ${CMAKE_SOURCE_DIR}/ares.cfg.json ${CMAKE_BINARY_DIR}/ares.cfg.json)
