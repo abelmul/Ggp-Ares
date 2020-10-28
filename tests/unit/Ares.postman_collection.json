@@ -1,0 +1,186 @@
+{
+	"info": {
+		"_postman_id": "af0e7625-fe88-4c25-a6d2-0bea4a306fd7",
+		"name": "Ares",
+		"description": "Test the webservies\nReplies to \n    1. start message\n    2. play message\n    3. stop message",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "Start Message",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "5bbadece-6dcd-4d40-99f9-073fb79adb4e",
+						"exec": [
+							"pm.test(\"Start message test\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect( pm.response == \"READY\")",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"protocolProfileBehavior": {
+				"disabledSystemHeaders": {
+					"content-type": true
+				}
+			},
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Content-Type",
+						"value": "text/acl",
+						"type": "text"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "(START MATCH.3316980891 X\n(ROLE X) (ROLE O) (INIT (CELL 1 1 B)) (INIT (CELL 1 2 B)) (INIT (CELL 1 3 B))\n(INIT (CELL 2 1 B)) (INIT (CELL 2 2 B)) (INIT (CELL 2 3 B)) (INIT (CELL 3 1 B))\n(INIT (CELL 3 2 B)) (INIT (CELL 3 3 B)) (INIT (CONTROL X))\n(<= (NEXT (CELL ?X ?Y ?PLAYER)) (DOES ?PLAYER (MARK ?X ?Y)))\n(<= (NEXT (CELL ?X ?Y ?MARK)) (TRUE (CELL ?X ?Y ?MARK)) (DOES ?PLAYER (MARK ?M ?N))\n(DISTINCTCELL ?X ?Y ?M ?N)) (<= (NEXT (CONTROL X)) (TRUE (CONTROL O)))\n(<= (NEXT (CONTROL O)) (TRUE (CONTROL X))) (<= (ROW ?X ?PLAYER) (TRUE (CELL ?X 1 ?PLAYER))\n(TRUE (CELL ?X 2 ?PLAYER)) (TRUE (CELL ?X 3 ?PLAYER))) (<= (COLUMN ?Y ?PLAYER)\n(TRUE (CELL 1 ?Y ?PLAYER)) (TRUE (CELL 2 ?Y ?PLAYER)) (TRUE (CELL 3 ?Y ?PLAYER)))\n(<= (DIAGONAL ?PLAYER) (TRUE (CELL 1 1 ?PLAYER)) (TRUE (CELL 2 2 ?PLAYER))\n(TRUE (CELL 3 3 ?PLAYER))) (<= (DIAGONAL ?PLAYER) (TRUE (CELL 1 3 ?PLAYER))\n(TRUE (CELL 2 2 ?PLAYER)) (TRUE (CELL 3 1 ?PLAYER))) (<= (LINE ?PLAYER) (ROW ?X ?PLAYER))\n(<= (LINE ?PLAYER) (COLUMN ?Y ?PLAYER)) (<= (LINE ?PLAYER) (DIAGONAL ?PLAYER))\n(<= OPEN (TRUE (CELL ?X ?Y B))) (<= (DISTINCTCELL ?X ?Y ?M ?N) (DISTINCT ?X ?M))\n(<= (DISTINCTCELL ?X ?Y ?M ?N) (DISTINCT ?Y ?N)) (<= (LEGAL ?PLAYER (MARK ?X ?Y))\n(TRUE (CELL ?X ?Y B)) (TRUE (CONTROL ?PLAYER))) (<= (LEGAL ?PLAYER NOOP)\n(NOT (TRUE (CONTROL ?PLAYER)))) (<= (GOAL ?PLAYER 100) (LINE ?PLAYER))\n(<= (GOAL ?PLAYER 50) (NOT (LINE X)) (NOT (LINE O)) (NOT OPEN)) (<= (GOAL ?PLAYER1 0)\n(LINE ?PLAYER2) (DISTINCT ?PLAYER1 ?PLAYER2)) (<= (GOAL ?PLAYER 0) (NOT (LINE X))\n(NOT (LINE O)) OPEN) (<= TERMINAL (LINE ?PLAYER)) (<= TERMINAL (NOT OPEN))\n30 30)",
+					"options": {
+						"raw": {
+							"language": "text"
+						}
+					}
+				},
+				"url": {
+					"raw": "localhost:8080",
+					"host": [
+						"localhost"
+					],
+					"port": "8080"
+				},
+				"description": "GGP"
+			},
+			"response": []
+		},
+		{
+			"name": "Play Message Nil",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "08addd1a-2048-4f70-9af3-2beed078e10d",
+						"exec": [
+							"pm.test(\"Start message test\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect( pm.response.text().includes(\"mark\"))",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "(PLAY MATCH.3316980891 NIL)"
+				},
+				"url": {
+					"raw": "localhost:8080",
+					"host": [
+						"localhost"
+					],
+					"port": "8080"
+				},
+				"description": "Test the web services response during a play message."
+			},
+			"response": []
+		},
+		{
+			"name": "Play Message x player",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "b6d8ab9d-6ef3-4a2a-b9c0-2aa1b3149976",
+						"exec": [
+							"pm.test(\"Start message test\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect( pm.response.text().includes(\"mark\"))",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "(PLAY MATCH.3316980891 ((MARK 1 1) NOOP))"
+				},
+				"url": {
+					"raw": "localhost:8080",
+					"host": [
+						"localhost"
+					],
+					"port": "8080"
+				},
+				"description": "Test the web services response during a play message."
+			},
+			"response": []
+		},
+		{
+			"name": "Play Message o player",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"id": "2c29f147-84fa-435e-82ef-cece9691f815",
+						"exec": [
+							"pm.test(\"Start message test\", function () {",
+							"    pm.response.to.have.status(200);",
+							"    pm.expect( pm.response.text().includes(\"mark\"))",
+							"});"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "(PLAY MATCH.3316980891 (NOOP (MARK 1 2) ))"
+				},
+				"url": {
+					"raw": "localhost:8080",
+					"host": [
+						"localhost"
+					],
+					"port": "8080"
+				},
+				"description": "Test the web services response during a play message."
+			},
+			"response": []
+		},
+		{
+			"name": "Info",
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "( INFO )"
+				},
+				"url": {
+					"raw": "localhost:8080",
+					"host": [
+						"localhost"
+					],
+					"port": "8080"
+				}
+			},
+			"response": []
+		}
+	],
+	"protocolProfileBehavior": {}
+}

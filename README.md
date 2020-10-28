@@ -9,6 +9,7 @@
     - [GameAnalyzer](#gameanalyzer)
     - [Strategy](#strategy)
     - [HttpHandler](#httphandler)
+    - [Visualization](#visualization)
   - [Dependencies](#dependencies)
     - [Boost](#boost)
     - [cpprestsdk](#cpprestsdk)
@@ -25,9 +26,7 @@ to it in a formal description (specifically GDL).
 
 ### Build
 
-(make sure boost is installed. see [Dependencies Section](#boost) )
-
-(make sure cpprestsdk is setup. see [Dependencies Section](#cpprestsdk) )
+make sure `boost` is installed before proceeding. see [Dependencies Section](#boost).
 
 ~~~
 mkdir build && cd build
@@ -95,6 +94,10 @@ Contains a set of strategies used to decide which move to make at each step of a
 
 Handles the HTTP communication with a game manager inorder to play games.
 
+### Visualization
+
+This module handles the visualization of the state space search of Ares during game play.
+
 ## Dependencies
 
 ### Boost
@@ -111,7 +114,7 @@ Handles the HTTP communication with a game manager inorder to play games.
    
 ### cpprestsdk
 
-`git clone --recurse-submodules https://github.com/microsoft/cpprestsdk.git lib/cpprestsdk`
+The underlying http library used is `cpprestsdk`. It is installed locally during build.
 
 ## Tests
 
