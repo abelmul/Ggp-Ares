@@ -29,6 +29,8 @@ to it in a formal description (specifically GDL).
 make sure `boost` is installed before proceeding. see [Dependencies Section](#boost).
 
 ~~~
+git clone https://github.com/estifanos-si/GGP-Ares.git ares
+cd ares
 mkdir build && cd build
 cmake -G Ninja  -DCMAKE_BUILD_TYPE=Debug -DCMAKE_CXX_COMPILER=g++ -DCMAKE_C_COMPILER=gcc ..
 ninja all
